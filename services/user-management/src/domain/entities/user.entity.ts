@@ -1,34 +1,43 @@
 // src/domain/entities/user.entity.ts
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { Address } from '../value-objects/address.value-object';
-import { Email } from '../value-objects/email.value-object';
 
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { PersonalAccountID } from '../value-objects/personal-account-id.value-object';
+import { UserID } from '../value-objects/user-id.value-object';
+import { PersonalAccount } from './personal-account.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  user_id: UserID;
+
+  @Column({ unique: true })
+  user_name: string;
 
   @Column()
-  name: string;
+  password: string;
 
-  @Column()
-  email: string;
+  @OneToOne(() => PersonalAccount, {
+    cascade: true,
+  })
+  @JoinColumn({ name: 'personal_account_id' })
+  personal_account: PersonalAccountID;
 
-  @Column()
-  phoneNumber: string;
+  @Column({ default: true })
+  is_active: boolean;
 
-  @Column('json')
-  address: Address;
+  @CreateDateColumn()
+  created_date: Date;
 
-  constructor(
-    name: string,
-    email: string,
-    phoneNumber: string,
-    address: Address,
-  ) {
-    this.name = name;
-    this.email = new Email(email).toString();
-    this.phoneNumber = phoneNumber;
-    this.address = address;
-  }
+  @Column({ nullable: true })
+  updated_by: string;
+
+  @UpdateDateColumn()
+  updated_date: Date;
 }
