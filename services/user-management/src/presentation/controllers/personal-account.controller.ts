@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CreatePersonalAccountCommand } from 'src/application/personal-account/commands/create-personal-account.command';
+import { CreatePersonalAccountCommand } from 'src/application/commands/personal-account/create-personal-account.command';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { CreatePersonalAccountDto } from '../dtos/create-personal-account.dto';
 

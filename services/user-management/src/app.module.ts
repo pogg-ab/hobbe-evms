@@ -4,8 +4,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
-import { PersonalAccountModule } from './personal-account/personal-account.module';
-import { AuthModule } from './auth/auth.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { PersonalAccountModule } from './modules/personal-account/personal-account.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuthModule } from './auth/auth.module';
     CqrsModule,
     PersonalAccountModule,
     AuthModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
