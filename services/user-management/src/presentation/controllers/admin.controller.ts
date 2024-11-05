@@ -8,7 +8,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreatePermissionCommand } from 'src/application/commands/admin/create-permission.command';
 import { CreateRoleCommand } from 'src/application/commands/admin/create-role.command';
 import { GetAllPermissionQuery } from 'src/application/queries/admin/get-all-permissions.query';
@@ -32,18 +32,23 @@ export class AdminController {
   ) {}
 
   @Post('roles')
+  @ApiOperation({ summary: 'Create a new role' })
+  @ApiBody({ type: CreateRoleDto })
   async addRole(@Body() createRoleDto: CreateRoleDto): Promise<Role> {
     const command = new CreateRoleCommand(createRoleDto);
     return this.commandBus.execute(command);
   }
 
   @Get('roles')
+  @ApiOperation({ summary: 'Retrieve all roles' })
   async viewRoles(): Promise<GetRoleDto[]> {
     const query = new GetAllRolesQuery();
     return this.queryBus.execute(query);
   }
 
   @Put('roles/:id')
+  @ApiOperation({ summary: 'Update an existing role' })
+  @ApiBody({ type: UpdateRoleDto })
   async updateRole(
     @Param('id') id: string,
     @Body() updateRoleDto: UpdateRoleDto,
@@ -52,11 +57,14 @@ export class AdminController {
   }
 
   @Delete('roles/:id')
+  @ApiOperation({ summary: 'Delete a role by ID' })
   async deleteRole(@Param('id') id: string): Promise<void> {
     return this.adminService.deleteRole(id);
   }
 
   @Post('permissions')
+  @ApiOperation({ summary: 'Create a new permission' })
+  @ApiBody({ type: CreatePermissionDto })
   async addPermission(
     @Body() createPermissionDto: CreatePermissionDto,
   ): Promise<Permission> {
@@ -65,12 +73,15 @@ export class AdminController {
   }
 
   @Get('permissions')
+  @ApiOperation({ summary: 'Retrieve all permissions' })
   async viewPermissions(): Promise<Permission[]> {
     const query = new GetAllPermissionQuery();
     return this.queryBus.execute(query);
   }
 
   @Put('permissions/:id')
+  @ApiOperation({ summary: 'Update an existing permission' })
+  @ApiBody({ type: UpdatePermissionDto })
   async updatePermission(
     @Param('id') id: string,
     @Body() updatePermissionDto: UpdatePermissionDto,
@@ -79,6 +90,7 @@ export class AdminController {
   }
 
   @Delete('permissions/:id')
+  @ApiOperation({ summary: 'Delete a permission by ID' })
   async deletePermission(@Param('id') id: string): Promise<void> {
     return this.adminService.deletePermission(id);
   }

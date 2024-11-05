@@ -7,6 +7,7 @@ import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PersonalAccountModule } from './modules/personal-account/personal-account.module';
+// import { OrganizationalAccountModule } from './organizational-account/organizational-account.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PersonalAccountModule } from './modules/personal-account/personal-accou
     PersonalAccountModule,
     AuthModule,
     AdminModule,
+    // OrganizationalAccountModule,
   ],
 })
 export class AppModule {}

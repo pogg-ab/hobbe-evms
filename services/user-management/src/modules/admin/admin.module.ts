@@ -11,6 +11,8 @@ import { AdminService } from 'src/application/services/admin.service';
 import { Permission } from 'src/domain/entities/permission.entity';
 import { RolePermission } from 'src/domain/entities/role-permission.entity';
 import { Role } from 'src/domain/entities/role.entity';
+import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
+import { RoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/role.repository.impl';
 import { AdminController } from 'src/presentation/controllers/admin.controller';
 
 @Module({
@@ -26,6 +28,10 @@ import { AdminController } from 'src/presentation/controllers/admin.controller';
     CreatePermissionCommandHandler,
     GetAllRolesQueryHandler,
     GetAllPermissionQueryHandler,
+    {
+      provide: ROLE_REPOSITORY_TOKEN,
+      useClass: RoleRepositoryImpl,
+    },
   ],
 })
 export class AdminModule {}

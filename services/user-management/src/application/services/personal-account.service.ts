@@ -6,6 +6,8 @@ import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { IPersonalAccountRepository } from 'src/domain/repositories/personal-account.repository';
 import { PERSONAL_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/personal-account.repository.token';
+// import { IUserRoleRepository } from 'src/domain/repositories/user-role.repository';
+// import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto';
@@ -18,6 +20,8 @@ export class PersonalAccountService {
     private readonly personalAccountRepository: IPersonalAccountRepository,
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
+    // @Inject(USER_ROLE_REPOSITORY_TOKEN)
+    // private readonly userRole: IUserRoleRepository,
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
   async create(
@@ -37,6 +41,8 @@ export class PersonalAccountService {
     );
     user.password = await this.hashPassword(createPersonalAccountDto.password);
     user.personal_account = savedAccount.personal_account_id;
+
+    // const newUserRole = await this.userRole.create();
 
     await this.userRepository.create(user);
     return savedAccount;
