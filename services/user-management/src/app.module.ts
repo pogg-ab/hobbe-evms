@@ -8,8 +8,6 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { OrganizationalAccountModule } from './modules/organizational-account/organizational-account.module';
 import { PersonalAccountModule } from './modules/personal-account/personal-account.module';
-// import { OrganizationalAccountModule } from './organizational-account/organizational-account.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
