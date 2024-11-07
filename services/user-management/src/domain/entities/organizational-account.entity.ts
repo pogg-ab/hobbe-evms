@@ -3,11 +3,17 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { AccountStatus } from '../value-objects/account-status.value-object';
+import { KYCID } from '../value-objects/kyc-id.value-object';
 import { OrganizationalAccountID } from '../value-objects/organizational-account-id.value-object';
+import { OwnerID } from '../value-objects/owner-id.value-object';
+import { KYC } from './kyc.entity';
+import { Owner } from './owner.entity';
 
 @Entity()
 export class OrganizationalAccount {
@@ -26,11 +32,20 @@ export class OrganizationalAccount {
   @Column({ unique: true })
   company_email: string;
 
-  @Column({ nullable: true })
-  company_website: string;
-
   @Column()
   company_type: string;
+
+  @Column()
+  TIN: string;
+
+  @Column()
+  operating_country: string;
+
+  @OneToOne(() => KYC, { nullable: true })
+  kyc: KYCID;
+
+  @ManyToOne(() => Owner, { nullable: true })
+  owner: OwnerID;
 
   @Column(() => AccountStatus)
   status: AccountStatus;

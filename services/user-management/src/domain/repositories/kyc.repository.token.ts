@@ -1,0 +1,1 @@
+export const KYC_REPOSITORY_TOKEN = 'KYC_REPOSITORY';
