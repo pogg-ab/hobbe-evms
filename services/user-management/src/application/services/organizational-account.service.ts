@@ -1,4 +1,12 @@
+import { Mapper } from '@automapper/core';
+import { InjectMapper } from '@automapper/nestjs';
 import { Inject, Injectable } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { KYC } from 'src/domain/entities/kyc.entity';
+import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
+import { Owner } from 'src/domain/entities/owner.entity';
+import { SocialMedia } from 'src/domain/entities/social-media.entity';
+import { User } from 'src/domain/entities/user.entity';
 import { IKYCRepository } from 'src/domain/repositories/kyc.repository';
 import { KYC_REPOSITORY_TOKEN } from 'src/domain/repositories/kyc.repository.token';
 import { IOrganizationalAccountRepository } from 'src/domain/repositories/organizational-account.repository';
@@ -29,9 +37,60 @@ export class OrganizationalAccountService {
 
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
+
+    @InjectMapper() private readonly mapper: Mapper,
   ) {}
   async create(createOrganizationalAccountDto: CreateOrganizationalAccountDto) {
-    return 'This action adds a new organizationalAccount';
+    const organizationalAccount = this.mapper.map(
+      createOrganizationalAccountDto,
+      CreateOrganizationalAccountDto,
+      OrganizationalAccount,
+    );
+
+    const owner = this.mapper.map(
+      createOrganizationalAccountDto,
+      CreateOrganizationalAccountDto,
+      Owner,
+    );
+    const savedOwner = await this.ownerRepository.create(owner);
+
+    const kyc = this.mapper.map(
+      createOrganizationalAccountDto,
+      CreateOrganizationalAccountDto,
+      KYC,
+    );
+    const savedKYC = await this.kycRepository.create(kyc);
+
+    const socialMedia = this.mapper.map(
+      createOrganizationalAccountDto,
+      CreateOrganizationalAccountDto,
+      SocialMedia,
+    );
+    const savedSocialMedia =
+      await this.socialMediaRepository.create(socialMedia);
+
+    const user = this.mapper.map(
+      createOrganizationalAccountDto,
+      CreateOrganizationalAccountDto,
+      User,
+    );
+    // user.password = await this.hashPassword(
+    //   createOrganizationalAccountDto.password,
+    // );
+    await this.userRepository.create(user);
+    organizationalAccount.owner = savedOwner.owner_id;
+    organizationalAccount.kyc = savedKYC.kyc_id;
+
+    const savedAccount = await this.organizationalAccountRepository.create(
+      organizationalAccount,
+    );
+
+    return savedAccount;
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
   }
 
   findAll() {

@@ -7,18 +7,21 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CreateOrganizationalAccountCommand } from 'src/application/commands/organizational-account/create-organizational-account.command';
+import { RemoveOrganizationalAccountCommand } from 'src/application/commands/organizational-account/remove-organizational-account.command';
+import { UpdateOrganizationalAccountCommand } from 'src/application/commands/organizational-account/update-organizational-account.command';
+import { FindAllOrganizationalAccountsQuery } from 'src/application/queries/organizational-account/find-all-organizational-accounts.query';
+import { FindOrganizationalAccountByIdQuery } from 'src/application/queries/organizational-account/find-organizational-account-by-id.query';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
-import { OrganizationalAccountService } from '../../application/services/organizational-account.service';
 import { CreateOrganizationalAccountDto } from '../dtos/create-organizational-account.dto';
 import { UpdateOrganizationalAccountDto } from '../dtos/update-organizational-account.dto';
 
 @ApiTags('Organizational Account')
 @Controller('organizational-account')
 export class OrganizationalAccountController {
-  constructor(
-    private readonly organizationalAccountService: OrganizationalAccountService,
-  ) {}
+  constructor(private readonly commandBus: CommandBus) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new organizational account' })
@@ -28,14 +31,21 @@ export class OrganizationalAccountController {
     description: 'Organizational account created successfully',
     type: OrganizationalAccount,
   })
-  create(
+  async create(
     @Body() createOrganizationalAccountDto: CreateOrganizationalAccountDto,
   ) {
-    return this.organizationalAccountService.create(
+    const command = new CreateOrganizationalAccountCommand(
       createOrganizationalAccountDto,
     );
+    const createdAccount = await this.commandBus.execute(command);
+
+    return {
+      message: 'Organizational account created successfully',
+      account: createdAccount,
+    };
   }
 
+  // Get All Organizational Accounts
   @Get()
   @ApiOperation({ summary: 'Get all organizational accounts' })
   @ApiResponse({
@@ -43,10 +53,12 @@ export class OrganizationalAccountController {
     description: 'List of all organizational accounts',
     type: [OrganizationalAccount],
   })
-  findAll() {
-    return this.organizationalAccountService.findAll();
+  async findAll(): Promise<OrganizationalAccount[]> {
+    const query = new FindAllOrganizationalAccountsQuery();
+    return this.commandBus.execute(query);
   }
 
+  // Get Organizational Account by ID
   @Get(':id')
   @ApiOperation({ summary: 'Get an organizational account by ID' })
   @ApiResponse({
@@ -58,10 +70,14 @@ export class OrganizationalAccountController {
     status: 404,
     description: 'Organizational account not found',
   })
-  findOne(@Param('id') id: string) {
-    return this.organizationalAccountService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+  ): Promise<OrganizationalAccount | null> {
+    const query = new FindOrganizationalAccountByIdQuery(+id);
+    return this.commandBus.execute(query);
   }
 
+  // Update Organizational Account
   @Patch(':id')
   @ApiOperation({ summary: 'Update an existing organizational account' })
   @ApiBody({ type: UpdateOrganizationalAccountDto })
@@ -74,16 +90,18 @@ export class OrganizationalAccountController {
     status: 404,
     description: 'Organizational account not found',
   })
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateOrganizationalAccountDto: UpdateOrganizationalAccountDto,
-  ) {
-    return this.organizationalAccountService.update(
+  ): Promise<OrganizationalAccount> {
+    const command = new UpdateOrganizationalAccountCommand(
       +id,
       updateOrganizationalAccountDto,
     );
+    return this.commandBus.execute(command);
   }
 
+  // Delete Organizational Account
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an organizational account' })
   @ApiResponse({
@@ -94,7 +112,8 @@ export class OrganizationalAccountController {
     status: 404,
     description: 'Organizational account not found',
   })
-  remove(@Param('id') id: string) {
-    return this.organizationalAccountService.remove(+id);
+  async remove(@Param('id') id: string): Promise<void> {
+    const command = new RemoveOrganizationalAccountCommand(+id);
+    return this.commandBus.execute(command);
   }
 }
