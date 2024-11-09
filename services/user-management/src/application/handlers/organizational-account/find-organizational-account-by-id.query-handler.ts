@@ -15,6 +15,6 @@ export class FindOrganizationalAccountByIdQueryHandler
   async execute(
     query: FindOrganizationalAccountByIdQuery,
   ): Promise<OrganizationalAccount | null> {
-    return this.organizationalAccountService.findOne(query.id);
+    return this.organizationalAccountService.findOneById(query.id);
   }
 }

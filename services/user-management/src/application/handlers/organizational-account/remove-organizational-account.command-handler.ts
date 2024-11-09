@@ -13,6 +13,6 @@ export class RemoveOrganizationalAccountCommandHandler
 
   async execute(command: RemoveOrganizationalAccountCommand): Promise<void> {
     const { id } = command;
-    return this.organizationalAccountService.remove(id);
+    return this.organizationalAccountService.deleteOrganizationalAccount(id);
   }
 }

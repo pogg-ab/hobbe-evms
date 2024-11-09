@@ -7,7 +7,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateOrganizationalAccountCommand } from 'src/application/commands/organizational-account/create-organizational-account.command';
 import { RemoveOrganizationalAccountCommand } from 'src/application/commands/organizational-account/remove-organizational-account.command';
@@ -21,7 +21,10 @@ import { UpdateOrganizationalAccountDto } from '../dtos/update-organizational-ac
 @ApiTags('Organizational Account')
 @Controller('organizational-account')
 export class OrganizationalAccountController {
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new organizational account' })
@@ -55,7 +58,7 @@ export class OrganizationalAccountController {
   })
   async findAll(): Promise<OrganizationalAccount[]> {
     const query = new FindAllOrganizationalAccountsQuery();
-    return this.commandBus.execute(query);
+    return this.queryBus.execute(query);
   }
 
   // Get Organizational Account by ID
@@ -73,8 +76,8 @@ export class OrganizationalAccountController {
   async findOne(
     @Param('id') id: string,
   ): Promise<OrganizationalAccount | null> {
-    const query = new FindOrganizationalAccountByIdQuery(+id);
-    return this.commandBus.execute(query);
+    const query = new FindOrganizationalAccountByIdQuery(id);
+    return this.queryBus.execute(query);
   }
 
   // Update Organizational Account
@@ -113,7 +116,7 @@ export class OrganizationalAccountController {
     description: 'Organizational account not found',
   })
   async remove(@Param('id') id: string): Promise<void> {
-    const command = new RemoveOrganizationalAccountCommand(+id);
+    const command = new RemoveOrganizationalAccountCommand(id);
     return this.commandBus.execute(command);
   }
 }

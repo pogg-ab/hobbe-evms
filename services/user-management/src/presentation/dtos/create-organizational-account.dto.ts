@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsStrongPassword,
 } from 'class-validator';
 import { SocialMediaAccountDto } from './social-media-account.dto';
 
@@ -63,12 +64,20 @@ export class CreateOrganizationalAccountDto {
   operatingCountry: string;
 
   @ApiProperty({
-    description: 'The status of the organizational account',
-    example: 'Active',
+    description: 'Enter password',
   })
   @IsString()
   @IsNotEmpty()
-  status: string;
+  @IsStrongPassword()
+  password: string;
+
+  @ApiProperty({
+    description: 'Confirm Password',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsStrongPassword()
+  confirmPassword: string;
 
   @ApiProperty({
     description: 'The company logo image (base64 encoded)',

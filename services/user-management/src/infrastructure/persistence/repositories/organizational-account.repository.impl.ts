@@ -30,6 +30,17 @@ export class OrganizationalAccountRepositoryImpl
     }
   }
 
+  async find(): Promise<OrganizationalAccount[]> {
+    try {
+      return await this.organizationalAccountRepository.find();
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching organizational account: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async findOneById(
     organizationalAccountId: string,
   ): Promise<OrganizationalAccount | null> {
@@ -65,7 +76,7 @@ export class OrganizationalAccountRepositoryImpl
     }
   }
 
-  async remove(organizationalAccountId: string): Promise<void> {
+  async delete(organizationalAccountId: string): Promise<void> {
     try {
       await this.organizationalAccountRepository.delete(
         organizationalAccountId,

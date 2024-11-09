@@ -3,7 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToOne,
+  JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -42,9 +42,11 @@ export class OrganizationalAccount {
   operating_country: string;
 
   @OneToOne(() => KYC, { nullable: true })
+  @JoinColumn({ name: 'kyc_id' })
   kyc: KYCID;
 
-  @ManyToOne(() => Owner, { nullable: true })
+  @OneToOne(() => Owner, { nullable: true })
+  @JoinColumn({ name: 'owner_id' })
   owner: OwnerID;
 
   @Column(() => AccountStatus)

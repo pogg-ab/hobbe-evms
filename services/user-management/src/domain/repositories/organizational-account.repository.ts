@@ -4,6 +4,7 @@ export interface IOrganizationalAccountRepository {
   create(
     organizationalAccount: OrganizationalAccount,
   ): Promise<OrganizationalAccount>;
+  find(): Promise<OrganizationalAccount[]>;
   findOneById(
     organizationalAccountId: string,
   ): Promise<OrganizationalAccount | null>;
@@ -11,5 +12,5 @@ export interface IOrganizationalAccountRepository {
     organizationalAccountId: string,
     organizationalAccount: OrganizationalAccount,
   ): Promise<OrganizationalAccount>;
-  remove(organizationalAccountId: string): Promise<void>;
+  delete(organizationalAccountId: string): Promise<void>;
 }

@@ -1,5 +1,12 @@
+import { AutomapperModule } from '@automapper/nestjs';
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CreateOrganizationalAccountCommandHandler } from 'src/application/handlers/organizational-account/create-organizational-account.command-handler';
+import { FindAllOrganizationalAccountsQueryHandler } from 'src/application/handlers/organizational-account/find-all-organizational-accounts.query-handler';
+import { FindOrganizationalAccountByIdQueryHandler } from 'src/application/handlers/organizational-account/find-organizational-account-by-id.query-handler';
+import { RemoveOrganizationalAccountCommandHandler } from 'src/application/handlers/organizational-account/remove-organizational-account.command-handler';
+import { OrganizationalAccountProfile } from 'src/application/mappers/organizational-account.profile';
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { Owner } from 'src/domain/entities/owner.entity';
@@ -20,6 +27,8 @@ import { OrganizationalAccountController } from '../../presentation/controllers/
 
 @Module({
   imports: [
+    AutomapperModule,
+    CqrsModule,
     TypeOrmModule.forFeature([
       OrganizationalAccount,
       SocialMedia,
@@ -31,6 +40,11 @@ import { OrganizationalAccountController } from '../../presentation/controllers/
   controllers: [OrganizationalAccountController],
   providers: [
     OrganizationalAccountService,
+    CreateOrganizationalAccountCommandHandler,
+    FindAllOrganizationalAccountsQueryHandler,
+    FindOrganizationalAccountByIdQueryHandler,
+    RemoveOrganizationalAccountCommandHandler,
+    OrganizationalAccountProfile,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,

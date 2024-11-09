@@ -1,6 +1,6 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { User } from 'src/domain/entities/user.entity';
@@ -27,6 +27,14 @@ export class PersonalAccountService {
   async create(
     createPersonalAccountDto: CreatePersonalAccountDto,
   ): Promise<PersonalAccount> {
+    if (
+      createPersonalAccountDto.password !==
+      createPersonalAccountDto.confirmPassword
+    ) {
+      throw new BadRequestException(
+        'Password and Confirm Password do not match',
+      );
+    }
     const newAccount = this.mapper.map(
       createPersonalAccountDto,
       CreatePersonalAccountDto,

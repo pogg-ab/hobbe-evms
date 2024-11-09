@@ -1,6 +1,6 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
@@ -41,6 +41,14 @@ export class OrganizationalAccountService {
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
   async create(createOrganizationalAccountDto: CreateOrganizationalAccountDto) {
+    if (
+      createOrganizationalAccountDto.password !==
+      createOrganizationalAccountDto.confirmPassword
+    ) {
+      throw new BadRequestException(
+        'Password and Confirm Password do not match',
+      );
+    }
     const organizationalAccount = this.mapper.map(
       createOrganizationalAccountDto,
       CreateOrganizationalAccountDto,
@@ -61,29 +69,33 @@ export class OrganizationalAccountService {
     );
     const savedKYC = await this.kycRepository.create(kyc);
 
-    const socialMedia = this.mapper.map(
-      createOrganizationalAccountDto,
-      CreateOrganizationalAccountDto,
-      SocialMedia,
-    );
-    const savedSocialMedia =
-      await this.socialMediaRepository.create(socialMedia);
-
-    const user = this.mapper.map(
-      createOrganizationalAccountDto,
-      CreateOrganizationalAccountDto,
-      User,
-    );
-    // user.password = await this.hashPassword(
-    //   createOrganizationalAccountDto.password,
-    // );
-    await this.userRepository.create(user);
     organizationalAccount.owner = savedOwner.owner_id;
     organizationalAccount.kyc = savedKYC.kyc_id;
 
     const savedAccount = await this.organizationalAccountRepository.create(
       organizationalAccount,
     );
+
+    const user = this.mapper.map(
+      createOrganizationalAccountDto,
+      CreateOrganizationalAccountDto,
+      User,
+    );
+    user.password = await this.hashPassword(
+      createOrganizationalAccountDto.password,
+    );
+    user.organizational_account = savedAccount.organizational_account_id;
+    await this.userRepository.create(user);
+
+    const socialMedia = this.mapper.map(
+      createOrganizationalAccountDto,
+      CreateOrganizationalAccountDto,
+      SocialMedia,
+    );
+
+    socialMedia.organizational_account = savedAccount.organizational_account_id;
+
+    await this.socialMediaRepository.create(socialMedia);
 
     return savedAccount;
   }
@@ -94,11 +106,12 @@ export class OrganizationalAccountService {
   }
 
   findAll() {
-    return `This action returns all organizationalAccount`;
+    return this.organizationalAccountRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} organizationalAccount`;
+  async findOneById(id: string): Promise<OrganizationalAccount> {
+    const role = await this.organizationalAccountRepository.findOneById(id);
+    return role;
   }
 
   update(
@@ -108,7 +121,7 @@ export class OrganizationalAccountService {
     return `This action updates a #${id} organizationalAccount`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} organizationalAccount`;
+  async deleteOrganizationalAccount(id: string): Promise<void> {
+    await this.organizationalAccountRepository.delete(id);
   }
 }

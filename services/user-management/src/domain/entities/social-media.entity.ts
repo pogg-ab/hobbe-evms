@@ -2,10 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { OrganizationalAccountID } from '../value-objects/organizational-account-id.value-object';
 import { SocialMediaID } from '../value-objects/social-media-id.value-object';
 import { OrganizationalAccount } from './organizational-account.entity';
 
@@ -14,8 +16,12 @@ export class SocialMedia {
   @PrimaryGeneratedColumn('uuid')
   social_media_id: SocialMediaID;
 
-  @ManyToOne(() => OrganizationalAccount, { nullable: false })
-  organizational_account_id: string;
+  @ManyToOne(() => OrganizationalAccount, {
+    nullable: false,
+    cascade: true,
+  })
+  @JoinColumn({ name: 'organizational_account_id' })
+  organizational_account: OrganizationalAccountID;
 
   @Column()
   platform: string;

@@ -7,6 +7,7 @@ import { Owner } from 'src/domain/entities/owner.entity';
 import { SocialMedia } from 'src/domain/entities/social-media.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { AccountStatus } from 'src/domain/value-objects/account-status.value-object';
+import { AccountType } from 'src/domain/value-objects/account-type.value-object';
 import { CreateOrganizationalAccountDto } from 'src/presentation/dtos/create-organizational-account.dto';
 
 @Injectable()
@@ -161,10 +162,15 @@ export class OrganizationalAccountProfile extends AutomapperProfile {
           (destination) => destination.user_name,
           mapFrom((src) => src.companyEmail),
         ),
-        // forMember(
-        //   (destination) => destination.password,
-        //   mapFrom( (src) => src.)),
-        // ),
+        forMember(
+          (destination) => destination.account_type,
+          mapFrom((src) => AccountType.ORGANIZATIONAL),
+        ),
+        forMember(
+          (destination) => destination.password,
+          mapFrom((src) => src.password),
+        ),
+
         forMember(
           (destination) => destination.is_active,
           mapFrom(() => true),
