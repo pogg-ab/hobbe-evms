@@ -10,28 +10,28 @@ async function bootstrap() {
     .setTitle('Event Management API')
     .setDescription('API for managing events')
     .setVersion('1.0')
-    .addTag('events')
+    .addTag('Events')
     .build();
   const document = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup('api', app, document);
   app.useGlobalPipes(new ValidationPipe());
 
-  const kafkaOptions: MicroserviceOptions = {
-    transport: Transport.KAFKA,
-    options: {
-      client: {
-        clientId: 'event-management',
-        brokers: ['localhost:9092'],
-      },
-      consumer: {
-        groupId: 'event-management-consumer',
-      },
-    },
-  };
+  // const kafkaOptions: MicroserviceOptions = {
+  //   transport: Transport.KAFKA,
+  //   options: {
+  //     client: {
+  //       clientId: 'event-management',
+  //       brokers: ['localhost:9092'],
+  //     },
+  //     consumer: {
+  //       groupId: 'event-management-consumer',
+  //     },
+  //   },
+  // };
 
-  app.connectMicroservice(kafkaOptions);
-  await app.startAllMicroservices();
+  // app.connectMicroservice(kafkaOptions);
+  // await app.startAllMicroservices();
 
   await app.listen(4001);
 }
