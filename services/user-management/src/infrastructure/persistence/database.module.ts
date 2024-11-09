@@ -1,8 +1,7 @@
 // src/infrastructure/persistence/database.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../../domain/entities/user.entity';
-
+import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -17,7 +16,7 @@ import { User } from '../../domain/entities/user.entity';
       synchronize: true, // Be cautious with this in production
       logging: true, // Enable logging during development
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([PersonalAccount]),
   ],
   exports: [TypeOrmModule],
 })
