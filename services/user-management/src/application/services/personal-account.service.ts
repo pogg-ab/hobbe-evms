@@ -1,6 +1,11 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { User } from 'src/domain/entities/user.entity';
@@ -61,19 +66,34 @@ export class PersonalAccountService {
     return await bcrypt.hash(password, salt);
   }
 
-  findAll() {
-    return `This action returns all personalAccount`;
+  async findAll(): Promise<PersonalAccount[]> {
+    return this.personalAccountRepository.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} personalAccount`;
+  async findOne(id: string): Promise<PersonalAccount> {
+    const account = await this.personalAccountRepository.findOneById(id);
+    if (!account) {
+      throw new NotFoundException(`Personal account with ID ${id} not found`);
+    }
+    return account;
   }
 
-  update(id: number, updatePersonalAccountDto: UpdatePersonalAccountDto) {
-    return `This action updates a #${id} personalAccount`;
+  async update(
+    id: string,
+    updatePersonalAccountDto: UpdatePersonalAccountDto,
+  ): Promise<PersonalAccount> {
+    const account = await this.findOne(id);
+    const updatedAccount = this.mapper.map(
+      updatePersonalAccountDto,
+      UpdatePersonalAccountDto,
+      PersonalAccount,
+    );
+    await this.personalAccountRepository.update(id, updatedAccount);
+    return updatedAccount;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} personalAccount`;
+  async deletePersonalAccount(id: string): Promise<void> {
+    const account = await this.findOne(id);
+    await this.personalAccountRepository.delete(id);
   }
 }

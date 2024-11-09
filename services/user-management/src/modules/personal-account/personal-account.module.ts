@@ -10,6 +10,10 @@ import { PERSONAL_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/perso
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { PersonalAccountRepositoryImpl } from 'src/infrastructure/persistence/repositories/personal-account.repository.impl';
 // import { UserRoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/user-role.repository.impl';
+import { FindAllPersonalAccountsQueryHandler } from 'src/application/handlers/personal-account/find-all-personal-accounts.query-handler';
+import { FindPersonalAccountByIdQueryHandler } from 'src/application/handlers/personal-account/find-personal-account-by-id.query-handler';
+import { RemovePersonalAccountCommandHandler } from 'src/application/handlers/personal-account/remove-personal-account.command-handler';
+import { UpdatePersonalAccountCommandHandler } from 'src/application/handlers/personal-account/update-personal-account.command-handler';
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { PersonalAccountController } from 'src/presentation/controllers/personal-account.controller';
 import { PersonalAccountService } from '../../application/services/personal-account.service';
@@ -24,6 +28,10 @@ import { PersonalAccountService } from '../../application/services/personal-acco
   providers: [
     PersonalAccountService,
     CreatePersonalAccountCommandHandler,
+    FindAllPersonalAccountsQueryHandler,
+    FindPersonalAccountByIdQueryHandler,
+    UpdatePersonalAccountCommandHandler,
+    RemovePersonalAccountCommandHandler,
     PersonalAccountProfile,
     {
       provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,

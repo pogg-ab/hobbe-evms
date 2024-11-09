@@ -104,7 +104,6 @@ export class OrganizationalAccountController {
     return this.commandBus.execute(command);
   }
 
-  // Delete Organizational Account
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an organizational account' })
   @ApiResponse({
