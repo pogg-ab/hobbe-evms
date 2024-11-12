@@ -1,6 +1,6 @@
 import { IQueryHandler, QueryHandler } from "@nestjs/cqrs";
-import { GetAllEventsQuery } from "../queries/events/get-all-events.query";
-import { EventsService } from "../services/events/events.service";
+import { GetAllEventsQuery } from "../../queries/events/get-all-events.query";
+import { EventsService } from "../../services/events/events.service";
 import { Events } from "src/domain/entities/events.entity";
 
 

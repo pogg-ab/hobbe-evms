@@ -1,10 +1,11 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { IdValueObject } from "../value-objects/event-id.value-object";
 
 @Entity()
 export class Events {
 
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id: IdValueObject;
 
     @Column()
     title: string;

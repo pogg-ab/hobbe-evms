@@ -1,10 +1,14 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateEventCommand } from 'src/application/commands/create-event.command';
+import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
+import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
 import { GetAllEventsQuery } from 'src/application/queries/events/get-all-events.query';
+import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
 import { Events } from 'src/domain/entities/events.entity';
 import { CreateEventsDto } from 'src/presentation/dtos/create-events.dto';
+import { UpdateEventsDto } from 'src/presentation/dtos/update-events.dto';
 
 @ApiTags('Events')
 @Controller('events')
@@ -19,7 +23,6 @@ export class EventsController {
   */
      @ApiOperation({ description: 'Get All Events' })
      @HttpCode(200)
-
      @Get()
      findAll(): Promise<Events[]> {
       return this.queryBus.execute(new GetAllEventsQuery());
@@ -44,5 +47,41 @@ export class EventsController {
     const command = new CreateEventCommand(createEventsDto);
     const createdEvent = await this.commandBus.execute(command);
     return { message: 'Event created successfully', events: createdEvent };
+  }
+
+
+
+  @ApiOperation({ description: 'Get All Events' })
+  @HttpCode(200)
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<Events | null> {
+    return this.queryBus.execute(new GetEventsByIdQuery(id));
+  }
+
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() updateEventsDto: UpdateEventsDto,
+  ): Promise<Events> {
+    const event = await this.queryBus.execute(
+      new GetEventsByIdQuery(id),
+    );
+    if (!event) throw new Error('Event not found');
+    Object.assign(event, updateEventsDto);
+    return this.commandBus.execute(
+      new UpdateEventsCommand(id, event),
+    );
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string): Promise<void> {
+    const event = await this.queryBus.execute(
+      new GetEventsByIdQuery(id),
+    );
+    if (!event) throw new Error('Event not found');
+    await this.commandBus.execute(
+      new DeleteEventCommand(id),
+    );
   }
 }
