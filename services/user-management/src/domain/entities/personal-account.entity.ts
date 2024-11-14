@@ -56,7 +56,7 @@ export class PersonalAccount {
   @Column({ default: false })
   is_email_verified: boolean;
 
-  @Column({ nullable: true, select: false })
+  @Column({ nullable: true })
   email_verification_token?: string;
 
   @Column({ nullable: true })

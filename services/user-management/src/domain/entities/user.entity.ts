@@ -47,6 +47,19 @@ export class User {
   @JoinColumn({ name: 'organizational_account_id' })
   organizational_account: OrganizationalAccountID;
 
+  @Column({
+    type: 'varchar',
+    length: 6,
+    nullable: true,
+  })
+  otp: string;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+  })
+  otp_expiry: Date;
+
   @Column({ default: true })
   is_active: boolean;
 

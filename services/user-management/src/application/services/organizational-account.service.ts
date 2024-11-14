@@ -2,6 +2,8 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { Email } from 'src/domain/entities/email.entity';
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { Owner } from 'src/domain/entities/owner.entity';
@@ -17,6 +19,7 @@ import { ISocialMediaRepository } from 'src/domain/repositories/social-media.rep
 import { SOCIAL_MEDIA_REPOSITORY_TOKEN } from 'src/domain/repositories/social-media.repository.token';
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
+import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
 import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
 import { CreateOrganizationalAccountDto } from '../../presentation/dtos/create-organizational-account.dto';
 
@@ -37,6 +40,8 @@ export class OrganizationalAccountService {
 
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
+
+    private readonly emailRepository: EmailRepositoryImpl,
 
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
@@ -97,12 +102,34 @@ export class OrganizationalAccountService {
 
     await this.socialMediaRepository.create(socialMedia);
 
+    const otp = this.generateOtp();
+    const email = this.createOtpEmail(
+      createOrganizationalAccountDto.companyEmail,
+      otp,
+    );
+    await this.emailRepository.save(email);
+
     return savedAccount;
   }
 
   private async hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(10);
     return await bcrypt.hash(password, salt);
+  }
+
+  private generateOtp(): string {
+    return crypto.randomInt(100000, 999999).toString();
+  }
+
+  private createOtpEmail(recipient: string, otp: string): Email {
+    const email = new Email();
+    email.recipient = recipient;
+    email.subject = 'Your OTP Code from Hobbe EVMS';
+    email.body = otp;
+    email.created_at = new Date();
+    email.updated_at = new Date();
+    email.sent_at = null;
+    return email;
   }
 
   findAll() {
