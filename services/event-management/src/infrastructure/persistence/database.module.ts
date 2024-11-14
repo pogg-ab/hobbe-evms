@@ -2,7 +2,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Event } from 'src/domain/entities/event.entity';
+import { Events } from 'src/domain/entities/events.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -13,8 +13,8 @@ import { Event } from 'src/domain/entities/event.entity';
         host: configService.get('DB_HOST') || 'localhost',
         port: +configService.get('DB_PORT') || 5432,
         username: configService.get('DB_USERNAME') || 'postgres',
-        password: configService.get('DB_PASSWORD') || '669357',
-        database: configService.get('DB_NAME') || 'hobbe_evms_db',
+        password: configService.get('DB_PASSWORD') || 'root',
+        database: configService.get('DB_NAME') || 'hobbe_db',
         entities: [__dirname + '/../../domain/entities/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/./migrations/*{.ts,.js}'],
         synchronize: true, // Be cautious with this in production
