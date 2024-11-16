@@ -47,6 +47,18 @@ export class RoleRepositoryImpl implements IRoleRepository {
     return role;
   }
 
+  async findOneBy(criteria: { [key: string]: any }): Promise<Role | null> {
+    try {
+      const role = await this.roleRepository.findOne({ where: criteria });
+      return role;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching role by criteria: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async update(id: string, updatedRole: Partial<Role>): Promise<Role> {
     const role = await this.roleRepository.findOneBy({ role_id: id });
     if (!role) {
