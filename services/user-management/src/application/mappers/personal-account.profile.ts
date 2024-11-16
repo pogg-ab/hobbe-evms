@@ -97,7 +97,7 @@ export class PersonalAccountProfile extends AutomapperProfile {
 
         forMember(
           (destination) => destination.is_active,
-          mapFrom(() => true),
+          mapFrom(() => false),
         ),
         forMember(
           (destination) => destination.created_date,

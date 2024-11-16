@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { IPersonalAccountRepository } from 'src/domain/repositories/personal-account.repository';
+import { PersonalAccountID } from 'src/domain/value-objects/personal-account-id.value-object';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -36,7 +37,7 @@ export class PersonalAccountRepositoryImpl
     }
   }
 
-  async findOneById(id: string): Promise<PersonalAccount | null> {
+  async findOneById(id: PersonalAccountID): Promise<PersonalAccount | null> {
     try {
       const account = await this.personalAccountRepository.findOne({
         where: { personal_account_id: id },
@@ -57,7 +58,7 @@ export class PersonalAccountRepositoryImpl
   }
 
   async update(
-    id: string,
+    id: PersonalAccountID,
     personalAccount: PersonalAccount,
   ): Promise<PersonalAccount> {
     try {
@@ -80,7 +81,7 @@ export class PersonalAccountRepositoryImpl
     }
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: PersonalAccountID): Promise<void> {
     try {
       const accountToDelete = await this.findOneById(id);
       if (!accountToDelete) {
@@ -94,6 +95,44 @@ export class PersonalAccountRepositoryImpl
     } catch (error) {
       throw new HttpException(
         `Error deleting PersonalAccount: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async sendEmailVerificationDb(email_address: string): Promise<any> {
+    try {
+      const personalAccount = await this.personalAccountRepository.findOne({
+        where: { email_address: email_address },
+      });
+
+      if (!personalAccount) {
+        throw new HttpException(
+          `User with email ${email_address} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await this.personalAccountRepository.save(personalAccount);
+
+      return { message: 'Email verification sent successfully.' };
+    } catch (error) {
+      throw new HttpException(
+        `Error sending email verification: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findByEmail(email_address: string): Promise<PersonalAccount | null> {
+    try {
+      const account = await this.personalAccountRepository.findOne({
+        where: { email_address },
+      });
+      return account || null;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching PersonalAccount by email ${email_address}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

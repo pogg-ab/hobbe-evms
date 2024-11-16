@@ -173,7 +173,7 @@ export class OrganizationalAccountProfile extends AutomapperProfile {
 
         forMember(
           (destination) => destination.is_active,
-          mapFrom(() => true),
+          mapFrom(() => false),
         ),
       );
     };

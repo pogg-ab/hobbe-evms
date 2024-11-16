@@ -6,6 +6,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { EmailModule } from './modules/email/email.module';
 import { OrganizationalAccountModule } from './modules/organizational-account/organizational-account.module';
 import { PersonalAccountModule } from './modules/personal-account/personal-account.module';
 @Module({
@@ -25,6 +26,7 @@ import { PersonalAccountModule } from './modules/personal-account/personal-accou
     AuthModule,
     AdminModule,
     OrganizationalAccountModule,
+    EmailModule,
   ],
 })
 export class AppModule {}

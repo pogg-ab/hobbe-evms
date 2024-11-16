@@ -15,6 +15,7 @@ services:
     depends_on:
       - kafka
       - postgres
+      - nginx
 
   postgres:
     image: postgres:latest
@@ -24,6 +25,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: '669357'
       POSTGRES_DB: hobbe_evms_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
   kafka:
     image: wurstmeister/kafka:latest
@@ -41,3 +44,18 @@ services:
     image: wurstmeister/zookeeper:latest
     ports:
       - '2182:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./html:/usr/share/nginx/html
+    depends_on:
+      - app
+
+volumes:
+  postgres-data:

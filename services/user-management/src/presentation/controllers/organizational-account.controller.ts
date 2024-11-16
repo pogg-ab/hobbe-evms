@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -12,11 +14,17 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateOrganizationalAccountCommand } from 'src/application/commands/organizational-account/create-organizational-account.command';
 import { RemoveOrganizationalAccountCommand } from 'src/application/commands/organizational-account/remove-organizational-account.command';
 import { UpdateOrganizationalAccountCommand } from 'src/application/commands/organizational-account/update-organizational-account.command';
+import { SendEmailVerificationCommand } from 'src/application/commands/personal-account/send-email-verification.command';
+import { SendEmailVerificationDbCommand } from 'src/application/commands/personal-account/send-email-verification.Dbcommand';
+import { VerifyEmailCommand } from 'src/application/commands/personal-account/verify-email.command';
 import { FindAllOrganizationalAccountsQuery } from 'src/application/queries/organizational-account/find-all-organizational-accounts.query';
 import { FindOrganizationalAccountByIdQuery } from 'src/application/queries/organizational-account/find-organizational-account-by-id.query';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
+import { OrganizationalAccountID } from 'src/domain/value-objects/organizational-account-id.value-object';
 import { CreateOrganizationalAccountDto } from '../dtos/create-organizational-account.dto';
+import { SendEmailVerificationDto } from '../dtos/send-email-verification.dto';
 import { UpdateOrganizationalAccountDto } from '../dtos/update-organizational-account.dto';
+import { VerifyEmailDto } from '../dtos/verify-email.dto';
 
 @ApiTags('Organizational Account')
 @Controller('organizational-account')
@@ -74,7 +82,7 @@ export class OrganizationalAccountController {
     description: 'Organizational account not found',
   })
   async findOne(
-    @Param('id') id: string,
+    @Param('id') id: OrganizationalAccountID,
   ): Promise<OrganizationalAccount | null> {
     const query = new FindOrganizationalAccountByIdQuery(id);
     return this.queryBus.execute(query);
@@ -94,11 +102,11 @@ export class OrganizationalAccountController {
     description: 'Organizational account not found',
   })
   async update(
-    @Param('id') id: string,
+    @Param('id') id: OrganizationalAccountID,
     @Body() updateOrganizationalAccountDto: UpdateOrganizationalAccountDto,
   ): Promise<OrganizationalAccount> {
     const command = new UpdateOrganizationalAccountCommand(
-      +id,
+      id,
       updateOrganizationalAccountDto,
     );
     return this.commandBus.execute(command);
@@ -117,5 +125,90 @@ export class OrganizationalAccountController {
   async remove(@Param('id') id: string): Promise<void> {
     const command = new RemoveOrganizationalAccountCommand(id);
     return this.commandBus.execute(command);
+  }
+
+  @Post('send-email-verification-registration')
+  @ApiOperation({ summary: 'Send email verification code during registration' })
+  @ApiBody({
+    type: SendEmailVerificationDto,
+    description: 'Email address for registration',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Email verification code sent successfully during registration.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Personal Account not found during registration.',
+  })
+  async sendEmailVerificationRegistration(
+    @Body() sendEmailVerificationDto: SendEmailVerificationDto,
+  ): Promise<{ message: string }> {
+    try {
+      const command = new SendEmailVerificationCommand(
+        sendEmailVerificationDto,
+      );
+      await this.commandBus.execute(command);
+
+      return {
+        message:
+          'Email verification code sent successfully during registration.',
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Post('send-email-verification-after-registration')
+  @ApiOperation({ summary: 'Send email verification code after registration' })
+  @ApiBody({
+    type: SendEmailVerificationDto,
+    description: 'Email address for post-registration verification',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Email verification code sent successfully after registration.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Personal Account not found after registration.',
+  })
+  async sendEmailVerificationAfterRegistration(
+    @Body() sendEmailVerificationDto: SendEmailVerificationDto,
+  ): Promise<{ message: string }> {
+    try {
+      const command = new SendEmailVerificationDbCommand(
+        sendEmailVerificationDto,
+      );
+      await this.commandBus.execute(command);
+
+      return {
+        message:
+          'Email verification code sent successfully after registration.',
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Post('verify-email')
+  @ApiOperation({ summary: 'Verify user email address' })
+  @ApiBody({ type: VerifyEmailDto })
+  @HttpCode(200)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    try {
+      const command = new VerifyEmailCommand(verifyEmailDto);
+      const result = await this.commandBus.execute(command);
+
+      if (!result) {
+        throw new BadRequestException('Invalid email or verification code');
+      }
+
+      return { message: 'Email verified successfully' };
+    } catch (error) {
+      throw new BadRequestException('Email verification failed');
+    }
   }
 }

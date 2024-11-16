@@ -13,15 +13,29 @@ import { PersonalAccountRepositoryImpl } from 'src/infrastructure/persistence/re
 import { FindAllPersonalAccountsQueryHandler } from 'src/application/handlers/personal-account/find-all-personal-accounts.query-handler';
 import { FindPersonalAccountByIdQueryHandler } from 'src/application/handlers/personal-account/find-personal-account-by-id.query-handler';
 import { RemovePersonalAccountCommandHandler } from 'src/application/handlers/personal-account/remove-personal-account.command-handler';
+import { SendEmailVerificationCommandHandler } from 'src/application/handlers/personal-account/send-email-verification.command-handler';
+import { SendEmailVerificationDbCommandHandler } from 'src/application/handlers/personal-account/send-email-verificationDB.command-handler';
 import { UpdatePersonalAccountCommandHandler } from 'src/application/handlers/personal-account/update-personal-account.command-handler';
+import { VerifyEmailCommandHandler } from 'src/application/handlers/personal-account/verify-email-command.handler';
+import { Email } from 'src/domain/entities/email.entity';
+import { Role } from 'src/domain/entities/role.entity';
+import { UserRole } from 'src/domain/entities/user-role.entity';
+import { EMAIL_REPOSITORY_TOKEN } from 'src/domain/repositories/email.repository.token';
+import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
+import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
+import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
+import { RoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/role.repository.impl';
+import { UserRoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/user-role.repository.impl';
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { PersonalAccountController } from 'src/presentation/controllers/personal-account.controller';
 import { PersonalAccountService } from '../../application/services/personal-account.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([PersonalAccount, User]),
+    EmailModule,
+    TypeOrmModule.forFeature([PersonalAccount, User, Email, Role, UserRole]),
     CqrsModule,
   ],
   controllers: [PersonalAccountController],
@@ -32,6 +46,9 @@ import { PersonalAccountService } from '../../application/services/personal-acco
     FindPersonalAccountByIdQueryHandler,
     UpdatePersonalAccountCommandHandler,
     RemovePersonalAccountCommandHandler,
+    SendEmailVerificationCommandHandler,
+    SendEmailVerificationDbCommandHandler,
+    VerifyEmailCommandHandler,
     PersonalAccountProfile,
     {
       provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
@@ -41,10 +58,18 @@ import { PersonalAccountService } from '../../application/services/personal-acco
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,
     },
-    // {
-    //   provide: USER_ROLE_REPOSITORY_TOKEN,
-    //   useClass: UserRoleRepositoryImpl,
-    // },
+    {
+      provide: EMAIL_REPOSITORY_TOKEN,
+      useClass: EmailRepositoryImpl,
+    },
+    {
+      provide: USER_ROLE_REPOSITORY_TOKEN,
+      useClass: UserRoleRepositoryImpl,
+    },
+    {
+      provide: ROLE_REPOSITORY_TOKEN,
+      useClass: RoleRepositoryImpl,
+    },
   ],
 })
 export class PersonalAccountModule {}
