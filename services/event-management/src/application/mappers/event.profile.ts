@@ -2,8 +2,9 @@ import { createMap, forMember, mapFrom, Mapper } from '@automapper/core';
 import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
 import { Events } from 'src/domain/entities/events.entity';
-import { CreateEventsDto } from 'src/presentation/dtos/create-events.dto';
-import { UpdateEventsDto } from 'src/presentation/dtos/update-events.dto';
+import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
+import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
+
 
 @Injectable()
 export class EventsProfile extends AutomapperProfile {
@@ -47,6 +48,10 @@ export class EventsProfile extends AutomapperProfile {
         forMember(
           (destination) => destination.event_end_date,
           mapFrom((src) => src.event_end_date),
+        ),
+        forMember(
+          (destination) => destination.bank_accounts,
+          mapFrom((source) => source.bank_accounts),
         ),
       );
 

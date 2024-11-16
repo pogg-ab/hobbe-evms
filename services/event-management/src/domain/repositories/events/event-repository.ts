@@ -1,4 +1,4 @@
-import { CreateEventsDto } from "src/presentation/dtos/create-events.dto";
+import { CreateEventsDto } from "src/presentation/dtos/events/create-events.dto";
 import { Events } from "../../entities/events.entity";
 
 
