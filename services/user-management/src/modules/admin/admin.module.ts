@@ -1,4 +1,5 @@
 // src/admin/admin.module.ts
+import { AutomapperModule } from '@automapper/nestjs';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -6,7 +7,7 @@ import { CreatePermissionCommandHandler } from 'src/application/handlers/admin/c
 import { CreateRoleCommandHandler } from 'src/application/handlers/admin/create-role.command-handler';
 import { GetAllPermissionQueryHandler } from 'src/application/handlers/admin/get-all-permissions.query-handler';
 import { GetAllRolesQueryHandler } from 'src/application/handlers/admin/get-all-roles.query-handler';
-import { PersonalAccountProfile } from 'src/application/mappers/personal-account.profile';
+import { AdminRoleProfile } from 'src/application/mappers/admin-role-profile';
 import { AdminService } from 'src/application/services/admin.service';
 import { Permission } from 'src/domain/entities/permission.entity';
 import { RolePermission } from 'src/domain/entities/role-permission.entity';
@@ -17,13 +18,14 @@ import { AdminController } from 'src/presentation/controllers/admin.controller';
 
 @Module({
   imports: [
+    AutomapperModule,
     TypeOrmModule.forFeature([Role, Permission, RolePermission]),
     CqrsModule,
   ],
   controllers: [AdminController],
   providers: [
     AdminService,
-    PersonalAccountProfile,
+    AdminRoleProfile,
     CreateRoleCommandHandler,
     CreatePermissionCommandHandler,
     GetAllRolesQueryHandler,
