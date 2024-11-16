@@ -1,11 +1,11 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Events } from 'src/domain/entities/events.entity';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
-import { CreateEventsDto } from 'src/presentation/dtos/create-events.dto';
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
-import { UpdateEventsDto } from 'src/presentation/dtos/update-events.dto';
+import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
+import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
 
 @Injectable()
 export class EventsService {

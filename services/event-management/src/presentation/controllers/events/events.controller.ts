@@ -7,8 +7,9 @@ import { UpdateEventsCommand } from 'src/application/commands/update.event.comma
 import { GetAllEventsQuery } from 'src/application/queries/events/get-all-events.query';
 import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
 import { Events } from 'src/domain/entities/events.entity';
-import { CreateEventsDto } from 'src/presentation/dtos/create-events.dto';
-import { UpdateEventsDto } from 'src/presentation/dtos/update-events.dto';
+import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
+import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
+
 
 @ApiTags('Events')
 @Controller('events')
