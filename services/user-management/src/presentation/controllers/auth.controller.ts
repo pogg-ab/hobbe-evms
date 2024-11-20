@@ -9,6 +9,7 @@ import {
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from 'src/application/services/auth.service';
 import { AuthDto } from '../dtos/create-auth.dto';
@@ -70,5 +71,10 @@ export class AuthController {
     const { user_name } = resendOtpDto;
     const response = await this.authService.resendOTP(user_name);
     return response;
+  }
+
+  @MessagePattern('validateUser')
+  async validateJWT(@Payload() payload: any): Promise<any> {
+    return await this.authService.validateJwt(payload);
   }
 }

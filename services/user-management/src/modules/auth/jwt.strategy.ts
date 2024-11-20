@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: any): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { user_id: payload.sub },
     });
@@ -32,6 +32,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       relations: ['role'],
     });
     const roles = userRoles.map((userRole) => userRole.role.name);
-    return { ...user, roles };
+    return { success: true, user, roles };
   }
 }
