@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { IdValueObject } from "../value-objects/event-id.value-object";
+import { BankAccounts } from "./bank_accounts.entity";
 
 @Entity()
 export class Events {
@@ -42,4 +43,10 @@ export class Events {
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', nullable: true })
     updated_att: Date;
+
+    @OneToMany(() => BankAccounts, (bankAccount) => bankAccount.event_id, {
+        cascade: true, // Ensures related BankAccounts are automatically saved
+        onDelete: 'CASCADE', 
+      })
+      bank_accounts: BankAccounts[];
 }

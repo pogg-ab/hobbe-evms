@@ -1,5 +1,5 @@
 import { ICommand } from "@nestjs/cqrs";
-import { CreateEventsDto } from "src/presentation/dtos/create-events.dto";
+import { CreateEventsDto } from "src/presentation/dtos/events/create-events.dto";
 
 
 export class CreateEventCommand implements ICommand{

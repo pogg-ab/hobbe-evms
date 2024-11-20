@@ -12,6 +12,6 @@ export class CreateRoleCommandHandler
 
   async execute(command: CreateRoleCommand): Promise<Role> {
     const { createRoleDto } = command;
-    return this.adminService.addRole(createRoleDto);
+    return this.adminService.create(createRoleDto);
   }
 }

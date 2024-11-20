@@ -1,4 +1,5 @@
 import { OrganizationalAccount } from '../entities/organizational-account.entity';
+import { OrganizationalAccountID } from '../value-objects/organizational-account-id.value-object';
 
 export interface IOrganizationalAccountRepository {
   create(
@@ -6,11 +7,13 @@ export interface IOrganizationalAccountRepository {
   ): Promise<OrganizationalAccount>;
   find(): Promise<OrganizationalAccount[]>;
   findOneById(
-    organizationalAccountId: string,
+    organizationalAccountId: OrganizationalAccountID,
   ): Promise<OrganizationalAccount | null>;
   update(
-    organizationalAccountId: string,
+    organizationalAccountId: OrganizationalAccountID,
     organizationalAccount: OrganizationalAccount,
   ): Promise<OrganizationalAccount>;
   delete(organizationalAccountId: string): Promise<void>;
+  sendEmailVerificationDb(user_name: string): Promise<any>;
+  findByEmail(email: string): Promise<OrganizationalAccount | null>;
 }

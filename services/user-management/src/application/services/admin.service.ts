@@ -30,7 +30,7 @@ export class AdminService {
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
 
-  async addRole(createRoleDto: CreateRoleDto): Promise<Role> {
+  async create(createRoleDto: CreateRoleDto): Promise<Role> {
     let existingPermissions: Permission[] = [];
     if (createRoleDto.permissions && createRoleDto.permissions.length > 0) {
       const count = await this.permissionRepository.count({

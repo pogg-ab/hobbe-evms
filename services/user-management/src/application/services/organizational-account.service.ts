@@ -1,6 +1,12 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Email } from 'src/domain/entities/email.entity';
@@ -19,8 +25,12 @@ import { ISocialMediaRepository } from 'src/domain/repositories/social-media.rep
 import { SOCIAL_MEDIA_REPOSITORY_TOKEN } from 'src/domain/repositories/social-media.repository.token';
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
+import { OrganizationalAccountID } from 'src/domain/value-objects/organizational-account-id.value-object';
 import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
+import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verification.dto';
 import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
+import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
+import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
 import { CreateOrganizationalAccountDto } from '../../presentation/dtos/create-organizational-account.dto';
 
 @Injectable()
@@ -136,13 +146,15 @@ export class OrganizationalAccountService {
     return this.organizationalAccountRepository.find();
   }
 
-  async findOneById(id: string): Promise<OrganizationalAccount> {
+  async findOneById(
+    id: OrganizationalAccountID,
+  ): Promise<OrganizationalAccount> {
     const role = await this.organizationalAccountRepository.findOneById(id);
     return role;
   }
 
   update(
-    id: number,
+    id: OrganizationalAccountID,
     updateOrganizationalAccountDto: UpdateOrganizationalAccountDto,
   ) {
     return `This action updates a #${id} organizationalAccount`;
@@ -150,5 +162,120 @@ export class OrganizationalAccountService {
 
   async deleteOrganizationalAccount(id: string): Promise<void> {
     await this.organizationalAccountRepository.delete(id);
+  }
+
+  async sendEmailVerificationDb(
+    sendEmailVerificationDto: SendEmailVerificationDto,
+  ): Promise<any> {
+    try {
+      const organizationalAccount =
+        await this.organizationalAccountRepository.findByEmail(
+          sendEmailVerificationDto.email_address,
+        );
+      if (!organizationalAccount) {
+        throw new HttpException(
+          'Personal Account not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const otp = this.generateOtp();
+      const otpExpiry = new Date();
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
+
+      organizationalAccount.email_verification_token = otp;
+      organizationalAccount.email_verification_expires = otpExpiry;
+      await this.organizationalAccountRepository.update(
+        organizationalAccount.organizational_account_id,
+        organizationalAccount,
+      );
+
+      const email = this.createOtpEmail(
+        sendEmailVerificationDto.email_address,
+        otp,
+      );
+      await this.emailRepository.save(email);
+
+      return { message: 'Email verification code sent successfully.' };
+    } catch (error) {
+      throw new HttpException(
+        `Error sending email verification code: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  async sendEmailVerification(
+    sendEmailVerificationDto: SendEmailVerificationDto,
+  ): Promise<any> {
+    try {
+      const otp = this.generateOtp();
+      const otpExpiry = new Date();
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
+      const email = this.createOtpEmail(
+        sendEmailVerificationDto.email_address,
+        otp,
+      );
+      await this.emailRepository.save(email);
+
+      return { message: 'Email verification code sent successfully.' };
+    } catch (error) {
+      throw new HttpException(
+        `Error sending email verification code: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async verifyEmail(
+    verifyEmailDto: VerifyEmailDto,
+  ): Promise<VerifyEmailResponse> {
+    const organizationalAccount =
+      await this.organizationalAccountRepository.findByEmail(
+        verifyEmailDto.email,
+      );
+
+    if (!organizationalAccount) {
+      return {
+        success: false,
+        message: 'Account not found.',
+        statusCode: 404,
+      };
+    }
+
+    if (
+      organizationalAccount.email_verification_token !==
+      verifyEmailDto.verificationCode
+    ) {
+      return {
+        success: false,
+        message: 'Invalid verification code.',
+        statusCode: 400,
+      };
+    }
+
+    const currentTime = new Date();
+    const tokenExpiryTime = new Date(
+      organizationalAccount.email_verification_expires,
+    );
+    if (currentTime > tokenExpiryTime) {
+      return {
+        success: false,
+        message: 'Verification token has expired.',
+        statusCode: 410,
+      };
+    }
+
+    organizationalAccount.is_email_verified = true;
+    organizationalAccount.email_verification_token = null;
+    await this.organizationalAccountRepository.update(
+      organizationalAccount.organizational_account_id,
+      organizationalAccount,
+    );
+
+    return {
+      success: true,
+      message: 'Email successfully verified.',
+      statusCode: 200,
+    };
   }
 }

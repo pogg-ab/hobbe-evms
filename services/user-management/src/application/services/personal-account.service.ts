@@ -17,6 +17,12 @@ import { PERSONAL_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/perso
 // import { IUserRoleRepository } from 'src/domain/repositories/user-role.repository';
 // import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
 import { Email } from 'src/domain/entities/email.entity';
+import { Role } from 'src/domain/entities/role.entity';
+import { UserRole } from 'src/domain/entities/user-role.entity';
+import { IRoleRepository } from 'src/domain/repositories/role.repository';
+import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
+import { IUserRoleRepository } from 'src/domain/repositories/user-role.repository';
+import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { PersonalAccountID } from 'src/domain/value-objects/personal-account-id.value-object';
@@ -34,10 +40,11 @@ export class PersonalAccountService {
     private readonly personalAccountRepository: IPersonalAccountRepository,
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
-
+    @Inject(ROLE_REPOSITORY_TOKEN)
+    private readonly roleRepository: IRoleRepository,
     private readonly emailRepository: EmailRepositoryImpl,
-    // @Inject(USER_ROLE_REPOSITORY_TOKEN)
-    // private readonly userRole: IUserRoleRepository,
+    @Inject(USER_ROLE_REPOSITORY_TOKEN)
+    private readonly userRoleRepository: IUserRoleRepository,
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
   async create(
@@ -71,7 +78,12 @@ export class PersonalAccountService {
     user.otp = otp;
     user.otp_expiry = otpExpiry;
 
-    // const newUserRole = await this.userRole.create();
+    const role = await this.getRoleByName('Admin');
+
+    const userRole = new UserRole();
+    userRole.user = user;
+    userRole.role = role;
+    await this.userRoleRepository.create(userRole);
 
     await this.userRepository.create(user);
 
@@ -102,6 +114,24 @@ export class PersonalAccountService {
     email.updated_at = new Date();
     email.sent_at = null;
     return email;
+  }
+
+  private async getRoleByName(roleName: string): Promise<Role> {
+    try {
+      const role = await this.roleRepository.findOneBy({ name: roleName });
+      if (!role) {
+        throw new HttpException(
+          `Role ${roleName} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return role;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching role: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async findAll(): Promise<PersonalAccount[]> {

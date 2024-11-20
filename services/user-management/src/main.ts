@@ -4,7 +4,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { AppModule } from './app.module';
+import { kafkaConfig } from './infrastructure/kafka/kafka.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,8 +21,8 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
   app.useGlobalPipes(new ValidationPipe());
 
-  // app.connectMicroservice(kafkaConfig);
-  // await app.startAllMicroservices();
+  app.connectMicroservice<MicroserviceOptions>(kafkaConfig);
+  await app.startAllMicroservices();
 
   await app.listen(4000);
 }

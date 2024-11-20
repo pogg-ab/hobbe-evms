@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -21,10 +22,13 @@ import { FindAllPersonalAccountsQuery } from 'src/application/queries/personal-a
 import { FindPersonalAccountByIdQuery } from 'src/application/queries/personal-account/find-personal-account-by-id.query';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { PersonalAccountID } from 'src/domain/value-objects/personal-account-id.value-object';
+import { Roles } from '../decorators/roles.decorator';
 import { CreatePersonalAccountDto } from '../dtos/create-personal-account.dto';
 import { SendEmailVerificationDto } from '../dtos/send-email-verification.dto';
 import { UpdatePersonalAccountDto } from '../dtos/update-personal-account.dto';
 import { VerifyEmailDto } from '../dtos/verify-email.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
 
 @ApiTags('Personal Account')
 @Controller('personal-account')
@@ -56,6 +60,8 @@ export class PersonalAccountController {
   }
 
   @Get()
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async findAll(): Promise<PersonalAccount[]> {
     return this.queryBus.execute(new FindAllPersonalAccountsQuery());
   }
