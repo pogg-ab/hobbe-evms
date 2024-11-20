@@ -1,9 +1,11 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
-
+import { kafkaProducerConfig } from './infrastructure/kafka/kafka.config';
+dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = new DocumentBuilder()
@@ -17,21 +19,8 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
   app.useGlobalPipes(new ValidationPipe());
 
-  // const kafkaOptions: MicroserviceOptions = {
-  //   transport: Transport.KAFKA,
-  //   options: {
-  //     client: {
-  //       clientId: 'event-management',
-  //       brokers: ['localhost:9092'],
-  //     },
-  //     consumer: {
-  //       groupId: 'event-management-consumer',
-  //     },
-  //   },
-  // };
-
-  // app.connectMicroservice(kafkaOptions);
-  // await app.startAllMicroservices();
+  app.connectMicroservice<MicroserviceOptions>(kafkaProducerConfig);
+  await app.startAllMicroservices();
 
   await app.listen(4001);
 }

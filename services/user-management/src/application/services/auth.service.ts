@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Email } from 'src/domain/entities/email.entity';
+import { UserRole } from 'src/domain/entities/user-role.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
 import { Repository } from 'typeorm';
@@ -15,6 +16,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     private jwtService: JwtService,
     private readonly emailRepository: EmailRepositoryImpl,
+    @InjectRepository(UserRole)
+    private readonly userRoleRepository: Repository<UserRole>,
   ) {}
 
   async validateUser(user_name: string, password: string): Promise<any> {
@@ -130,5 +133,22 @@ export class AuthService {
     email.updated_at = new Date();
     email.sent_at = null;
     return email;
+  }
+
+  async validateJwt(payload: any) {
+    const user = await this.userRepository.findOne({
+      where: { user_id: payload.sub },
+    });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const userRoles = await this.userRoleRepository.find({
+      where: { user: { user_id: payload.sub } },
+      relations: ['role'],
+    });
+
+    const roles = userRoles.map((userRole) => userRole.role.name);
+    return { success: true, user, roles };
   }
 }
