@@ -19,13 +19,21 @@ export class CreateEventsDto {
   @IsEnum(['public', 'private', 'group'])
   privacy: string;
 
-  @ApiProperty({ description: 'Event Catagory', example: 'Technology' })
+  @ApiProperty({ description: 'Event Category', example: 'Technology' })
   @IsNotEmpty()
-  catagory: string;
+  category: string;
 
   @ApiProperty({ description: 'Event Location', example: 'Addis Ababa' })
   @IsNotEmpty()
   location: string;
+
+  @ApiProperty({ description: 'Event Location', example: '9.254140' })
+  @IsNotEmpty()
+  latitude: string;
+
+  @ApiProperty({ description: 'Event Location', example: '38.990629' })
+  @IsNotEmpty()
+  longitude: string;
 
   @ApiProperty({ example: new Date(), description: 'Event Start Date' })
   @IsNotEmpty()

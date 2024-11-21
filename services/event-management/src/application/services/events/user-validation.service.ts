@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
+import { log } from 'console';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -14,9 +15,13 @@ export class UserValidationService {
         this.eventClient.send('validateUser', payload),
       );
 
+
       if (!response || !response.user) {
         throw new Error('Invalid JWT token or user not found');
       }
+
+      console.log(response.user);
+
 
       return response;
     } catch (error) {

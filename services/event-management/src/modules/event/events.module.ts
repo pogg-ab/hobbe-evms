@@ -19,6 +19,9 @@ import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
 import { EventsController } from 'src/presentation/controllers/events/events.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
+import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
+import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
 
 @Module({
   imports: [
@@ -46,6 +49,8 @@ import { JwtStrategy } from './jwt.strategy';
     DeleteEventCommandHandler,
     GetAllEventsQueryHandler,
     GetEventsByIdQueryHandler,
+    GetEventsByCategoryQueryHandler,
+    GetEventsByLocationQueryHandler,
     EventsProfile,
     UserValidationService,
     JwtStrategy,

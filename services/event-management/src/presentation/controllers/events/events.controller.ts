@@ -15,7 +15,9 @@ import { CreateEventCommand } from 'src/application/commands/create-event.comman
 import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
 import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
 import { GetAllEventsQuery } from 'src/application/queries/events/get-all-events.query';
+import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
 import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
+import { GetEventsByLocationQuery } from 'src/application/queries/events/get-events-by-location.query';
 import { Events } from 'src/domain/entities/events.entity';
 import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
@@ -36,6 +38,7 @@ export class EventsController {
   */
   @ApiOperation({ description: 'Get All Events' })
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   findAll(): Promise<Events[]> {
     return this.queryBus.execute(new GetAllEventsQuery());
@@ -64,14 +67,35 @@ export class EventsController {
     return { message: 'Event created successfully', events: createdEvent };
   }
 
-  @ApiOperation({ description: 'Get All Events' })
+  @ApiOperation({ description: 'Get Events By Category' })
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('/category/:category')
+  async findByCategory(@Param('category') category: string): Promise<Events[]> {
+    return this.queryBus.execute(new GetEventsByCategoryQuery(category));
+  }
+
+
+  @ApiOperation({ description: 'Get Events By Location' })
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('/location/:location')
+  async findByLocation(@Param('location') location: string): Promise<Events[]> {
+    return this.queryBus.execute(new GetEventsByLocationQuery(location));
+  }
+  
+
+  @ApiOperation({ description: 'Get Event By ID' })
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Events | null> {
     return this.queryBus.execute(new GetEventsByIdQuery(id));
   }
 
+
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async update(
     @Param('id') id: string,
     @Body() updateEventsDto: UpdateEventsDto,
@@ -83,6 +107,7 @@ export class EventsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async remove(@Param('id') id: string): Promise<void> {
     const event = await this.queryBus.execute(new GetEventsByIdQuery(id));
     if (!event) throw new Error('Event not found');

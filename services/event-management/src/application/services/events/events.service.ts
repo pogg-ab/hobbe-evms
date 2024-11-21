@@ -37,6 +37,30 @@ export class EventsService {
        }
 
 
+       async findByCategory(category:string):Promise<Events[]>{
+        const event  = await this.createEventRepository.findByCategory(category);
+        if(!event){
+            throw new NotFoundException(`Event with Category ${category} not found.`);
+        }
+
+        return event;
+       }
+
+
+       async findByLocation(location:string):Promise<Events[]>{
+        const event  = await this.createEventRepository.findByLocation(location);
+        if(!event){
+            throw new NotFoundException(`Event with location ${location} not found.`);
+        }
+
+        return event;
+       }
+
+       
+
+       
+
+
     async update(id: string, updateEventsDto: UpdateEventsDto): Promise<Events>{
         const event = await this.findOne(id);
         const updatedEvent = this.mapper.map(updateEventsDto, UpdateEventsDto, Events);
