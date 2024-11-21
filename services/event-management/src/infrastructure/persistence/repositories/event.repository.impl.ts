@@ -54,6 +54,58 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
+
+
+  async findByCategory(category: string): Promise<Events[]> {
+    try {
+      // Use 'find' instead of 'findBy'
+      const events = await this.eventRepository.find({
+        where: { category:category }, 
+      });
+  
+      // Check if no events were found
+      if (events.length === 0) {
+        throw new HttpException(
+          `Events with category ${category} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+  
+      return events;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching events with category ${category}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
+  async findByLocation(location: string): Promise<Events[]> {
+    try {
+      // Use 'find' instead of 'findBy'
+      const events = await this.eventRepository.find({
+        where: { location:location }, 
+      });
+  
+      // Check if no events were found
+      if (events.length === 0) {
+        throw new HttpException(
+          `Events with category ${location} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+  
+      return events;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching events with location ${location}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  
+
   async update(
     id: string,
     event: Events,

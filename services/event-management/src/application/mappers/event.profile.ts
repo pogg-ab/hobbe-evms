@@ -30,9 +30,22 @@ export class EventsProfile extends AutomapperProfile {
           (destination) => destination.location,
           mapFrom((src) => src.location),
         ),
+
         forMember(
-          (destination) => destination.catagory,
-          mapFrom((src) => src.catagory),
+          (destination) => destination.latitude,
+          mapFrom((src) => src.latitude),
+        ),
+
+
+        forMember(
+          (destination) => destination.longitude,
+          mapFrom((src) => src.longitude),
+        ),
+
+        
+        forMember(
+          (destination) => destination.category,
+          mapFrom((src) => src.category),
         ),
 
         forMember(
@@ -72,9 +85,20 @@ export class EventsProfile extends AutomapperProfile {
           (destination) => destination.location,
           mapFrom((src) => src.location),
         ),
+
+
         forMember(
-          (destination) => destination.catagory,
-          mapFrom((src) => src.catagory),
+          (destination) => destination.latitude,
+          mapFrom((src) => src.latitude),
+        ),
+
+        forMember(
+          (destination) => destination.longitude,
+          mapFrom((src) => src.longitude),
+        ),
+        forMember(
+          (destination) => destination.category,
+          mapFrom((src) => src.category),
         ),
 
         forMember(

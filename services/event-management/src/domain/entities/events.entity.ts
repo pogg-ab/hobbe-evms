@@ -17,6 +17,13 @@ export class Events {
     @Column()
     location: string;
 
+    @Column()
+    latitude: string;
+
+    @Column()
+    longitude: string;
+
+
     @Column({ enum: ['public', 'private', 'group'] })
     privacy: string;
 
@@ -30,7 +37,7 @@ export class Events {
     event_end_date: Date;
 
     @Column({nullable:true})
-    catagory: string;
+    category: string;
 
     @Column({nullable: true })
     created_by: string;
