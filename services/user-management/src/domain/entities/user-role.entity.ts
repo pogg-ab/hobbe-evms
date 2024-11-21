@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { UserID } from '../value-objects/user-id.value-object';
 import { UserRoleID } from '../value-objects/user-role-id.value-object';
 import { Role } from './role.entity';
 import { User } from './user.entity';
@@ -15,7 +16,7 @@ export class UserRole {
   user_role_id: UserRoleID;
 
   @ManyToOne(() => User, { cascade: true, onDelete: 'CASCADE' })
-  user: User;
+  user_id: UserID;
 
   @ManyToOne(() => Role, { cascade: true, onDelete: 'CASCADE' })
   role: Role;

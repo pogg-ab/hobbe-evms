@@ -17,6 +17,8 @@ import { SendEmailVerificationCommandHandler } from 'src/application/handlers/pe
 import { SendEmailVerificationDbCommandHandler } from 'src/application/handlers/personal-account/send-email-verificationDB.command-handler';
 import { UpdatePersonalAccountCommandHandler } from 'src/application/handlers/personal-account/update-personal-account.command-handler';
 import { VerifyEmailCommandHandler } from 'src/application/handlers/personal-account/verify-email-command.handler';
+import { RoleProfile } from 'src/application/mappers/role.profile';
+import { UserProfile } from 'src/application/mappers/user.profile';
 import { Email } from 'src/domain/entities/email.entity';
 import { Role } from 'src/domain/entities/role.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
@@ -50,6 +52,8 @@ import { EmailModule } from '../email/email.module';
     SendEmailVerificationDbCommandHandler,
     VerifyEmailCommandHandler,
     PersonalAccountProfile,
+    UserProfile,
+    RoleProfile,
     {
       provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
       useClass: PersonalAccountRepositoryImpl,

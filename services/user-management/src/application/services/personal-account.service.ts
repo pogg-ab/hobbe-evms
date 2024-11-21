@@ -81,7 +81,7 @@ export class PersonalAccountService {
     const role = await this.getRoleByName('Admin');
 
     const userRole = new UserRole();
-    userRole.user = user;
+    userRole.user_id = user.user_id;
     userRole.role = role;
     await this.userRoleRepository.create(userRole);
 
