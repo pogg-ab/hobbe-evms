@@ -18,6 +18,7 @@ export class UserProfile extends AutomapperProfile {
         mapper,
         CreatePersonalAccountDto,
         User,
+
         forMember(
           (destination) => destination.user_name,
           mapFrom((src: CreatePersonalAccountDto) => src.emailAddress),

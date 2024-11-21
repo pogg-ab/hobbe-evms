@@ -78,14 +78,14 @@ export class PersonalAccountService {
     user.otp = otp;
     user.otp_expiry = otpExpiry;
 
-    const role = await this.getRoleByName('Admin');
+    const newUser = await this.userRepository.create(user);
+
+    const role = await this.getRoleByName('User');
 
     const userRole = new UserRole();
-    userRole.user_id = user.user_id;
+    userRole.user_id = newUser.user_id;
     userRole.role = role;
     await this.userRoleRepository.create(userRole);
-
-    await this.userRepository.create(user);
 
     const email = this.createOtpEmail(
       createPersonalAccountDto.emailAddress,
