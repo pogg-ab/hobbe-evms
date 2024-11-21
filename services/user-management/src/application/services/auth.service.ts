@@ -3,9 +3,12 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { Auth } from 'src/domain/entities/auth.entity';
 import { Email } from 'src/domain/entities/email.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
 import { User } from 'src/domain/entities/user.entity';
+import { AccessToken } from 'src/domain/value-objects/access-token.value-object';
+import { RefreshToken } from 'src/domain/value-objects/refresh-token.value-object';
 import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
 import { Repository } from 'typeorm';
 
@@ -14,6 +17,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Auth)
+    private readonly authRepository: Repository<Auth>,
     private jwtService: JwtService,
     private readonly emailRepository: EmailRepositoryImpl,
     @InjectRepository(UserRole)
@@ -58,9 +63,44 @@ export class AuthService {
 
   async login(user: any) {
     const payload = { username: user.user_name, sub: user.user_id };
+    const access_token = new AccessToken(
+      this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1d',
+      }),
+    );
+    const refresh_token = new RefreshToken(this.generateRefreshToken());
+    const token_expires_at = new Date(new Date().getTime() + 86400000); // 1 hour expiration
+    let auth = await this.authRepository.findOne({
+      where: { user_id: user.user.user_id },
+    });
+
+    if (auth) {
+      auth.user_id = user.user.user_id;
+      auth.access_token = access_token.toString();
+      auth.refresh_token = refresh_token.toString();
+      auth.token_expires_at = token_expires_at;
+      auth.last_login = new Date();
+
+      await this.authRepository.save(auth);
+    } else {
+      auth = new Auth();
+      auth.user_id = user.user.user_id;
+      auth.access_token = access_token.toString();
+      auth.refresh_token = refresh_token.toString();
+      auth.token_expires_at = token_expires_at;
+      auth.last_login = new Date();
+
+      await this.authRepository.save(auth);
+    }
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: access_token.toString(),
+      refresh_token: refresh_token.toString(),
     };
+  }
+
+  private generateRefreshToken(): string {
+    return crypto.randomBytes(64).toString('hex');
   }
 
   async verifyOTP(user_name: string, otp: string) {
