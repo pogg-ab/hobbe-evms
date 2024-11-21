@@ -54,7 +54,7 @@ export class EventsController {
       Swagger Api DOCS Description end 
   */
   @Post()
-  @Roles('Admin')
+  @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async createEvent(
     @Body() createEventsDto: CreateEventsDto,

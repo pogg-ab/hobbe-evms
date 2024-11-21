@@ -1,6 +1,7 @@
 import {
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -16,9 +17,11 @@ export class UserRole {
   user_role_id: UserRoleID;
 
   @ManyToOne(() => User, { cascade: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
   user_id: UserID;
 
   @ManyToOne(() => Role, { cascade: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'role_id' })
   role: Role;
 
   @CreateDateColumn({ type: 'timestamp' })
