@@ -1,12 +1,11 @@
-// src/admin/admin.module.ts
 import { AutomapperModule } from '@automapper/nestjs';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CreatePermissionCommandHandler } from 'src/application/handlers/admin/create-permission.command-handler';
-import { CreateRoleCommandHandler } from 'src/application/handlers/admin/create-role.command-handler';
-import { GetAllPermissionQueryHandler } from 'src/application/handlers/admin/get-all-permissions.query-handler';
-import { GetAllRolesQueryHandler } from 'src/application/handlers/admin/get-all-roles.query-handler';
+import { CreatePermissionCommandHandler } from 'src/application/handlers/role-permission/create-permission.command-handler';
+import { CreateRoleCommandHandler } from 'src/application/handlers/role-permission/create-role.command-handler';
+import { GetAllPermissionQueryHandler } from 'src/application/handlers/role-permission/get-all-permissions.query-handler';
+import { GetAllRolesQueryHandler } from 'src/application/handlers/role-permission/get-all-roles.query-handler';
 import { AdminRoleProfile } from 'src/application/mappers/admin-role-profile';
 import { AdminService } from 'src/application/services/admin.service';
 import { Permission } from 'src/domain/entities/permission.entity';
@@ -36,4 +35,4 @@ import { AdminController } from 'src/presentation/controllers/admin.controller';
     },
   ],
 })
-export class AdminModule {}
+export class RolePermissionModule {}

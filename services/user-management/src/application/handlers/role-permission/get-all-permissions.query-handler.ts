@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { GetAllPermissionQuery } from 'src/application/queries/role-permission/get-all-permissions.query';
 import { AdminService } from 'src/application/services/admin.service';
 import { Permission } from 'src/domain/entities/permission.entity';
-import { GetAllPermissionQuery } from '../../queries/admin/get-all-permissions.query';
 
 @QueryHandler(GetAllPermissionQuery)
 export class GetAllPermissionQueryHandler
