@@ -105,15 +105,31 @@ export class EmailSenderService {
       </head>
       <body>
         <div class="container">
-          <h1>Your OTP Code from Hobbe EVMS</h1>
+          <h1>${email.subject === 'Your OTP Code from Hobbe EVMS' ? 'Your OTP Code from Hobbe EVMS' : 'Your Generated User Account Password from Hobbe EVMS'}</h1>
           
           <p class="message">Dear User,</p>
           
-          <p class="message">Thank you for using Hobbe EVMS. We have received a request to verify your action. Please use the OTP below to complete the process.</p>
+          <p class="message">
+            ${
+              email.subject === 'Your OTP Code from Hobbe EVMS'
+                ? 'Thank you for using Hobbe EVMS. We have received a request to verify your action. Please use the OTP below to complete the process.'
+                : 'Your new account password has been generated successfully. Please use the password below to access your account. We recommend that you change this password as soon as possible for your security.'
+            }
+          </p>
           
-          <div class="otp-code">${email.body}</div>
+          ${
+            email.subject === 'Your OTP Code from Hobbe EVMS'
+              ? `<div class="otp-code">${email.body}</div>`
+              : `<div class="message">${email.body}</div>`
+          }  <!-- Display generated password -->
 
-          <p class="message">This code will expire in 10 minutes. If you did not request this OTP, please ignore this email or contact support immediately.</p>
+          <p class="message">
+            ${
+              email.subject === 'Your OTP Code from Hobbe EVMS'
+                ? 'This code will expire in 10 minutes. If you did not request this OTP, please ignore this email or contact support immediately.'
+                : 'For your security, please change the generated password once you log in. If you did not request this generated password, please ignore this email or contact support immediately.'
+            }
+          </p>
 
           <div class="cta">
             <a href="https://hobbe.com/support" target="_blank">Contact Support</a>
