@@ -14,7 +14,7 @@ import { FindAllPersonalAccountsQueryHandler } from 'src/application/handlers/pe
 import { FindPersonalAccountByIdQueryHandler } from 'src/application/handlers/personal-account/find-personal-account-by-id.query-handler';
 import { RemovePersonalAccountCommandHandler } from 'src/application/handlers/personal-account/remove-personal-account.command-handler';
 import { SendEmailVerificationCommandHandler } from 'src/application/handlers/personal-account/send-email-verification.command-handler';
-import { SendEmailVerificationDbCommandHandler } from 'src/application/handlers/personal-account/send-email-verificationDB.command-handler';
+import { SendEmailVerificationWithDBCommandHandler } from 'src/application/handlers/personal-account/send-email-verificationDb.command-handler';
 import { UpdatePersonalAccountCommandHandler } from 'src/application/handlers/personal-account/update-personal-account.command-handler';
 import { VerifyEmailCommandHandler } from 'src/application/handlers/personal-account/verify-email-command.handler';
 import { RoleProfile } from 'src/application/mappers/role.profile';
@@ -49,7 +49,7 @@ import { EmailModule } from '../email/email.module';
     UpdatePersonalAccountCommandHandler,
     RemovePersonalAccountCommandHandler,
     SendEmailVerificationCommandHandler,
-    SendEmailVerificationDbCommandHandler,
+    SendEmailVerificationWithDBCommandHandler,
     VerifyEmailCommandHandler,
     PersonalAccountProfile,
     UserProfile,
