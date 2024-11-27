@@ -12,6 +12,7 @@ import {
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from 'src/application/services/auth.service';
+import { AdminUserAuthDto } from '../dtos/create-admin-user-auth.dto';
 import { AuthDto } from '../dtos/create-auth.dto';
 import { ResendOtpDto } from '../dtos/resend-otp.dto';
 import { VerifyOtpDto } from '../dtos/verify-otp.dto';
@@ -46,6 +47,35 @@ export class AuthController {
       );
     }
     return this.authService.login(user);
+  }
+
+  @Post('admin-user/login')
+  @ApiOperation({ summary: 'Authenticate an admin user' })
+  @ApiBody({ type: AuthDto })
+  @HttpCode(200)
+  async adminLogin(@Body() authDto: AdminUserAuthDto) {
+    const adminUser = await this.authService.validateAdminUser(
+      authDto.username,
+      authDto.password,
+    );
+
+    if (adminUser.statusCode === HttpStatus.NOT_FOUND) {
+      throw new NotFoundException(
+        'User not found. Please check your username.',
+      );
+    }
+
+    if (adminUser.statusCode === HttpStatus.UNAUTHORIZED) {
+      throw new UnauthorizedException('Invalid credentials provided');
+    }
+
+    if (adminUser.statusCode === HttpStatus.FORBIDDEN) {
+      throw new ForbiddenException(
+        'Your account is inactive. Please contact support.',
+      );
+    }
+
+    return this.authService.adminUserLogin(adminUser);
   }
 
   @Post('verify-otp')
