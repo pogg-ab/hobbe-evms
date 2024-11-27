@@ -16,4 +16,7 @@ export interface IOrganizationalAccountRepository {
   delete(organizationalAccountId: string): Promise<void>;
   sendEmailVerificationDb(user_name: string): Promise<any>;
   findByEmail(email: string): Promise<OrganizationalAccount | null>;
+  findByPhoneNumber(
+    phone_number: string,
+  ): Promise<OrganizationalAccount | null>;
 }
