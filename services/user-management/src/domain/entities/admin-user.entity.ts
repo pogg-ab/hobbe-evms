@@ -29,6 +29,9 @@ export class AdminUser {
   @JoinColumn({ name: 'admin_user_account_id' })
   admin_user_account: AdminUserAccountID;
 
+  @Column({ default: true })
+  is_active: boolean;
+
   @Column({ nullable: true })
   created_by: string;
 

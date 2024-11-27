@@ -4,6 +4,9 @@ import { ClientKafka } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from 'src/application/services/auth.service';
+import { AdminUserAuth } from 'src/domain/entities/admin-user-auth.entity';
+import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { Auth } from 'src/domain/entities/auth.entity';
 import { Email } from 'src/domain/entities/email.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
@@ -17,7 +20,15 @@ import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Email, UserRole, Auth]),
+    TypeOrmModule.forFeature([
+      User,
+      AdminUser,
+      Email,
+      UserRole,
+      AdminUserRole,
+      Auth,
+      AdminUserAuth,
+    ]),
     PassportModule,
     EmailModule,
     JwtModule.register({

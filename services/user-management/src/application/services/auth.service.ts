@@ -3,6 +3,9 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { AdminUserAuth } from 'src/domain/entities/admin-user-auth.entity';
+import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { Auth } from 'src/domain/entities/auth.entity';
 import { Email } from 'src/domain/entities/email.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
@@ -23,6 +26,12 @@ export class AuthService {
     private readonly emailRepository: EmailRepositoryImpl,
     @InjectRepository(UserRole)
     private readonly userRoleRepository: Repository<UserRole>,
+    @InjectRepository(AdminUser)
+    private readonly adminUserRepository: Repository<AdminUser>,
+    @InjectRepository(AdminUserAuth)
+    private readonly adminUserAuthRepository: Repository<AdminUserAuth>,
+    @InjectRepository(AdminUserRole)
+    private readonly adminUserRoleRepository: Repository<AdminUserRole>,
   ) {}
 
   async validateUser(user_name: string, password: string): Promise<any> {
@@ -37,6 +46,43 @@ export class AuthService {
             success: false,
             message:
               'Your account is not verified or is inactive. Please verify your email or contact support.',
+          };
+        }
+        return {
+          statusCode: HttpStatus.OK,
+          success: true,
+          message: 'User validated successfully.',
+          user: user,
+        };
+      } else {
+        return {
+          statusCode: HttpStatus.UNAUTHORIZED,
+          success: false,
+          message:
+            'Invalid credentials. Please check your username and password.',
+        };
+      }
+    }
+    return {
+      statusCode: HttpStatus.NOT_FOUND,
+      success: false,
+      message: 'User not found. Please check your username.',
+    };
+  }
+
+  async validateAdminUser(user_name: string, password: string): Promise<any> {
+    const user = await this.adminUserRepository.findOne({
+      where: { user_name },
+    });
+    if (user) {
+      const passwordMatch = await bcrypt.compare(password, user.password);
+
+      if (passwordMatch) {
+        if (!user.is_active) {
+          return {
+            statusCode: HttpStatus.FORBIDDEN,
+            success: false,
+            message: 'Your account is inactive. Please contact support.',
           };
         }
         return {
@@ -92,6 +138,44 @@ export class AuthService {
       auth.last_login = new Date();
 
       await this.authRepository.save(auth);
+    }
+    return {
+      access_token: access_token.toString(),
+      refresh_token: refresh_token.toString(),
+    };
+  }
+
+  async adminUserLogin(user: any) {
+    const payload = { username: user.user_name, sub: user.user_id };
+    const access_token = new AccessToken(
+      this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1d',
+      }),
+    );
+    const refresh_token = new RefreshToken(this.generateRefreshToken());
+    const token_expires_at = new Date(new Date().getTime() + 86400000); // 1 hour expiration
+    let auth = await this.adminUserAuthRepository.findOne({
+      where: { admin_user_id: user.user.admin_user_id },
+    });
+
+    if (auth) {
+      auth.admin_user_id = user.user.admin_user_id;
+      auth.access_token = access_token.toString();
+      auth.refresh_token = refresh_token.toString();
+      auth.token_expires_at = token_expires_at;
+      auth.last_login = new Date();
+
+      await this.adminUserAuthRepository.save(auth);
+    } else {
+      auth = new AdminUserAuth();
+      auth.admin_user_id = user.user.admin_user_id;
+      auth.access_token = access_token.toString();
+      auth.refresh_token = refresh_token.toString();
+      auth.token_expires_at = token_expires_at;
+      auth.last_login = new Date();
+
+      await this.adminUserAuthRepository.save(auth);
     }
     return {
       access_token: access_token.toString(),
@@ -185,6 +269,23 @@ export class AuthService {
 
     const userRoles = await this.userRoleRepository.find({
       where: { user_id: payload.sub },
+      relations: ['role'],
+    });
+
+    const roles = userRoles.map((userRole) => userRole.role.name);
+    return { success: true, user, roles };
+  }
+
+  async validateAdminUserJwt(payload: any) {
+    const user = await this.adminUserRepository.findOne({
+      where: { admin_user_id: payload.sub },
+    });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const userRoles = await this.adminUserRoleRepository.find({
+      where: { admin_user_id: payload.sub },
       relations: ['role'],
     });
 
