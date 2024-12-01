@@ -19,6 +19,8 @@ import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-eve
 import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
 import { GetEventsByLocationQuery } from 'src/application/queries/events/get-events-by-location.query';
 import { Events } from 'src/domain/entities/events.entity';
+import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
+import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
@@ -60,8 +62,10 @@ export class EventsController {
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async createEvent(
-    @Body() createEventsDto: CreateEventsDto,
+    @Body() createEventsDto: CreateEventsDto, @CurrentUserId() user: any,
   ): Promise<{ message: string; events: Events }> {
+    
+    createEventsDto.user_id = (user.user.user_id).toString();
     const command = new CreateEventCommand(createEventsDto);
     const createdEvent = await this.commandBus.execute(command);
     return { message: 'Event created successfully', events: createdEvent };

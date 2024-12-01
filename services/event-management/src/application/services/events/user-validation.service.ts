@@ -20,7 +20,7 @@ export class UserValidationService {
         throw new Error('Invalid JWT token or user not found');
       }
 
-      console.log(response.user);
+      // console.log(response.user);
 
 
       return response;

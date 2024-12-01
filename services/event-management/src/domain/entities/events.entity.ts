@@ -9,6 +9,9 @@ export class Events {
     id: IdValueObject;
 
     @Column()
+    user_id: string;
+
+    @Column()
     title: string;
 
     @Column()
