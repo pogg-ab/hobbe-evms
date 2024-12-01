@@ -1,8 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsUUID} from 'class-validator';
+import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create-bank-acounts.dto';
 
 export class CreateEventsDto {
+
+  user_id: string;
+
   @ApiProperty({ description: 'Event Title', example: 'Demo Event' })
   @IsNotEmpty()
   title: string;
