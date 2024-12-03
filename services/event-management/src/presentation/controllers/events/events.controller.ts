@@ -71,8 +71,8 @@ export class EventsController {
     @Body() createEventsDto: CreateEventsDto, @CurrentUserId() user: any,
   ): Promise<{ message: string; events: Events }> {
     
-    createEventsDto.user_id = (user.user.user_id).toString();
-    const command = new CreateEventCommand(createEventsDto);
+    // createEventsDto.user_id = (user.user.user_id).toString();
+    const command = new CreateEventCommand(createEventsDto,(user.user.user_id).toString());
     const createdEvent = await this.commandBus.execute(command);
     return { message: 'Event created successfully', events: createdEvent };
   }
@@ -132,11 +132,12 @@ export class EventsController {
   async update(
     @Param('id') id: string,
     @Body() updateEventsDto: UpdateEventsDto,
+    @CurrentUserId() user: any,  // This decorator will automatically fetch the user ID from the request context
   ): Promise<Events> {
     const event = await this.queryBus.execute(new GetEventsByIdQuery(id));
     if (!event) throw new Error('Event not found');
     Object.assign(event, updateEventsDto);
-    return this.commandBus.execute(new UpdateEventsCommand(id, event));
+    return this.commandBus.execute(new UpdateEventsCommand(id, event,(user.user.user_id).toString()));
   }
 
   @Delete(':id')

@@ -5,15 +5,21 @@ import { IEventRepository } from 'src/domain/repositories/events/event-repositor
 import { Like, Repository } from 'typeorm';
 @Injectable()
 export class EventRepositoryEmpl implements IEventRepository {
+
   constructor(
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
-  ) {}
+  ) {
 
-  async create(user: Events): Promise<Events> {
+  }
+
+  async create(event: Events,user: any): Promise<Events> {
     try {
-      const newUser = this.eventRepository.create(user);
-      return await this.eventRepository.save(newUser);
+      const newEvent = this.eventRepository.create(event);
+      newEvent.user_id = user;
+      newEvent.created_by = user;
+      newEvent.created_at = new Date();    
+      return await this.eventRepository.save(newEvent);
     } catch (error) {
       throw new HttpException(
         `Error creating Event: ${error.message}`,
@@ -153,7 +159,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-  async update(id: string, event: Events): Promise<Events> {
+  async update(id: string, event: Events,user:any): Promise<Events> {
     try {
       const eventToBeUpdate = await this.findOne(id);
       if (!event) {
@@ -163,7 +169,11 @@ export class EventRepositoryEmpl implements IEventRepository {
         );
       }
 
+     
+
       const updatedAccount = Object.assign(eventToBeUpdate, event);
+      updatedAccount.update_by = user;
+      updatedAccount.updated_at = new Date();
 
       return await this.eventRepository.save(updatedAccount);
     } catch (error) {

@@ -23,6 +23,7 @@ import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-eve
 import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
 import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
 import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
+import { TicketsController } from 'src/presentation/controllers/tickets/tickets.controller';
 
 @Module({
   imports: [
@@ -42,7 +43,10 @@ import { SearchEventQueryHandler } from 'src/application/handlers/events/search-
     TypeOrmModule.forFeature([Events]),
     CqrsModule,
   ],
-  controllers: [EventsController],
+  controllers: [
+    EventsController,
+    TicketsController,
+  ],
   providers: [
     EventsService,
     CreateEventCommandHandler,

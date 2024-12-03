@@ -23,10 +23,10 @@ export class EventsProfile extends AutomapperProfile {
           mapFrom((src) => src.title),
         ),
 
-        forMember(
-          (destination) => destination.user_id,
-          mapFrom((src) => src.user_id),
-        ),
+        // forMember(
+        //   (destination) => destination.user_id,
+        //   mapFrom((src) => src.user_id),
+        // ),
         forMember(
           (destination) => destination.description,
           mapFrom((src) => src.description),

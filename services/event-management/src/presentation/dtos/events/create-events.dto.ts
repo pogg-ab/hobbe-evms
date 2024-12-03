@@ -5,7 +5,7 @@ import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create
 
 export class CreateEventsDto {
 
-  user_id: string;
+  // user_id: string;
 
   @ApiProperty({ description: 'Event Title', example: 'Demo Event' })
   @IsNotEmpty()
@@ -46,6 +46,16 @@ export class CreateEventsDto {
   @ApiProperty({ example: new Date(), description: 'Event End Date' })
   @IsNotEmpty()
   event_end_date: Date;
+
+
+  // created_by: string;
+
+  // updated_by: string;
+
+  // created_at: Date;
+
+  // updatd_at: Date;
+
 
   @ApiProperty({
     example: [

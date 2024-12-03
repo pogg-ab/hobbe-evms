@@ -6,6 +6,7 @@ import { InjectMapper } from '@automapper/nestjs';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
+import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 
 @Injectable()
 export class EventsService {
@@ -17,9 +18,9 @@ export class EventsService {
         
     ) { }
 
-    async create(createEventsDto:CreateEventsDto):Promise<Events>{
+    async create(createEventsDto:CreateEventsDto,user: any):Promise<Events>{
         const event = this.mapper.map(createEventsDto,CreateEventsDto, Events);
-        return this.createEventRepository.create(event);
+        return this.createEventRepository.create(event,user);
     }
 
 
@@ -68,10 +69,10 @@ export class EventsService {
        
 
        
-    async update(id: string, updateEventsDto: UpdateEventsDto): Promise<Events>{
+    async update(id: string, updateEventsDto: UpdateEventsDto,user: any): Promise<Events>{
         const event = await this.findOne(id);
         const updatedEvent = this.mapper.map(updateEventsDto, UpdateEventsDto, Events);
-        await this.createEventRepository.update(id, updatedEvent);
+        await this.createEventRepository.update(id, updatedEvent,user);
         return updatedEvent;
     }
 

@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { IdValueObject } from "../value-objects/event-id.value-object";
 import { BankAccounts } from "./bank_accounts.entity";
 
@@ -14,7 +14,7 @@ export class Events {
     @Column()
     title: string;
 
-    @Column()
+    @Column({type:'text'})
     description: string;
     
     @Column()
@@ -48,15 +48,16 @@ export class Events {
     @Column({nullable: true  })
     update_by: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'timestamp' ,nullable: true})
     created_at: Date;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', nullable: true })
-    updated_att: Date;
+    @Column({ type: 'timestamp', nullable: true })
+    updated_at: Date;
 
     @OneToMany(() => BankAccounts, (bankAccount) => bankAccount.event_id, {
         cascade: true, // Ensures related BankAccounts are automatically saved
         onDelete: 'CASCADE', 
       })
-      bank_accounts: BankAccounts[];
+    @JoinColumn({ name: 'event_id' })
+    bank_accounts: BankAccounts[];
 }

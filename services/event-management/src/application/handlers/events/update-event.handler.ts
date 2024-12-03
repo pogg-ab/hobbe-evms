@@ -9,7 +9,7 @@ import { Events } from "src/domain/entities/events.entity";
 export class UpdateEventsCommandHandler implements ICommandHandler<UpdateEventsCommand> {
     constructor(private readonly eventService: EventsService) {}
     execute(command: UpdateEventsCommand): Promise<Events> {
-        const { id, updateEventsDto } = command;
-    return this.eventService.update(id, updateEventsDto);
+        const { id, updateEventsDto,user } = command;
+    return this.eventService.update(id, updateEventsDto,user);
     }
 }
