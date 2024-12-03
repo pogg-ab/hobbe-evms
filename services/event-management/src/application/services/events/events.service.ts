@@ -23,8 +23,8 @@ export class EventsService {
     }
 
 
-   async findAll():Promise<Events[]>{
-     return this.createEventRepository.findAll();
+   async findAll( page:number, limit:number):Promise<{events:Events[]|null, total: number; page: number; limit: number}>{
+     return this.createEventRepository.findAll(page,limit);
     }
 
     async findOne(id:string):Promise<Events | null>{
@@ -56,11 +56,18 @@ export class EventsService {
         return event;
        }
 
-       
+
+       async search(keyword: string, page:number, limit:number): Promise<{events:Events[] | null,total:number}> {
+           const events = await this.createEventRepository.search(keyword,page,limit);
+           if (!events) {
+            throw new NotFoundException(`Event with keyword ${keyword} not found.`);
+           }
+           return events;
+        }
 
        
 
-
+       
     async update(id: string, updateEventsDto: UpdateEventsDto): Promise<Events>{
         const event = await this.findOne(id);
         const updatedEvent = this.mapper.map(updateEventsDto, UpdateEventsDto, Events);
