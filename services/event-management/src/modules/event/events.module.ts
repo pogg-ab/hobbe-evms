@@ -22,6 +22,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
 import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
 import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
+import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events
     GetEventsByIdQueryHandler,
     GetEventsByCategoryQueryHandler,
     GetEventsByLocationQueryHandler,
+    SearchEventQueryHandler,
     EventsProfile,
     UserValidationService,
     JwtStrategy,

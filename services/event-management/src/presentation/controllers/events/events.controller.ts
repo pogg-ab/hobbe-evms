@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -18,6 +19,7 @@ import { GetAllEventsQuery } from 'src/application/queries/events/get-all-events
 import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
 import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
 import { GetEventsByLocationQuery } from 'src/application/queries/events/get-events-by-location.query';
+import { SearchEventQuery } from 'src/application/queries/events/search-event.query';
 import { Events } from 'src/domain/entities/events.entity';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
@@ -40,10 +42,14 @@ export class EventsController {
   */
   @ApiOperation({ description: 'Get All Events' })
   @HttpCode(200)
+  @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
-  findAll(): Promise<Events[]> {
-    return this.queryBus.execute(new GetAllEventsQuery());
+  async findAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ): Promise<{events : Events[] | null , total: number; page: number; limit: number}> {
+    return this.queryBus.execute(new GetAllEventsQuery(page, limit));
   }
 
   /*
@@ -73,6 +79,7 @@ export class EventsController {
 
   @ApiOperation({ description: 'Get Events By Category' })
   @HttpCode(200)
+  @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/category/:category')
   async findByCategory(@Param('category') category: string): Promise<Events[]> {
@@ -82,6 +89,7 @@ export class EventsController {
 
   @ApiOperation({ description: 'Get Events By Location' })
   @HttpCode(200)
+  @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/location/:location')
   async findByLocation(@Param('location') location: string): Promise<Events[]> {
@@ -91,10 +99,31 @@ export class EventsController {
 
   @ApiOperation({ description: 'Get Event By ID' })
   @HttpCode(200)
+  @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Events | null> {
     return this.queryBus.execute(new GetEventsByIdQuery(id));
+  }
+
+
+  @ApiOperation({ description: 'Get Event By ID' })
+  @HttpCode(200)
+  // @Roles('User')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('/search/:keyword')
+  async search(
+    @Param('keyword') keyword: string,
+    @Query('page') page: number = 1,   // Default value for page if not provided
+    @Query('limit') limit: number = 10  // Default value for limit if not provided
+
+): Promise<{events:Events[] | null; total: number; page: number; limit: number }> {
+    //  Convert keyword to lowercase before passing it to the query for consistency
+    const _keyword = keyword.toLowerCase();
+
+    // Clean up the keyword to remove unnecessary whitespace
+    const _keyword_ = keyword.trim();
+    return this.queryBus.execute(new SearchEventQuery(_keyword_,page,limit));
   }
 
 

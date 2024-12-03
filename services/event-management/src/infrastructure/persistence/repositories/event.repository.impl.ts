@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Events } from 'src/domain/entities/events.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 @Injectable()
 export class EventRepositoryEmpl implements IEventRepository {
   constructor(
@@ -22,10 +22,20 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-
-  async findAll(): Promise<Events[]> {
+  async findAll( page:number, limit:number): Promise<{events:Events[] | null, total: number; page: number; limit: number}> {
     try {
-      return await this.eventRepository.find();
+      // return await this.eventRepository.find();
+
+    const offset = (page - 1) * limit; // Calculate the offset
+
+    // Use QueryBuilder to handle pagination
+    const [events, total] = await this.eventRepository
+      .createQueryBuilder('event') // 'event' is the alias for your table/entity
+      .skip(offset) // Number of rows to skip
+      .take(limit) // Number of rows to fetch
+      .getManyAndCount(); // Fetch entities and total count
+
+    return { events, total, page, limit };
     } catch (error) {
       throw new HttpException(
         `Error fetching Events: ${error.message}`,
@@ -54,15 +64,13 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-
-
   async findByCategory(category: string): Promise<Events[]> {
     try {
       // Use 'find' instead of 'findBy'
       const events = await this.eventRepository.find({
-        where: { category:category }, 
+        where: { category: category },
       });
-  
+
       // Check if no events were found
       if (events.length === 0) {
         throw new HttpException(
@@ -70,7 +78,7 @@ export class EventRepositoryEmpl implements IEventRepository {
           HttpStatus.NOT_FOUND,
         );
       }
-  
+
       return events;
     } catch (error) {
       throw new HttpException(
@@ -80,14 +88,13 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-
   async findByLocation(location: string): Promise<Events[]> {
     try {
       // Use 'find' instead of 'findBy'
       const events = await this.eventRepository.find({
-        where: { location:location }, 
+        where: { location: location },
       });
-  
+
       // Check if no events were found
       if (events.length === 0) {
         throw new HttpException(
@@ -95,7 +102,7 @@ export class EventRepositoryEmpl implements IEventRepository {
           HttpStatus.NOT_FOUND,
         );
       }
-  
+
       return events;
     } catch (error) {
       throw new HttpException(
@@ -104,12 +111,49 @@ export class EventRepositoryEmpl implements IEventRepository {
       );
     }
   }
-  
 
-  async update(
-    id: string,
-    event: Events,
-  ): Promise<Events> {
+  async search(keyword: string, page:number, limit:number): Promise<{events:Events[] | null,total:number,page: number; limit: number}> {
+    try {
+      const offset = (page - 1) * limit;
+      const [events, total] = await this.eventRepository
+      
+      .createQueryBuilder('event')
+      .where('LOWER(event.title) LIKE LOWER(:keyword)', { keyword: `%${keyword}%` })
+      .orWhere('LOWER(event.location) LIKE LOWER(:keyword)', { keyword: `%${keyword}%` })
+      .orWhere('LOWER(event.category) LIKE LOWER(:keyword)', { keyword: `%${keyword}%` })
+      .orWhere('LOWER(event.description) LIKE LOWER(:keyword)', { keyword: `%${keyword}%` })
+       .skip(offset)
+      .take(limit)
+      .getManyAndCount();
+
+       // find({  
+      //   where: [
+      //     { title: Like(`%${keyword}%`) },
+      //     { location: Like(`%${keyword}%`) },
+      //     { category: Like(`%${keyword}%`) },
+      //     { description: Like(`%${keyword}%`) },
+      //   ],});
+
+      
+  
+     
+      if (events.length === 0) {
+        throw new HttpException(
+          `Events with keyword ${keyword} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return {events,'total':total,'page':page,'limit':limit};
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching events with keyword ${keyword}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async update(id: string, event: Events): Promise<Events> {
     try {
       const eventToBeUpdate = await this.findOne(id);
       if (!event) {
