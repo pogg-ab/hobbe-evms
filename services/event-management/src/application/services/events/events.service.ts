@@ -6,7 +6,6 @@ import { InjectMapper } from '@automapper/nestjs';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
-import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 
 @Injectable()
 export class EventsService {

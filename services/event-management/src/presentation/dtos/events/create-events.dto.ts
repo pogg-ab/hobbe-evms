@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsUUID} from 'class-validator';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create-bank-acounts.dto';
+import { CreateTicketsDto } from '../tickets/create-tickets.dto';
 
 export class CreateEventsDto {
 
@@ -48,14 +49,8 @@ export class CreateEventsDto {
   event_end_date: Date;
 
 
-  // created_by: string;
-
-  // updated_by: string;
-
-  // created_at: Date;
-
-  // updatd_at: Date;
-
+  @ApiProperty({description:"Tickets" , type: CreateTicketsDto,})
+  ticket?:CreateTicketsDto;
 
   @ApiProperty({
     example: [
@@ -74,6 +69,6 @@ export class CreateEventsDto {
     isArray: true,
     type: CreateBankAccountDto,
   })
-  @IsNotEmpty()
-  bank_accounts: CreateBankAccountDto[];
+  // @IsNotEmpty()
+  bank_accounts?: CreateBankAccountDto[];
 }

@@ -1,6 +1,8 @@
-import { Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { IdValueObject } from "../value-objects/event-id.value-object";
 import { BankAccounts } from "./bank_accounts.entity";
+import { Tickets } from "./tickets.entity";
+import { CreateTicketsDto } from "src/presentation/dtos/tickets/create-tickets.dto";
 
 @Entity()
 export class Events {
@@ -54,10 +56,14 @@ export class Events {
     @Column({ type: 'timestamp', nullable: true })
     updated_at: Date;
 
+    @OneToOne(() => Tickets, (ticket) => ticket.event_id, { cascade: true, nullable: true })
+    //  @JoinColumn({ name: 'event_id' })
+    ticket?: Tickets;
+
     @OneToMany(() => BankAccounts, (bankAccount) => bankAccount.event_id, {
         cascade: true, // Ensures related BankAccounts are automatically saved
         onDelete: 'CASCADE', 
       })
     @JoinColumn({ name: 'event_id' })
-    bank_accounts: BankAccounts[];
+    bank_accounts?: BankAccounts[];
 }

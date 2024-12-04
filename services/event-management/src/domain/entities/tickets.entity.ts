@@ -1,4 +1,4 @@
-import { Column, Entity, IsNull, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, IsNull, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { IdValueObject } from "../value-objects/event-id.value-object";
 import { Events } from "./events.entity";
 
@@ -19,6 +19,13 @@ export class Tickets {
     schedule: string;
 
     @Column()
+    quantity: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    price: number;
+
+
+    @Column()
     sales_start: Date;
     
     @Column()
@@ -34,16 +41,13 @@ export class Tickets {
     @Column({nullable: true  })
     update_by: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', nullable:true })
     created_at: Date;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', nullable: true })
     updated_at: Date;
 
-    @OneToOne(() => Events, (event) => event.id, {
-        cascade: true, // Ensures related BankAccounts are automatically saved
-        onDelete: 'CASCADE', 
-      })
+    @OneToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'event_id' })
-    event_id: string;
+    event_id: Events;
 }

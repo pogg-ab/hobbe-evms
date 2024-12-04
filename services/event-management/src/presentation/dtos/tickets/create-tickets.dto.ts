@@ -12,19 +12,21 @@ export class CreateTicketsDto{
         description: 'Ticket Description',
         example: 'Ticket Event Description',
       })
-      description: string;
+    description: string;
 
       @ApiProperty({
         description: 'Event Schedule',
         example: 'Demo Event Schedule',
       })
       @IsNotEmpty()
-      schedule: string;
+    schedule: string;
 
 
       @ApiProperty({description:"Quantity"})
       @IsNotEmpty()
       quantity: number;
+
+      
 
       @ApiProperty({description:"Price"})
       @IsNotEmpty()

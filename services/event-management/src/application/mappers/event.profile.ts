@@ -67,6 +67,13 @@ export class EventsProfile extends AutomapperProfile {
           (destination) => destination.event_end_date,
           mapFrom((src) => src.event_end_date),
         ),
+     
+
+        forMember(
+          (destination) => destination.ticket,
+          mapFrom((source) => source.ticket),
+        ),
+
         forMember(
           (destination) => destination.bank_accounts,
           mapFrom((source) => source.bank_accounts),
