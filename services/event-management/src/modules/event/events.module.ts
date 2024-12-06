@@ -19,14 +19,18 @@ import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
 import { EventsController } from 'src/presentation/controllers/events/events.controller';
 import { JwtStrategy } from './jwt.strategy';
-import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
 import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
 import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
 import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
-import { TicketsController } from 'src/presentation/controllers/tickets/tickets.controller';
+import { Tickets } from 'src/domain/entities/tickets.entity';
+import { TicketsList } from 'src/domain/entities/tickets_list.entity';
+import { TicketsModule } from '../ticket/ticket.module';
+import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
+import { TicketsListController } from 'src/presentation/controllers/tickets/tickets.controller';
 
 @Module({
   imports: [
+    TicketsModule,
     AutomapperModule,
     PassportModule,
     JwtModule.register({
@@ -40,15 +44,16 @@ import { TicketsController } from 'src/presentation/controllers/tickets/tickets.
         options: kafkaProducerConfig.options,
       },
     ]),
-    TypeOrmModule.forFeature([Events]),
+    TypeOrmModule.forFeature([Events,TicketsList]),
     CqrsModule,
   ],
   controllers: [
     EventsController,
-    TicketsController,
+    TicketsListController,
   ],
   providers: [
     EventsService,
+    CreateTicketsListDto,
     CreateEventCommandHandler,
     UpdateEventsCommandHandler,
     DeleteEventCommandHandler,
@@ -62,6 +67,7 @@ import { TicketsController } from 'src/presentation/controllers/tickets/tickets.
     JwtStrategy,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
+
       useClass: EventRepositoryEmpl,
     },
   ],

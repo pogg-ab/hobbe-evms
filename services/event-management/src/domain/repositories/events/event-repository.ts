@@ -1,7 +1,6 @@
 import { CreateEventsDto } from "src/presentation/dtos/events/create-events.dto";
 import { Events } from "../../entities/events.entity";
-import { promises } from "dns";
-import { CurrentUserId } from "src/presentation/decorators/currentUserId.decorater";
+import { Tickets } from "src/domain/entities/tickets.entity";
 
 
 export interface IEventRepository{

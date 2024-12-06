@@ -1,10 +1,10 @@
-import { Column, Entity, IsNull, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, IsNull, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { IdValueObject } from "../value-objects/event-id.value-object";
 import { Events } from "./events.entity";
+import { TicketsList } from "./tickets_list.entity";
 
 
 @Entity()
-
 export class Tickets {
     @PrimaryGeneratedColumn('uuid')
     id: IdValueObject;
@@ -50,4 +50,9 @@ export class Tickets {
     @OneToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'event_id' })
     event_id: Events;
+
+
+    @OneToMany(()=> TicketsList,(tickets) => tickets.ticket_id,{ cascade: true })
+
+    ticket_list: TicketsList[];
 }

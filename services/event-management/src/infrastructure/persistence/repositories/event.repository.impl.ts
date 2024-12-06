@@ -1,7 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
+import { log } from 'console';
+import { CreateTicketsListCommand } from 'src/application/commands/ticket/create-ticketslist.command';
+import { GetAllTicketsListCommand } from 'src/application/queries/tickets/get-all-ticketslist.command';
 import { Events } from 'src/domain/entities/events.entity';
+import { Tickets } from 'src/domain/entities/tickets.entity';
+import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
+import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
 import { Like, Repository } from 'typeorm';
 @Injectable()
 export class EventRepositoryEmpl implements IEventRepository {
@@ -9,17 +16,45 @@ export class EventRepositoryEmpl implements IEventRepository {
   constructor(
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
+
+    // @InjectRepository(TicketsList)
+    // private ticketsListRepository: Repository<Tickets>,
+
+    
+
+    public readonly createTicketsListDto:CreateTicketsListDto,
+    private readonly commandBus:CommandBus,
+    private readonly queryBus:QueryBus
   ) {
 
   }
+
+  
 
   async create(event: Events,user: any): Promise<Events> {
     try {
       const newEvent = this.eventRepository.create(event);
       newEvent.user_id = user;
       newEvent.created_by = user;
-      newEvent.created_at = new Date();    
-      return await this.eventRepository.save(newEvent);
+      newEvent.created_at = new Date();         
+      const storedEvent =  await this.eventRepository.save(newEvent);
+      
+      for (let i = 0; i < storedEvent.ticket.quantity; i++) {
+        const ticketListDto = this.createTicketsListDto;
+        ticketListDto.price = storedEvent.ticket.price;
+        ticketListDto.ticket_id = storedEvent.ticket.id;
+        const command = new CreateTicketsListCommand(ticketListDto);
+        await this.commandBus.execute(command);
+      }
+
+
+      const tickets = await this.queryBus.execute(new GetAllTicketsListCommand(storedEvent.ticket.id));
+
+      // console.log(tickets);
+      storedEvent.ticket.ticket_list = tickets;
+      
+
+      return storedEvent; 
     } catch (error) {
       throw new HttpException(
         `Error creating Event: ${error.message}`,

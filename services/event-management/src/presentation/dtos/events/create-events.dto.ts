@@ -49,22 +49,22 @@ export class CreateEventsDto {
   event_end_date: Date;
 
 
-  @ApiProperty({description:"Tickets" , type: CreateTicketsDto,})
+  @ApiProperty({description:"Tickets" , type: CreateTicketsDto})
   ticket?:CreateTicketsDto;
 
   @ApiProperty({
-    example: [
-      {
-        bank_name: 'Bank of Abyssina',
-        account_owner: 'Mohammed Ali',
-        account_number: '4415278',
-      },
-      {
-        bank_name: 'CBE',
-        account_owner: 'Challa Eabba',
-        account_number: '10004456789',
-      },
-    ],
+    // example: [
+    //   {
+    //     bank_name: 'Bank of Abyssina',
+    //     account_owner: 'Mohammed Ali',
+    //     account_number: '4415278',
+    //   },
+    //   {
+    //     bank_name: 'CBE',
+    //     account_owner: 'Challa Eabba',
+    //     account_number: '10004456789',
+    //   },
+    // ],
     description: 'List of associated bank accounts',
     isArray: true,
     type: CreateBankAccountDto,

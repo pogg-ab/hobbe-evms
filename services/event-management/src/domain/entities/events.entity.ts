@@ -2,7 +2,6 @@ import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn
 import { IdValueObject } from "../value-objects/event-id.value-object";
 import { BankAccounts } from "./bank_accounts.entity";
 import { Tickets } from "./tickets.entity";
-import { CreateTicketsDto } from "src/presentation/dtos/tickets/create-tickets.dto";
 
 @Entity()
 export class Events {

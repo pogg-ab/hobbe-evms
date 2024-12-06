@@ -18,7 +18,7 @@ export class EventsService {
     ) { }
 
     async create(createEventsDto:CreateEventsDto,user: any):Promise<Events>{
-        const event = this.mapper.map(createEventsDto,CreateEventsDto, Events);
+        const event = this.mapper.map(createEventsDto,CreateEventsDto, Events);        
         return this.createEventRepository.create(event,user);
     }
 
