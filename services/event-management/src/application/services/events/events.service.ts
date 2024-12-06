@@ -17,9 +17,9 @@ export class EventsService {
         
     ) { }
 
-    async create(createEventsDto:CreateEventsDto):Promise<Events>{
-        const event = this.mapper.map(createEventsDto,CreateEventsDto, Events);
-        return this.createEventRepository.create(event);
+    async create(createEventsDto:CreateEventsDto,user: any):Promise<Events>{
+        const event = this.mapper.map(createEventsDto,CreateEventsDto, Events);        
+        return this.createEventRepository.create(event,user);
     }
 
 
@@ -68,10 +68,10 @@ export class EventsService {
        
 
        
-    async update(id: string, updateEventsDto: UpdateEventsDto): Promise<Events>{
+    async update(id: string, updateEventsDto: UpdateEventsDto,user: any): Promise<Events>{
         const event = await this.findOne(id);
         const updatedEvent = this.mapper.map(updateEventsDto, UpdateEventsDto, Events);
-        await this.createEventRepository.update(id, updatedEvent);
+        await this.createEventRepository.update(id, updatedEvent,user);
         return updatedEvent;
     }
 

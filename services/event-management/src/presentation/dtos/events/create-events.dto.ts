@@ -2,10 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsUUID} from 'class-validator';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create-bank-acounts.dto';
+import { CreateTicketsDto } from '../tickets/create-tickets.dto';
 
 export class CreateEventsDto {
 
-  user_id: string;
+  // user_id: string;
 
   @ApiProperty({ description: 'Event Title', example: 'Demo Event' })
   @IsNotEmpty()
@@ -47,23 +48,27 @@ export class CreateEventsDto {
   @IsNotEmpty()
   event_end_date: Date;
 
+
+  @ApiProperty({description:"Tickets" , type: CreateTicketsDto})
+  ticket?:CreateTicketsDto;
+
   @ApiProperty({
-    example: [
-      {
-        bank_name: 'Bank of Abyssina',
-        account_owner: 'Mohammed Ali',
-        account_number: '4415278',
-      },
-      {
-        bank_name: 'CBE',
-        account_owner: 'Challa Eabba',
-        account_number: '10004456789',
-      },
-    ],
+    // example: [
+    //   {
+    //     bank_name: 'Bank of Abyssina',
+    //     account_owner: 'Mohammed Ali',
+    //     account_number: '4415278',
+    //   },
+    //   {
+    //     bank_name: 'CBE',
+    //     account_owner: 'Challa Eabba',
+    //     account_number: '10004456789',
+    //   },
+    // ],
     description: 'List of associated bank accounts',
     isArray: true,
     type: CreateBankAccountDto,
   })
-  @IsNotEmpty()
-  bank_accounts: CreateBankAccountDto[];
+  // @IsNotEmpty()
+  bank_accounts?: CreateBankAccountDto[];
 }
