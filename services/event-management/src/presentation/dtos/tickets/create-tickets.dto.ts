@@ -1,6 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty } from "class-validator";
 import { CreateTicketsListDto } from "./create-tickets-list.dto";
+import { Tickets } from "src/domain/entities/tickets.entity";
+import { Events } from "src/domain/entities/events.entity";
+import { IdValueObject } from "src/domain/value-objects/event-id.value-object";
 
 
 export class CreateTicketsDto{
@@ -41,7 +44,9 @@ export class CreateTicketsDto{
       @IsNotEmpty()
       sales_end: Date;
 
+
       @ApiProperty({description:"Tickets List" , type: CreateTicketsListDto})
       // @IsNotEmpty()
       tickets_list?:CreateTicketsListDto[];
+
 }

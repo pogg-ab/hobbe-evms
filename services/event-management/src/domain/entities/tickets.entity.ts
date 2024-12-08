@@ -52,7 +52,7 @@ export class Tickets {
     event_id: Events;
 
 
-    @OneToMany(()=> TicketsList,(tickets) => tickets.ticket_id,{ cascade: true })
+    @OneToMany(()=> TicketsList,(tickets) => tickets.ticket_id,{ cascade: true , nullable: true})
 
-    ticket_list: TicketsList[];
+    ticket_list?: TicketsList[];
 }

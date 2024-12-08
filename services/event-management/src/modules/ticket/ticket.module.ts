@@ -21,16 +21,20 @@ import { EventsController } from 'src/presentation/controllers/events/events.con
 import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
 import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
 import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
-import { TicketsListController } from 'src/presentation/controllers/tickets/tickets.controller';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { JwtStrategy } from '../event/jwt.strategy';
-import { TicketsService } from 'src/application/services/tickets/tickets.service';
 import { CreateTicketsListCommandHandler } from 'src/application/handlers/tickets/create-ticketslist.handler';
-import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositories/ticket.repository.impl';
 import { TicktesListProfile } from 'src/application/mappers/tickets-list.profile';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { GetAllTicketsListHandler } from 'src/application/handlers/tickets/get-all-ticketslist.handler';
+import { TicketsListController } from 'src/presentation/controllers/ticets-list/ticets-list.controller';
+import { TicketsController } from 'src/presentation/controllers/tickets/tickets.controller';
+import { TicketsListService } from 'src/application/services/tickets/ticketslist.service';
+import { TicketsListRepositoryEmpl } from 'src/infrastructure/persistence/repositories/ticketslist.repository.impl';
+import { TicketsService } from 'src/application/services/tickets/tickets.service';
+import { CreateTicketsCommandHandler } from 'src/application/handlers/tickets/create-tickets.handler';
+import { TicktesProfile } from 'src/application/mappers/tickets.profile';
 
 @Module({
   imports: [
@@ -52,20 +56,23 @@ import { GetAllTicketsListHandler } from 'src/application/handlers/tickets/get-a
     CqrsModule,
   ],
   controllers: [
+    TicketsController,
     TicketsListController,
   ],
   providers: [
     TicketsService,
+    TicketsListService,
     IdValueObject,
     CreateTicketsListCommandHandler,
+    CreateTicketsCommandHandler,
     GetAllTicketsListHandler,
     UserValidationService,
     TicktesListProfile,
+    TicktesProfile,
     JwtStrategy,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
-
-      useClass: TicketsRepositoryEmpl,
+      useClass: TicketsListRepositoryEmpl,
     },
   ],
 })

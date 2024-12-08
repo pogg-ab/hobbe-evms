@@ -41,7 +41,6 @@ export class EventsProfile extends AutomapperProfile {
           mapFrom((src) => src.latitude),
         ),
 
-
         forMember(
           (destination) => destination.longitude,
           mapFrom((src) => src.longitude),
@@ -80,8 +79,8 @@ export class EventsProfile extends AutomapperProfile {
          )
         ),
 
-       
-        
+      
+
         forMember(
           (destination) => destination.bank_accounts,
           mapFrom((source) => source.bank_accounts),

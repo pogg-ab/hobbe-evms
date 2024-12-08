@@ -28,16 +28,24 @@ export class TicketsList{
             The order is created but awaiting payment.
         - Paid
             Payment has been completed for the ticket.
+
         - Completed
             The order has been delivered or collected successfully.
+
         - Cancelled
             The order has been voided or canceled.
+
         - Refunded
             The ticket was refunded, either partially or fully.
+
         - Hold
             The order is temporarily paused.
+
         - Failed
             The payment or processing of the ticket failed.
+
+        - expired
+         The ticket has expired. This status is applicable for tickets that have a sales_end date.s
     */
 
     @Column({ type: 'decimal', precision: 10, scale: 2 })

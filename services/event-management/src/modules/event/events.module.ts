@@ -22,11 +22,10 @@ import { JwtStrategy } from './jwt.strategy';
 import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
 import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
 import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
-import { Tickets } from 'src/domain/entities/tickets.entity';
 import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { TicketsModule } from '../ticket/ticket.module';
 import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
-import { TicketsListController } from 'src/presentation/controllers/tickets/tickets.controller';
+import { TicketsListController } from 'src/presentation/controllers/ticets-list/ticets-list.controller';
 
 @Module({
   imports: [
