@@ -10,6 +10,9 @@ import { AutomapperModule } from '@automapper/nestjs';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CategoriesCommandHandler } from 'src/application/handlers/categories/categories.handler';
 import { CategoriesFindByIdHandler } from 'src/application/handlers/categories/find-categories-by-id.handler';
+import { GetAllCategoriesHandler } from 'src/application/handlers/categories/find-all.categories.handler';
+import { UpdatedCategoryCommandHandler } from 'src/application/handlers/categories/update-categories.handler';
+import { DeleteCategoriesCommandHandler } from 'src/application/handlers/categories/daelete-categories.handler';
 
 @Module({
   
@@ -23,7 +26,10 @@ import { CategoriesFindByIdHandler } from 'src/application/handlers/categories/f
       CategoriesService,
       CategoriesProfile,
       CategoriesCommandHandler,
+      GetAllCategoriesHandler,
       CategoriesFindByIdHandler,
+      UpdatedCategoryCommandHandler,
+      DeleteCategoriesCommandHandler,
       {
         provide: CATEGORIES_REPOSITORY_TOKEN,
         useClass: CategoriesRepositoryImpl,

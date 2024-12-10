@@ -20,6 +20,10 @@ export class CategoriesRepositoryImpl implements ICategoriesRepository{
         return this.categoriesRepository.save(categoriesDto);
     }
 
+    async findAll() :Promise<Categories[]>{
+        return await this.categoriesRepository.find();
+    }
+
     async findOne(id:number):Promise<Categories | null>{
 
         try{
@@ -42,6 +46,34 @@ export class CategoriesRepositoryImpl implements ICategoriesRepository{
         }
         
     }
+
+    async update(id: number, categories: Categories): Promise<Categories> {
+        try{
+            const categoryToBeUpdate = await this.findOne(id);
+            const updatedCategory = Object.assign(categoryToBeUpdate,categories);
+            return await this.categoriesRepository.save(updatedCategory);
+        }catch(error){
+          throw new  HttpException(
+            `Error updating categories: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+    }
+
+    async delete(id: number): Promise<void> {
+       try{
+         const category = await this.findOne(id);
+         await this.categoriesRepository.delete(id);
+       }catch(error){
+        throw new  HttpException(
+            `Error updating categories: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+       }
+    }
+
+
+
 
     
 }

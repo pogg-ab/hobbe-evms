@@ -4,5 +4,8 @@ import { CreateCategoriesDto } from "src/presentation/dtos/categories/categories
 
 export interface ICategoriesRepository {
     create(catergoriesDto:CreateCategoriesDto):Promise<Categories>
+    findAll():Promise<Categories[]>
     findOne(id:number):Promise<Categories | null>
+    update(id:number, categories:Categories):Promise<Categories>
+    delete(id:number):Promise<void>
 }

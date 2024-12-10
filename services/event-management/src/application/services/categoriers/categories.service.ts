@@ -21,7 +21,23 @@ export class CategoriesService{
         return this.categoriesRepository.create(categories);
     }
 
+    async findAll():Promise<Categories[]>{
+        return this.categoriesRepository.findAll();
+    }
+
     async findOne(id:number):Promise<Categories | null>{
         return this.categoriesRepository.findOne(id);
     }
+
+    async update(id:number, createCategoriesDto:CreateCategoriesDto):Promise<Categories>{
+        const updatedCategory = this.mapper.map(createCategoriesDto,CreateCategoriesDto,Categories);
+        return await this.categoriesRepository.update(id,updatedCategory);   
+    }
+
+    async delete(id:number):Promise<{message:string}>{
+        await this.categoriesRepository.delete(id);
+        return {message:"Category Deleted !"}
+    }
+
+
 }

@@ -195,15 +195,7 @@ export class EventRepositoryEmpl implements IEventRepository {
   async update(id: string, event: Events,user:any): Promise<Events> {
     try {
       const eventToBeUpdate = await this.findOne(id);
-      if (!event) {
-        throw new HttpException(
-          `Event with ID ${id} not found`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-     
-
+      
       const updatedAccount = Object.assign(eventToBeUpdate, event);
       updatedAccount.update_by = user;
       updatedAccount.updated_at = new Date();
