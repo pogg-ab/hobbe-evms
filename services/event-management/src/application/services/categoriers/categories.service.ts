@@ -20,4 +20,8 @@ export class CategoriesService{
         const categories  = this.mapper.map(createCategoriesDto,CreateCategoriesDto,Categories);
         return this.categoriesRepository.create(categories);
     }
+
+    async findOne(id:number):Promise<Categories | null>{
+        return this.categoriesRepository.findOne(id);
+    }
 }

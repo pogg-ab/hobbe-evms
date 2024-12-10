@@ -9,6 +9,7 @@ import { CategoriesRepositoryImpl } from 'src/infrastructure/persistence/reposit
 import { AutomapperModule } from '@automapper/nestjs';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CategoriesCommandHandler } from 'src/application/handlers/categories/categories.handler';
+import { CategoriesFindByIdHandler } from 'src/application/handlers/categories/find-categories-by-id.handler';
 
 @Module({
   
@@ -22,6 +23,7 @@ import { CategoriesCommandHandler } from 'src/application/handlers/categories/ca
       CategoriesService,
       CategoriesProfile,
       CategoriesCommandHandler,
+      CategoriesFindByIdHandler,
       {
         provide: CATEGORIES_REPOSITORY_TOKEN,
         useClass: CategoriesRepositoryImpl,

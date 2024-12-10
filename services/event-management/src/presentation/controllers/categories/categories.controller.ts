@@ -1,7 +1,8 @@
-import { Body, Controller, Inject, Post } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CategoriesCommand } from "src/application/commands/categories/categories.command";
+import { CategoriesFindById } from "src/application/queries/categories/find-categories-by-id.query";
 import { Categories } from "src/domain/entities/categories.entity";
 import { CreateCategoriesDto } from "src/presentation/dtos/categories/categories.dto";
 
@@ -22,6 +23,15 @@ export class CategoriesController{
     async create(@Body() createCategoriesDto:CreateCategoriesDto): Promise<Categories>{
       const command = new CategoriesCommand(createCategoriesDto);
       return await this.commandBus.execute(command);
+    }
+
+    //find one
+
+    @ApiOperation({ description:"Find Category By ID"})
+    @Get(":id")
+    async findOne(@Param("id") id:number){
+       const query = new CategoriesFindById(id);
+       return await this.queryBus.execute(query);
     }
 
 
