@@ -1,13 +1,13 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TicketsList } from 'src/domain/entities/tickets_list.entity';
-import { ITicketsListRepository } from 'src/domain/repositories/tickets/tickets-repository';
+import { ITicketsListRepository } from 'src/domain/repositories/tickets/tickets-list.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
 import { DataSource, Repository } from 'typeorm';
 
 @Injectable()
-export class TicketsRepositoryEmpl implements ITicketsListRepository {
+export class TicketsListRepositoryEmpl implements ITicketsListRepository {
 
   constructor(
     @InjectRepository(TicketsList)
