@@ -45,6 +45,24 @@ export class EventRepositoryEmpl implements IEventRepository {
         await this.commandBus.execute(command);
       }
 
+      for (let i = 0; i < storedEvent.ticket.vip_quantity; i++) {
+        const ticketListDto = this.createTicketsListDto;
+        ticketListDto.price = storedEvent.ticket.vip_price;
+        ticketListDto.type = "VIP";
+        ticketListDto.ticket_id = storedEvent.ticket.id;
+        const command = new CreateTicketsListCommand(ticketListDto);
+        await this.commandBus.execute(command);
+      }
+
+      for (let i = 0; i < storedEvent.ticket.vvip_quantity; i++) {
+        const ticketListDto = this.createTicketsListDto;
+        ticketListDto.price = storedEvent.ticket.vvip_price;
+        ticketListDto.type = "VVIP";
+        ticketListDto.ticket_id = storedEvent.ticket.id;
+        const command = new CreateTicketsListCommand(ticketListDto);
+        await this.commandBus.execute(command);
+      }
+
 
       const tickets = await this.queryBus.execute(new GetAllTicketsListCommand(storedEvent.ticket.id));
 
