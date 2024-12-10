@@ -5,7 +5,9 @@ import { IdValueObject } from "src/domain/value-objects/event-id.value-object";
 
 
 export interface ITicketsListRepository{
-    create(createTicketsListDto: CreateTicketsListDto): Promise<TicketsList>;
-    getAllTicketsList(ticket_id:IdValueObject):Promise<TicketsList[] | null>
+    create(createTicketsListDto: CreateTicketsListDto): Promise<void>;
+    findAll( page:number, limit:number):Promise<{ticketsList:TicketsList[] | null,total: number; page: number; limit: number}>
+    findOne(id: string): Promise<TicketsList|null>;
+    getEventsAllTicketsList(ticket_id:IdValueObject):Promise<TicketsList[] | null>
    
 }

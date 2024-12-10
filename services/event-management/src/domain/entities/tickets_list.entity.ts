@@ -58,6 +58,12 @@ export class TicketsList{
     @Column({type: 'decimal', nullable:true})
     discount: number;
 
+    @Column('text')
+    qr_code:string;
+
+    @Column({unique:true})
+    ticket_no:string;
+
     @ManyToOne(()=>Tickets,(ticket)=> ticket.id)
     @JoinColumn({ name: 'ticket_id'})
     ticket_id: IdValueObject;

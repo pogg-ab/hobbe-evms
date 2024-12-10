@@ -17,7 +17,13 @@ export class CreateTicketsListDto{
     @ApiProperty({description:"Discount in Percent", example:10})
     discount: number;
 
+  
+    qr_code?: string;
+    ticket_no?: string;
+
     @ApiProperty({description:"Ticket Header"})
     @IsNotEmpty()
     ticket_id: IdValueObject;
+
+
 }

@@ -38,6 +38,16 @@ export class TicktesListProfile extends AutomapperProfile {
         ),
 
         forMember(
+          (destination) => destination.qr_code,
+          mapFrom((src) => src.qr_code),
+        ),
+
+        forMember(
+          (destination) => destination.ticket_no,
+          mapFrom((src) => src.ticket_no),
+        ),
+
+        forMember(
             (destination) => destination.ticket_id,
             mapFrom((src) => src.ticket_id),
           ),

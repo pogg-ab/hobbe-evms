@@ -10,7 +10,7 @@ export class CreateTicketsListCommandHandler implements ICommandHandler<CreateTi
         private readonly ticketsListService: TicketsListService,
         // private readonly ticket_id: IdValueObject,
     ) {}
-   async execute(command: CreateTicketsListCommand): Promise<TicketsList> {
+   async execute(command: CreateTicketsListCommand): Promise<void> {
        const { createTicketsListDto } = command;
        return this.ticketsListService.create(createTicketsListDto);
     }

@@ -3,16 +3,18 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { log } from 'console';
 import { CreateTicketsListCommand } from 'src/application/commands/ticket/create-ticketslist.command';
-import { GetAllTicketsListCommand } from 'src/application/queries/tickets/get-all-ticketslist.command';
 import { Events } from 'src/domain/entities/events.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
 import { Like, Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
+import * as qrcode from 'qrcode';
+import { GetEventsAllTicketsListCommand } from 'src/application/queries/tickets/get-events-all-ticketslist.query';
+
 @Injectable()
 export class EventRepositoryEmpl implements IEventRepository {
-
   constructor(
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
@@ -20,57 +22,78 @@ export class EventRepositoryEmpl implements IEventRepository {
     // @InjectRepository(TicketsList)
     // private ticketsListRepository: Repository<Tickets>,
 
-    
-
-    public readonly createTicketsListDto:CreateTicketsListDto,
-    private readonly commandBus:CommandBus,
-    private readonly queryBus:QueryBus
+    public readonly createTicketsListDto: CreateTicketsListDto,
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
   ) {}
 
-  
-
-  async create(event: Events,user: any): Promise<Events> {
+  async create(event: Events, user: any): Promise<Events> {
     try {
       const newEvent = this.eventRepository.create(event);
       newEvent.user_id = user;
       newEvent.created_by = user;
-      newEvent.created_at = new Date();         
-      const storedEvent =  await this.eventRepository.save(newEvent);
-      
+      newEvent.created_at = new Date();
+      const storedEvent = await this.eventRepository.save(newEvent);
+
       for (let i = 0; i < storedEvent.ticket.quantity; i++) {
+        // Generate a unique ticket number (UUID)
+        const ticketNumber = uuidv4();
+        // Generate the QR Code based on the ticket number
+        const qrCode = await qrcode.toDataURL(ticketNumber);
+
+        // Create the ticket DTO and assign values
         const ticketListDto = this.createTicketsListDto;
         ticketListDto.price = storedEvent.ticket.price;
         ticketListDto.ticket_id = storedEvent.ticket.id;
+        ticketListDto.qr_code = qrCode; // Assign the generated QR code
+        ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
+
+        // Execute the command to save the ticket
         const command = new CreateTicketsListCommand(ticketListDto);
         await this.commandBus.execute(command);
       }
 
       for (let i = 0; i < storedEvent.ticket.vip_quantity; i++) {
+        // Generate a unique ticket number (UUID)
+        const ticketNumber = uuidv4();
+        // Generate the QR Code based on the ticket number
+        const qrCode = await qrcode.toDataURL(ticketNumber);
+
         const ticketListDto = this.createTicketsListDto;
         ticketListDto.price = storedEvent.ticket.vip_price;
         ticketListDto.type = "VIP";
         ticketListDto.ticket_id = storedEvent.ticket.id;
+        ticketListDto.qr_code = qrCode; // Assign the generated QR code
+        ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
+
         const command = new CreateTicketsListCommand(ticketListDto);
         await this.commandBus.execute(command);
       }
 
       for (let i = 0; i < storedEvent.ticket.vvip_quantity; i++) {
+        // Generate a unique ticket number (UUID)
+        const ticketNumber = uuidv4();
+        // Generate the QR Code based on the ticket number
+        const qrCode = await qrcode.toDataURL(ticketNumber);
+
         const ticketListDto = this.createTicketsListDto;
         ticketListDto.price = storedEvent.ticket.vvip_price;
         ticketListDto.type = "VVIP";
         ticketListDto.ticket_id = storedEvent.ticket.id;
+        ticketListDto.qr_code = qrCode; // Assign the generated QR code
+        ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
+
         const command = new CreateTicketsListCommand(ticketListDto);
         await this.commandBus.execute(command);
       }
 
+      const tickets = await this.queryBus.execute(
+        new GetEventsAllTicketsListCommand(storedEvent.ticket.id),
+      );
 
-      const tickets = await this.queryBus.execute(new GetAllTicketsListCommand(storedEvent.ticket.id));
-
-      // console.log(tickets);
       storedEvent.ticket.ticket_list = tickets;
-      
 
-      return storedEvent; 
+      return storedEvent;
     } catch (error) {
       throw new HttpException(
         `Error creating Event: ${error.message}`,
@@ -79,20 +102,28 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-  async findAll( page:number, limit:number): Promise<{events:Events[] | null, total: number; page: number; limit: number}> {
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     try {
       // return await this.eventRepository.find();
 
-    const offset = (page - 1) * limit; // Calculate the offset
+      const offset = (page - 1) * limit; // Calculate the offset
 
-    // Use QueryBuilder to handle pagination
-    const [events, total] = await this.eventRepository
-      .createQueryBuilder('event') // 'event' is the alias for your table/entity
-      .skip(offset) // Number of rows to skip
-      .take(limit) // Number of rows to fetch
-      .getManyAndCount(); // Fetch entities and total count
+      // Use QueryBuilder to handle pagination
+      const [events, total] = await this.eventRepository
+        .createQueryBuilder('event') // 'event' is the alias for your table/entity
+        .skip(offset) // Number of rows to skip
+        .take(limit) // Number of rows to fetch
+        .getManyAndCount(); // Fetch entities and total count
 
-    return { events, total, page, limit };
+      return { events, total, page, limit };
     } catch (error) {
       throw new HttpException(
         `Error fetching Events: ${error.message}`,
@@ -169,21 +200,38 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-  async search(keyword: string, page:number, limit:number): Promise<{events:Events[] | null,total:number,page: number; limit: number}> {
+  async search(
+    keyword: string,
+    page: number,
+    limit: number,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     try {
       const offset = (page - 1) * limit;
       const [events, total] = await this.eventRepository
-      
-      .createQueryBuilder('event')
-      .where('LOWER(event.title) LIKE LOWER(:keyword)', { keyword: `%${keyword}%` })
-      .orWhere('LOWER(event.location) LIKE LOWER(:keyword)', { keyword: `%${keyword}%` })
-      .orWhere('LOWER(event.category) LIKE LOWER(:keyword)', { keyword: `%${keyword}%` })
-      .orWhere('LOWER(event.description) LIKE LOWER(:keyword)', { keyword: `%${keyword}%` })
-       .skip(offset)
-      .take(limit)
-      .getManyAndCount();
 
-       // find({  
+        .createQueryBuilder('event')
+        .where('LOWER(event.title) LIKE LOWER(:keyword)', {
+          keyword: `%${keyword}%`,
+        })
+        .orWhere('LOWER(event.location) LIKE LOWER(:keyword)', {
+          keyword: `%${keyword}%`,
+        })
+        .orWhere('LOWER(event.category) LIKE LOWER(:keyword)', {
+          keyword: `%${keyword}%`,
+        })
+        .orWhere('LOWER(event.description) LIKE LOWER(:keyword)', {
+          keyword: `%${keyword}%`,
+        })
+        .skip(offset)
+        .take(limit)
+        .getManyAndCount();
+
+      // find({
       //   where: [
       //     { title: Like(`%${keyword}%`) },
       //     { location: Like(`%${keyword}%`) },
@@ -191,9 +239,6 @@ export class EventRepositoryEmpl implements IEventRepository {
       //     { description: Like(`%${keyword}%`) },
       //   ],});
 
-      
-  
-     
       if (events.length === 0) {
         throw new HttpException(
           `Events with keyword ${keyword} not found`,
@@ -201,7 +246,7 @@ export class EventRepositoryEmpl implements IEventRepository {
         );
       }
 
-      return {events,'total':total,'page':page,'limit':limit};
+      return { events, total: total, page: page, limit: limit };
     } catch (error) {
       throw new HttpException(
         `Error fetching events with keyword ${keyword}: ${error.message}`,
@@ -210,10 +255,10 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-  async update(id: string, event: Events,user:any): Promise<Events> {
+  async update(id: string, event: Events, user: any): Promise<Events> {
     try {
       const eventToBeUpdate = await this.findOne(id);
-      
+
       const updatedAccount = Object.assign(eventToBeUpdate, event);
       updatedAccount.update_by = user;
       updatedAccount.updated_at = new Date();

@@ -27,11 +27,13 @@ import { TicketsModule } from '../ticket/ticket.module';
 import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
 import { TicketsListController } from 'src/presentation/controllers/ticets-list/ticets-list.controller';
 import { CategoriesModule } from './categories/categories.module';
+import { TicketsListModule } from './ticketes/tickets-list.module';
 
 
 @Module({
   imports: [
-    TicketsModule,
+    // TicketsModule,
+    TicketsListModule,
     CategoriesModule,
     AutomapperModule,
     PassportModule,
@@ -51,7 +53,7 @@ import { CategoriesModule } from './categories/categories.module';
   ],
   controllers: [
     EventsController,
-    TicketsListController,
+    // TicketsListController,
   ],
   providers: [
     EventsService,
