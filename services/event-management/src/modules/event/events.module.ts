@@ -26,10 +26,13 @@ import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { TicketsModule } from '../ticket/ticket.module';
 import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
 import { TicketsListController } from 'src/presentation/controllers/ticets-list/ticets-list.controller';
+import { CategoriesModule } from './categories/categories.module';
+
 
 @Module({
   imports: [
     TicketsModule,
+    CategoriesModule,
     AutomapperModule,
     PassportModule,
     JwtModule.register({
@@ -66,7 +69,6 @@ import { TicketsListController } from 'src/presentation/controllers/ticets-list/
     JwtStrategy,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
-
       useClass: EventRepositoryEmpl,
     },
   ],

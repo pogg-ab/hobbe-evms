@@ -1,0 +1,7 @@
+import { Categories } from "src/domain/entities/categories.entity";
+import { CreateCategoriesDto } from "src/presentation/dtos/categories/categories.dto";
+
+
+export interface ICategoriesRepository {
+    create(catergoriesDto:CreateCategoriesDto):Promise<Categories>
+}

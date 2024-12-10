@@ -25,9 +25,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     public readonly createTicketsListDto:CreateTicketsListDto,
     private readonly commandBus:CommandBus,
     private readonly queryBus:QueryBus
-  ) {
-
-  }
+  ) {}
 
   
 
