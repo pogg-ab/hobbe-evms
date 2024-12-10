@@ -7,39 +7,39 @@ import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { ITicketsListRepository } from 'src/domain/repositories/tickets/tickets-list.repository';
 import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
+import { TICKETS_LIST_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticketslist.repository.token';
 
 @Injectable()
 export class TicketsListService {
 
     constructor(
-        @Inject(CREATE_EVENT_REPOSITORY_TOKEN)
+        @Inject(TICKETS_LIST_REPOSITORY_TOKEN)
         private readonly createTicketsListRepository: ITicketsListRepository,
         @InjectMapper() private readonly mapper: Mapper,
         
     ) { }
 
-    async create(createTicketsListDto:CreateTicketsListDto):Promise<TicketsList>{
+    async create(createTicketsListDto:CreateTicketsListDto):Promise<void>{
         const tickets = this.mapper.map(createTicketsListDto,CreateTicketsListDto, TicketsList);    
         return await this.createTicketsListRepository.create(tickets);
     }
 
-    async getAllTicketsList(ticket_id:IdValueObject){
-        return this.createTicketsListRepository.getAllTicketsList(ticket_id)
+    async getEventsAllTicketsList(ticket_id:IdValueObject){
+        return this.createTicketsListRepository.getEventsAllTicketsList(ticket_id)
     }
 
 
-//    async findAll( page:number, limit:number):Promise<{events:Events[]|null, total: number; page: number; limit: number}>{
-//      return this.createEventRepository.findAll(page,limit);
-//     }
+   async findAll( page:number, limit:number):Promise<{ticketsList:TicketsList[] | null, total: number; page: number; limit: number}>{
+     return this.createTicketsListRepository.findAll(page,limit);
+    }
 
-//     async findOne(id:string):Promise<Events | null>{
-//         const event  = await this.createEventRepository.findOne(id);
-//         if(!event){
-//             throw new NotFoundException(`Event with id ${id} not found.`);
-//         }
-
-//         return event;
-//        }
+    async findOne(id:string):Promise<TicketsList | null>{
+        const ticket  = await this.createTicketsListRepository.findOne(id);
+        if(!ticket){
+            throw new NotFoundException(`Event with id ${id} not found.`);
+        }
+        return ticket;
+       }
 
 
 //        async findByCategory(category:string):Promise<Events[]>{

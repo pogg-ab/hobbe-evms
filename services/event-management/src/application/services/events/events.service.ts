@@ -18,7 +18,6 @@ export class EventsService {
     ) { }
 
     async create(createEventsDto:CreateEventsDto,user: any):Promise<Events>{
-
         const event = this.mapper.map(createEventsDto,CreateEventsDto, Events);        
         return this.createEventRepository.create(event,user);
     }
@@ -33,7 +32,6 @@ export class EventsService {
         if(!event){
             throw new NotFoundException(`Event with id ${id} not found.`);
         }
-
         return event;
        }
 

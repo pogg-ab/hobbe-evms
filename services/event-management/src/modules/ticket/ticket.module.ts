@@ -27,7 +27,7 @@ import { JwtStrategy } from '../event/jwt.strategy';
 import { CreateTicketsListCommandHandler } from 'src/application/handlers/tickets/create-ticketslist.handler';
 import { TicktesListProfile } from 'src/application/mappers/tickets-list.profile';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
-import { GetAllTicketsListHandler } from 'src/application/handlers/tickets/get-all-ticketslist.handler';
+import { GetAllTicketsListHandler } from 'src/application/handlers/tickets/get-all-events-ticketslist.handler';
 import { TicketsListController } from 'src/presentation/controllers/ticets-list/ticets-list.controller';
 import { TicketsController } from 'src/presentation/controllers/tickets/tickets.controller';
 import { TicketsListService } from 'src/application/services/tickets/ticketslist.service';
@@ -35,6 +35,7 @@ import { TicketsListRepositoryEmpl } from 'src/infrastructure/persistence/reposi
 import { TicketsService } from 'src/application/services/tickets/tickets.service';
 import { CreateTicketsCommandHandler } from 'src/application/handlers/tickets/create-tickets.handler';
 import { TicktesProfile } from 'src/application/mappers/tickets.profile';
+import { TicketsListFindByIdQueryHandler } from 'src/application/handlers/tickets/findone-ticketslist.handler';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { TicktesProfile } from 'src/application/mappers/tickets.profile';
     CreateTicketsListCommandHandler,
     CreateTicketsCommandHandler,
     GetAllTicketsListHandler,
+    TicketsListFindByIdQueryHandler,
     UserValidationService,
     TicktesListProfile,
     TicktesProfile,
