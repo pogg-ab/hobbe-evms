@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -21,6 +22,9 @@ import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorat
 import { CreateTicketsHeadingDto } from 'src/presentation/dtos/tickets/create-tickets-heading.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
+import { UpdateTicketsHeadingDto } from 'src/presentation/dtos/tickets/update-tickets-heading.dto';
+import { ActivateTicketsByHeadingCommand } from 'src/application/commands/ticket/activate-tickets-by-heading.command';
+import { TicketHeadingStatus } from 'src/domain/value-objects/event-status.value-object';
 
 @Controller('tickets-heading')
 @ApiTags('Tickets-Heading')
@@ -29,10 +33,10 @@ export class TicketsHeadingController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) {}
-  @ApiOperation({ description: 'Get All Events Tickets' })
+  @ApiOperation({ description: 'Get All Events Tickets Heading' })
   // @ApiParam()
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   async findAll(
     @Query('page') page = 1,
@@ -43,17 +47,41 @@ export class TicketsHeadingController {
     page: number;
     limit: number;
   }> {
-    return await this.queryBus.execute(new GetAllTicketsHeadingQuery(page, limit));
+    return await this.queryBus.execute(
+      new GetAllTicketsHeadingQuery(page, limit),
+    );
   }
 
-  @ApiOperation({ description: 'Find Tickets By ID' })
+  @ApiOperation({ description: 'Find Tickets Heading By ID' })
   // @ApiParam()
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return await this.queryBus.execute(new FindTicketHeadingByIdQuery(id));
   }
+
+
+  
+  @ApiOperation({ description: 'Activate Tickets By Heading' })
+  @HttpCode(200)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('/change-status/:id/:status')
+  async activateTickets(
+    @Param('id') id: string, 
+    @Param('status') 
+    status: string,
+    @CurrentUserId() user: any, 
+  ):Promise<{ticket:TicketsHeading, message:string}> {
+    if (!Object.values(TicketHeadingStatus).includes(status as TicketHeadingStatus)) {
+      throw new BadRequestException(
+        `Invalid status: ${status}. Allowed values are: ${Object.values(TicketHeadingStatus).join(', ')}`
+      );
+    }
+    const ticket =  await this.commandBus.execute(new ActivateTicketsByHeadingCommand(id,status,user));
+    return { ticket:ticket, message:"Ticket Activated..."}
+  }
+
 
   @ApiOperation({ description: 'Update Tickets Heading' })
   // @ApiParam({type : CreateTicketsHeadingDto})
@@ -62,12 +90,14 @@ export class TicketsHeadingController {
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() updateTicket: CreateTicketsHeadingDto,
+    @Body() updateTicketsHeadingDto: UpdateTicketsHeadingDto,
     @CurrentUserId() user: any, // This decorator will automatically fetch the user ID from the request context
   ): Promise<TicketsHeading> {
-    const ticket = await this.queryBus.execute(new FindTicketHeadingByIdQuery(id));
+    const ticket = await this.queryBus.execute(
+      new FindTicketHeadingByIdQuery(id),
+    );
     if (!ticket) throw new Error('Ticket Heading not found');
-    Object.assign(ticket, updateTicket);
+    Object.assign(ticket, updateTicketsHeadingDto);
     return this.commandBus.execute(
       new UpdatedTicketHeadingCommand(id, ticket, user.user.user_id.toString()),
     );

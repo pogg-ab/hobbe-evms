@@ -11,26 +11,31 @@ import { TicketsHeading } from 'src/domain/entities/tickets-heading.entity';
 export class TicketsHeadingService{
     constructor(
         @Inject(CREATE_TICKET_REPOSITORY_TOKEN)
-        private readonly ticketsRepository: ITicketsHeadingRepository,
+        private readonly ticketsHeadingRepository: ITicketsHeadingRepository,
         @InjectMapper() private readonly mapper: Mapper,
     ) { }
 
     async create(event_id:IdValueObject ,createTicketsHeadingDto:CreateTicketsHeadingDto):Promise<TicketsHeading>{
        const ticket = this.mapper.map(createTicketsHeadingDto,CreateTicketsHeadingDto,TicketsHeading);
-        return await this.ticketsRepository.create(event_id,createTicketsHeadingDto)
+        return await this.ticketsHeadingRepository.create(event_id,createTicketsHeadingDto)
     }
 
     async findAll(page: number, limit: number):Promise<{tickets:TicketsHeading[]| null,total: number; page: number; limit: number}>{
-        return await this.ticketsRepository.findAll(page, limit);
+        return await this.ticketsHeadingRepository.findAll(page, limit);
     }
 
     async findOne(id:string):Promise<TicketsHeading | null>{
-        return await this.ticketsRepository.findOne(id);
+        return await this.ticketsHeadingRepository.findOne(id);
     }
 
 
     async update(id: string, ticket: TicketsHeading, user: any): Promise<TicketsHeading>{
-        return await this.ticketsRepository.update(id, ticket, user);
+        return await this.ticketsHeadingRepository.update(id, ticket, user);
+    }
+
+
+    async activate(id: string, status: string, user: any): Promise<TicketsHeading | null>{
+        return await this.ticketsHeadingRepository.activate(id, status, user);
     }
 
 

@@ -9,11 +9,11 @@ import { TicketsHeading } from "src/domain/entities/tickets-heading.entity";
 
 export class UpdatedTicketHeadingCommandHandler implements ICommandHandler<UpdatedTicketHeadingCommand>{
     constructor(
-        private readonly ticketsService : TicketsHeadingService
+        private readonly ticketsHeadingService : TicketsHeadingService
     ){}
     execute(command: UpdatedTicketHeadingCommand): Promise<TicketsHeading> {
         const { id, ticket, user } = command;
-        return this.ticketsService.update(id, ticket, user);
+        return this.ticketsHeadingService.update(id, ticket, user);
     }
 
     

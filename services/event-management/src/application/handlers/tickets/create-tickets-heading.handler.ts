@@ -8,12 +8,12 @@ import { TicketsHeading } from "src/domain/entities/tickets-heading.entity";
 
 export class CreateTicketsHeadingCommandHandler implements ICommandHandler<CreateTicketsHeadingCommand> {
     constructor(
-        private readonly ticketsService: TicketsHeadingService,  // inject the TicketsService here if needed.
+        private readonly ticketsHeadingService: TicketsHeadingService,  // inject the TicketsHeadingService here if needed.
     ){}
     execute(command: CreateTicketsHeadingCommand): Promise<TicketsHeading> {
         const {event_id,createTicketsHeadingDto} = command;
 
-        return  this.ticketsService.create(event_id,createTicketsHeadingDto);// return the created ticket
+        return  this.ticketsHeadingService.create(event_id,createTicketsHeadingDto);// return the created ticket
     }
 
 }

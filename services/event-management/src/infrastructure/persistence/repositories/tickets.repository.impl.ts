@@ -1,29 +1,49 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { TicketsHeading } from 'src/domain/entities/tickets-heading.entity';
-import { ITicketsHeadingRepository } from 'src/domain/repositories/tickets/tickets-heading.repository';
+import { Tickets } from 'src/domain/entities/tickets.entity';
+import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
-import { CreateTicketsHeadingDto } from 'src/presentation/dtos/tickets/create-tickets-heading.dto';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { DataSource, Repository } from 'typeorm';
 
 @Injectable()
-export class TicketsRepositoryEmpl implements ITicketsHeadingRepository {
+export class TicketsRepositoryEmpl implements ITicketsRepository {
   constructor(
-    @InjectRepository(TicketsHeading)
-    private ticketsRepository: Repository<TicketsHeading>,
+    @InjectRepository(Tickets)
+    private ticketsListRepository: Repository<Tickets>,
     private readonly dataSource: DataSource,
   ) {}
 
   async create(
-    event_id: IdValueObject,
-    createTicketsHeadingDto: CreateTicketsHeadingDto,
-  ): Promise<TicketsHeading> {
+    createTicketsDto: CreateTicketsDto,
+  ): Promise<void> {
     try {
-      const ticket = this.ticketsRepository.create(createTicketsHeadingDto);
-      return await this.ticketsRepository.save(ticket);
+      const newTicket = this.ticketsListRepository.create(createTicketsDto);
+       await this.ticketsListRepository.save(newTicket);
     } catch (error) {
       throw new HttpException(
-        `Error creating ticket: ${error.message}`,
+        `Error creating Ticket: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findOne(id: string): Promise<Tickets | null> {
+    try {
+      const ticket = await this.ticketsListRepository.findOne({
+        where: { id: id },
+      });
+
+      if (!ticket) {
+        throw new HttpException(
+          `Ticket with id ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return ticket;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Ticket with ID ${id}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -33,66 +53,49 @@ export class TicketsRepositoryEmpl implements ITicketsHeadingRepository {
     page: number,
     limit: number,
   ): Promise<{
-    tickets: TicketsHeading[] | null;
+    ticketsList: Tickets[] | null;
     total: number;
     page: number;
     limit: number;
   }> {
     try {
-      const offset = (page - 1) * limit;
-      const [tickets, total] = await this.ticketsRepository
-        .createQueryBuilder('ticket') // 'event' is the alias for your table/entity
+      // return await this.eventRepository.find();
+
+      const offset = (page - 1) * limit; // Calculate the offset
+
+      // Use QueryBuilder to handle pagination
+      const [ticketsList, total] = await this.ticketsListRepository
+        .createQueryBuilder('event') // 'event' is the alias for your table/entity
         .skip(offset) // Number of rows to skip
         .take(limit) // Number of rows to fetch
         .getManyAndCount(); // Fetch entities and total count
 
-      return { tickets, total, page, limit };
+      return { ticketsList, total, page, limit };
     } catch (error) {
       throw new HttpException(
-        `Error fetching tickets: ${error.message}`,
+        `Error fetching Events: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  async findOne(id: string): Promise<TicketsHeading | null> {
-    try{
-      const ticket =  await this.ticketsRepository.findOne({ where: { id: id } });
-      if(!ticket){
-        throw new HttpException(`Ticket with id ${id} not found.`, HttpStatus.NOT_FOUND);
-      }
-
-      return ticket;
-    }catch(error){
-      throw new HttpException(
-        `Error fetching ticket: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-
-  async update(id: string, ticket: TicketsHeading, user: any): Promise<TicketsHeading> {
+  async getEventsAllTicketsList(
+    ticket_heading_id: IdValueObject,
+  ): Promise<Tickets[] | null> {
     try {
-      const ticketToBeUpdate = await this.findOne(id);
+      // Use 'find' instead of 'findBy'
+      const data = `SELECT * FROM tickets
+      WHERE ticket_heading_id = '${ticket_heading_id}'`;
+      const tickets = this.dataSource.query(data);
+      // Check if no events were found
 
-      const updatedTicket = Object.assign(ticketToBeUpdate, ticket);
-      updatedTicket.update_by = user;
-      updatedTicket.updated_at = new Date();
-
-      return await this.ticketsRepository.save(updatedTicket);
+      return tickets;
     } catch (error) {
+      console.error('Error fetching tickets list:', error);
       throw new HttpException(
-        `Error Updating Ticket: ${error.message}`,
+        `Error fetching Tickets List with Tickets id ${ticket_heading_id}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
-
-}
-
-
-
-export class CreateTicketsDtoWithEventId extends CreateTicketsHeadingDto {
-  event_id: IdValueObject;
 }

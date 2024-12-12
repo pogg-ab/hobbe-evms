@@ -8,6 +8,7 @@ export interface ITicketsRepository{
     create(createTicketsDto: CreateTicketsDto): Promise<void>;
     findAll( page:number, limit:number):Promise<{ticketsList:Tickets[] | null,total: number; page: number; limit: number}>
     findOne(id: string): Promise<Tickets|null>;
+    // activate(id: string, status:string): Promise<Tickets|null>;
     getEventsAllTicketsList(ticket_heading_id:IdValueObject):Promise<Tickets[] | null>
    
 }
