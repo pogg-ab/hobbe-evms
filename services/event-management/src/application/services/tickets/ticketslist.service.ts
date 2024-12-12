@@ -1,8 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { CreateTicketsListCommand } from 'src/application/commands/ticket/create-ticketslist.command';
 import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { ITicketsListRepository } from 'src/domain/repositories/tickets/tickets-list.repository';
 import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
