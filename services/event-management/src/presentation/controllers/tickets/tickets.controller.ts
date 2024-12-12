@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -8,11 +9,12 @@ import {
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { FindTicketsByIdQuery } from 'src/application/queries/tickets/find-tickets-by-id.query';
+import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
+import { FindTicketByHeadingQuery } from 'src/application/queries/tickets/find-all-tickets-by-heading.query';
 import { GetAllTicketsQuery } from 'src/application/queries/tickets/get-all-tickets.query';
-import { GetEventsAllTicketsListCommand } from 'src/application/queries/tickets/get-events-all-ticketslist.query';
 import { Tickets } from 'src/domain/entities/tickets.entity';
-import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
+import { TicketsStatusOV } from 'src/domain/value-objects/tickets-status.value-object';
+import { TicketsTypeOV } from 'src/domain/value-objects/tickets.type.value-object';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 
@@ -52,35 +54,89 @@ export class TicketsController {
     return this.queryBus.execute(new GetAllTicketsQuery(page, limit));
   }
 
-  @ApiOperation({ description: 'Get All Tickets In Single Ticket-Heading' })
-  @ApiParam({
-    name: 'ticket_id',
-    description: 'The unique ID of the ticket',
-    required: true,
-    type: String, // Or 'Number' based on the ID type
-  })
+
+  
+  @ApiOperation({ description: 'Get All Tickets Of Per Event' })
   @HttpCode(200)
+  // @Roles('User')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('Tickets-Head/:id')
-  async getAll(
-    @Param('id') ticket_id: IdValueObject,
-  ): Promise<Tickets[] | null> {
-    return this.queryBus.execute(new GetEventsAllTicketsListCommand(ticket_id));
+  @Get("/events/:event_id")
+  async findAllByEvent(
+    @Param("event_id") event_id:string,
+  ): Promise<{
+    tickets: Tickets[] | null;
+   
+  }> {
+    const event = await this.queryBus.execute(new GetEventsByIdQuery(event_id));
+    const ticket_heading_id = event.ticket.id;
+    return await this.queryBus.execute(new FindTicketByHeadingQuery(ticket_heading_id));
   }
 
-  @ApiOperation({ description: 'Find Tickets By ID' })
-  @ApiParam({
-    name: 'id',
-    description: 'The unique ID of the ticket',
-    required: true,
-    type: String, // Or 'Number' based on the ID type
-  })
+  @ApiOperation({ description: 'Get All Tickets Of Per Event And Type' })
   @HttpCode(200)
+  // @Roles('User')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get(':id')
-  async findOne(@Param('id') id: string): Promise<Tickets | null> {
-    console.log(id);
-
-    return this.queryBus.execute(new FindTicketsByIdQuery(id));
+  @Get("/:event_id/:type")
+  async findAllByEventAndTicketsType(
+    @Param("event_id") event_id:string,
+    @Param("type") type:string,
+  ): Promise<{
+    tickets: Tickets[] | null;
+   
+  }> {
+     // Validate tickets_type against the TicketsType enum
+    if (!Object.values(TicketsTypeOV).includes(type as TicketsTypeOV)) {
+      throw new BadRequestException(
+        `Invalid type: ${type}. Allowed values are: ${Object.values(TicketsTypeOV).join(', ')}`
+      );
+    }
+    const event = await this.queryBus.execute(new GetEventsByIdQuery(event_id));
+    const ticket_heading_id = event.ticket.id;
+    return await this.queryBus.execute(new FindTicketByHeadingQuery(ticket_heading_id,type,''));
   }
+
+
+  @ApiOperation({ description: 'Get All Tickets Of Per Event And Status' })
+  @HttpCode(200)
+  // @Roles('User')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get("get-by-status/:event_id/:status")
+  async findAllByEventAndTicketsStatus(
+    @Param("event_id") event_id:string,
+    @Param("status") status:string,
+  ): Promise<{
+    tickets: Tickets[] | null;
+   
+  }> {
+     // Validate tickets_type against the TicketsType enum
+    if (!Object.values(TicketsStatusOV).includes(status as TicketsStatusOV)) {
+      throw new BadRequestException(
+        `Invalid ststus: ${status}. Allowed values are: ${Object.values(TicketsStatusOV).join(', ')}`
+      );
+    }
+    const event = await this.queryBus.execute(new GetEventsByIdQuery(event_id));
+    const ticket_heading_id = event.ticket.id;
+    return await this.queryBus.execute(new FindTicketByHeadingQuery(ticket_heading_id,'',status));
+  }
+
+
+  
+  @ApiOperation({ description: 'Get All Tickets Of Per Event' })
+  @HttpCode(200)
+  // @Roles('User')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get("/tickets-heading/:ticket_heading_id")
+  async findAllByTicketHeading(
+    @Param("ticket_heading_id") ticket_heading_id:string,
+    // @Query('page') page = 1,
+    // @Query('limit') limit = 10,
+  ): Promise<{
+    tickets: Tickets[] | null;
+    // total: number;
+    // page: number;
+    // limit: number;
+  }> {
+    return this.queryBus.execute(new FindTicketByHeadingQuery(ticket_heading_id));
+  }
+
 }

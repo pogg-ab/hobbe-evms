@@ -8,7 +8,7 @@ export class GetAllTicketsQueryHandler implements IQueryHandler<GetAllTicketsQue
     constructor(
         private readonly ticketsService: TicketsService,  // inject your service here
     ){}
-    execute(query: GetAllTicketsQuery): Promise<{ticketsList:Tickets[] | null, total: number; page: number; limit: number}> {
+    execute(query: GetAllTicketsQuery): Promise<{tickets:Tickets[] | null, total: number; page: number; limit: number}> {
       const { page, limit} = query;
       return this.ticketsService.findAll(page, limit);
     }
