@@ -17,11 +17,12 @@ export class SubAccountService {
   ) {}
 
   async create(createSubAccountDto: CreateSubAccountDto): Promise<SubAccount> {
-    const newSubAccount = this.mapper.map(
+    const newSubAccount = await this.mapper.map(
       createSubAccountDto,
       CreateSubAccountDto,
       SubAccount,
     );
+
     const savedSubAccount =
       await this.subAccountRepository.create(newSubAccount);
     return savedSubAccount;
@@ -53,8 +54,7 @@ export class SubAccountService {
     return updatedSubAccount;
   }
 
-  async deleteSubAccount(id: SubAccountID): Promise<void> {
-    const subAccount = await this.findOne(id);
+  async deleteSubAccount(id: string): Promise<void> {
     await this.subAccountRepository.delete(id);
   }
 }

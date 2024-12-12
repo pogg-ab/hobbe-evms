@@ -122,7 +122,7 @@ export class SubAccountController {
     status: 404,
     description: 'Sub-account not found',
   })
-  async remove(@Param('id') id: SubAccountID): Promise<void> {
+  async remove(@Param('id') id: string): Promise<void> {
     try {
       const command = new RemoveSubAccountCommand(id);
       await this.commandBus.execute(command);

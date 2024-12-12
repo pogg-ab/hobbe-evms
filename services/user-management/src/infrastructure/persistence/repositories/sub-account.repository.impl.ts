@@ -75,9 +75,11 @@ export class SubAccountRepositoryImpl implements ISubAccountRepository {
     }
   }
 
-  async delete(id: SubAccountID): Promise<void> {
+  async delete(id: string): Promise<void> {
     try {
-      const accountToDelete = await this.findOne(id);
+      const accountToDelete = await this.subAccountRepository.findOne({
+        where: { sub_account_id: id },
+      });
       if (!accountToDelete) {
         throw new HttpException(
           `Sub account with ID ${id} not found`,
@@ -85,7 +87,7 @@ export class SubAccountRepositoryImpl implements ISubAccountRepository {
         );
       }
 
-      await this.subAccountRepository.delete(accountToDelete);
+      await this.subAccountRepository.delete(id);
     } catch (error) {
       throw new HttpException(
         `Error deleting SubAccount: ${error.message}`,

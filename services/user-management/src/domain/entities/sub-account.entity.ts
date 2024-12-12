@@ -65,6 +65,7 @@ export class SubAccount {
 
   @UpdateDateColumn()
   updated_at: Date;
+  destination: Promise<OrganizationalAccount>;
 
   constructor() {
     this.sub_account_id = new SubAccountID();

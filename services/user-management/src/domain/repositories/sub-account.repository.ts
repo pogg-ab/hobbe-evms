@@ -6,5 +6,5 @@ export interface ISubAccountRepository {
   findAll(): Promise<SubAccount[]>;
   findOne(id: SubAccountID): Promise<SubAccount | null>;
   update(id: SubAccountID, subAccount: SubAccount): Promise<SubAccount>;
-  delete(id: SubAccountID): Promise<void>;
+  delete(id: string): Promise<void>;
 }
