@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { UpdatedTicketHeadingCommand } from "src/application/commands/ticket/update-ticket-heading.command";
-import { TicketsService } from "src/application/services/tickets/tickets.service";
-import { Tickets } from "src/domain/entities/tickets.entity";
+import { TicketsHeadingService } from "src/application/services/tickets/tickets-heading.service";
+import { TicketsHeading } from "src/domain/entities/tickets-heading.entity";
 
 
 
@@ -9,9 +9,9 @@ import { Tickets } from "src/domain/entities/tickets.entity";
 
 export class UpdatedTicketHeadingCommandHandler implements ICommandHandler<UpdatedTicketHeadingCommand>{
     constructor(
-        private readonly ticketsService : TicketsService
+        private readonly ticketsService : TicketsHeadingService
     ){}
-    execute(command: UpdatedTicketHeadingCommand): Promise<Tickets> {
+    execute(command: UpdatedTicketHeadingCommand): Promise<TicketsHeading> {
         const { id, ticket, user } = command;
         return this.ticketsService.update(id, ticket, user);
     }

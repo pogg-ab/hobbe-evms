@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsUUID} from 'class-validator';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create-bank-acounts.dto';
-import { CreateTicketsDto } from '../tickets/create-tickets.dto';
+import { CreateTicketsHeadingDto } from '../tickets/create-tickets-heading.dto';
 
 export class CreateEventsDto {
 
@@ -49,8 +49,8 @@ export class CreateEventsDto {
   event_end_date: Date;
 
 
-  @ApiProperty({description:"Tickets" , type: CreateTicketsDto})
-  ticket?:CreateTicketsDto;
+  @ApiProperty({description:"Tickets" , type: CreateTicketsHeadingDto})
+  ticket?:CreateTicketsHeadingDto;
 
   @ApiProperty({
     // example: [

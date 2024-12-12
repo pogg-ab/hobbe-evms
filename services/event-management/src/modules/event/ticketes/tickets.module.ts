@@ -1,25 +1,23 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AutomapperModule } from '@automapper/nestjs';
 import { CqrsModule } from '@nestjs/cqrs';
-import { CreateTicketsCommandHandler } from 'src/application/handlers/tickets/create-tickets.handler';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { TicketsController } from 'src/presentation/controllers/tickets/tickets.controller';
 import { TicketsService } from 'src/application/services/tickets/tickets.service';
 import { TicktesProfile } from 'src/application/mappers/tickets.profile';
-import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets.repository.impl';
-import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
-import { EventsModule } from '../events.module';
+import { TICKETS_LIST_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticketslist.repository.token';
+import { TicketsListRepositoryEmpl } from 'src/infrastructure/persistence/repositories/ticketslist.repository.impl';
+import { GetAllTicketsHandler } from 'src/application/handlers/tickets/get-all-events-tickets.handler';
+import { TicketsFindByIdQueryHandler } from 'src/application/handlers/tickets/findone-tickets.handler';
 import { GetAllTicketsQueryHandler } from 'src/application/handlers/tickets/get-all-tickets.handler';
-import { FindOneTicketQueryHandler } from 'src/application/handlers/tickets/find-one-tickets.handler';
-import { UpdatedTicketHeadingCommandHandler } from 'src/application/queries/tickets/update-ticket-heading.handler';
+import { CreateTicketsCommandHandler } from 'src/application/handlers/tickets/create-tickets.handler';
 
 @Module({
+  
     imports: [
-        
       AutomapperModule,
       TypeOrmModule.forFeature([Tickets]),
-      forwardRef(() => EventsModule),
       CqrsModule,
     ],
     controllers: [TicketsController],
@@ -27,16 +25,16 @@ import { UpdatedTicketHeadingCommandHandler } from 'src/application/queries/tick
       TicketsService,
       TicktesProfile,
       CreateTicketsCommandHandler,
+
       GetAllTicketsQueryHandler,
-      FindOneTicketQueryHandler,
-      UpdatedTicketHeadingCommandHandler,
+      GetAllTicketsHandler,
+      TicketsFindByIdQueryHandler,
       {
-        provide: "CREATE_TICKET_REPOSITORY_TOKEN",
-        useClass: TicketsRepositoryEmpl,
+        provide: TICKETS_LIST_REPOSITORY_TOKEN,
+        useClass: TicketsListRepositoryEmpl,
       },
     ],
-    exports: [CREATE_TICKET_REPOSITORY_TOKEN],
+    exports: [TICKETS_LIST_REPOSITORY_TOKEN], // Export for use in other modules
   })
   export class TicketsModule {}
-  
   

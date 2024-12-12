@@ -4,7 +4,6 @@ import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
 import { Categories } from 'src/domain/entities/categories.entity';
 import { CreateCategoriesDto } from 'src/presentation/dtos/categories/categories.dto';
-import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 
 
 

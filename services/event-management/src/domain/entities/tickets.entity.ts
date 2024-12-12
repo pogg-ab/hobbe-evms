@@ -1,106 +1,70 @@
-import {
-  Column,
-  Entity,
-  IsNull,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import { IdValueObject } from '../value-objects/event-id.value-object';
-import { Events } from './events.entity';
-import { TicketsList } from './tickets_list.entity';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { IdValueObject } from "../value-objects/event-id.value-object";
+import { TicketsHeading } from "./tickets-heading.entity";
+
 
 @Entity()
-export class Tickets {
-  @PrimaryGeneratedColumn('uuid')
-  id: IdValueObject;
 
-  @Column()
-  name: string;
+export class Tickets{
+    @PrimaryGeneratedColumn('uuid')
+    id:IdValueObject;
 
-  @Column({ type: 'text', nullable: true })
-  description: string;
+    @Column({default:'Regular', enum:['Regular','VIP','VVIP']})
+    type: string;
 
-  @Column({ type: 'text' })
-  schedule: string;
+    @Column({default:'New', 
+        enum:['New','Available','Pending Payment','Paid','Completed','Cancelled','Cancelled','Refunded','Hold']
+     })
+     status: string;
 
-  @Column()
-  quantity: number;
+    /*
+    Ticket Status List and thier description        
+        - New
+            A ticket has been created but not processed yet.
+        - Available
+            The ticket is ready for sale.
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
+        - Pending Payment
+            The order is created but awaiting payment.
+        - Paid
+            Payment has been completed for the ticket.
 
-  @Column()
-  min_order: number;
+        - Completed
+            The order has been delivered or collected successfully.
 
-  @Column()
-  max_order: number;
+        - Cancelled
+            The order has been voided or canceled.
 
-  @Column({ nullable: true })
-  vip_quantity: number;
+        - Refunded
+            The ticket was refunded, either partially or fully.
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 ,nullable:true})
-  vip_price: number;
+        - Hold
+            The order is temporarily paused.
 
-  @Column({ nullable: true })
-  vip_min_order: number;
+        - Failed
+            The payment or processing of the ticket failed.
 
-  @Column({ nullable: true })
-  vip_max_order: number;
+        - expired
+         The ticket has expired. This status is applicable for tickets that have a sales_end date.s
+    */
 
-  @Column({ nullable: true })
-  vvip_quantity: number;
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    price: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 ,nullable:true})
-  vvip_price: number;
 
-  @Column({ nullable: true })
-  vvip_min_order: number;
+    @Column({nullable:true})
+    promo_code: string;
 
-  @Column({ nullable: true })
-  vvip_max_order: number;
+    @Column({type: 'decimal', nullable:true})
+    discount: number;
 
-  @Column({ nullable: true })
-  sales_start: Date;
+    @Column('text')
+    qr_code:string;
 
-  @Column()
-  sales_end: Date;
+    @Column({unique:true})
+    ticket_no:string;
 
-  @Column({
-    default: 'pending',
-    enum: ['pending', 'active', 'cancelled', 'Expired'],
-  })
-  status: string;
-
-  @Column({ nullable: true })
-  created_by: string;
-
-  @Column({ nullable: true })
-  update_by: string;
-
-  @Column({
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    nullable: true,
-  })
-  created_at: Date;
-
-  @Column({
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    nullable: true,
-  })
-  updated_at: Date;
-
-  @OneToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'event_id' })
-  event_id: Events;
-
-  @OneToMany(() => TicketsList, (tickets) => tickets.ticket_id, {
-    cascade: true,
-    nullable: true,
-  })
-  ticket_list?: TicketsList[];
+    @ManyToOne(()=>TicketsHeading,(ticket)=> ticket.id,{cascade:true})
+    @JoinColumn({ name: 'ticket_heading_id'})
+    ticket_heading_id: IdValueObject;
 }

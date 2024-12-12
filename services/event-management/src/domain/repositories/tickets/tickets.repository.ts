@@ -1,13 +1,13 @@
-import { Tickets } from "src/domain/entities/tickets.entity"
-import { IdValueObject } from "src/domain/value-objects/event-id.value-object"
-import { CreateTicketsDto } from "src/presentation/dtos/tickets/create-tickets.dto"
+
+import { CreateTicketsDto } from "src/presentation/dtos/tickets/create-tickets.dto";
+import { Tickets } from "src/domain/entities/tickets.entity";
+import { IdValueObject } from "src/domain/value-objects/event-id.value-object";
 
 
 export interface ITicketsRepository{
-   create(event_id:IdValueObject, createTicketsDto:CreateTicketsDto):Promise<Tickets>
-   findAll( page:number, limit:number):Promise<{tickets:Tickets[]| null,total: number; page: number; limit: number}>
-   findOne( id:string):Promise<Tickets| null>
-   update(id:string,ticket: Tickets,user: any): Promise<Tickets>
-
-
+    create(createTicketsDto: CreateTicketsDto): Promise<void>;
+    findAll( page:number, limit:number):Promise<{ticketsList:Tickets[] | null,total: number; page: number; limit: number}>
+    findOne(id: string): Promise<Tickets|null>;
+    getEventsAllTicketsList(ticket_heading_id:IdValueObject):Promise<Tickets[] | null>
+   
 }
