@@ -1,6 +1,7 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { IdValueObject } from "../value-objects/event-id.value-object";
 import { BankAccounts } from "./bank_accounts.entity";
+import { TicketsHeading } from "./tickets-heading.entity";
 
 @Entity()
 export class Events {
@@ -9,9 +10,12 @@ export class Events {
     id: IdValueObject;
 
     @Column()
-    title: string;
+    user_id: string;
 
     @Column()
+    title: string;
+
+    @Column({type:'text'})
     description: string;
     
     @Column()
@@ -45,15 +49,20 @@ export class Events {
     @Column({nullable: true  })
     update_by: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'timestamp' ,nullable: true})
     created_at: Date;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', nullable: true })
-    updated_att: Date;
+    @Column({ type: 'timestamp', nullable: true })
+    updated_at: Date;
+
+    @OneToOne(() => TicketsHeading, (ticket) => ticket.event_id, { cascade: true, nullable: true })
+     @JoinColumn({ name: 'event_id' })
+    ticket?: TicketsHeading;
 
     @OneToMany(() => BankAccounts, (bankAccount) => bankAccount.event_id, {
         cascade: true, // Ensures related BankAccounts are automatically saved
         onDelete: 'CASCADE', 
       })
-      bank_accounts: BankAccounts[];
+    @JoinColumn({ name: 'event_id' })
+    bank_accounts?: BankAccounts[];
 }

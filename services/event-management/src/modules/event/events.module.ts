@@ -19,12 +19,20 @@ import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
 import { EventsController } from 'src/presentation/controllers/events/events.controller';
 import { JwtStrategy } from './jwt.strategy';
-import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
 import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
 import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
+import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { CategoriesModule } from './categories/categories.module';
+import { TicketsModule } from './ticketes/tickets.module';
+import { TicketsHeadingModule } from './ticketes/tickets-heading.module';
+
 
 @Module({
   imports: [
+    TicketsHeadingModule,
+    TicketsModule,
+    CategoriesModule,
     AutomapperModule,
     PassportModule,
     JwtModule.register({
@@ -41,9 +49,12 @@ import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events
     TypeOrmModule.forFeature([Events]),
     CqrsModule,
   ],
-  controllers: [EventsController],
+  controllers: [
+    EventsController,
+  ],
   providers: [
     EventsService,
+    CreateTicketsDto,
     CreateEventCommandHandler,
     UpdateEventsCommandHandler,
     DeleteEventCommandHandler,
@@ -51,6 +62,7 @@ import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events
     GetEventsByIdQueryHandler,
     GetEventsByCategoryQueryHandler,
     GetEventsByLocationQueryHandler,
+    SearchEventQueryHandler,
     EventsProfile,
     UserValidationService,
     JwtStrategy,
