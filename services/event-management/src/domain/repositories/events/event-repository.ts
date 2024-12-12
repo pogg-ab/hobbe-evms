@@ -1,6 +1,5 @@
 import { CreateEventsDto } from "src/presentation/dtos/events/create-events.dto";
 import { Events } from "../../entities/events.entity";
-import { Tickets } from "src/domain/entities/tickets.entity";
 
 
 export interface IEventRepository{

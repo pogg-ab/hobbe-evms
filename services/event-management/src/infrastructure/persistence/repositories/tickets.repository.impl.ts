@@ -1,25 +1,25 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Tickets } from 'src/domain/entities/tickets.entity';
-import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
+import { TicketsHeading } from 'src/domain/entities/tickets-heading.entity';
+import { ITicketsHeadingRepository } from 'src/domain/repositories/tickets/tickets-heading.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
-import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { CreateTicketsHeadingDto } from 'src/presentation/dtos/tickets/create-tickets-heading.dto';
 import { DataSource, Repository } from 'typeorm';
 
 @Injectable()
-export class TicketsRepositoryEmpl implements ITicketsRepository {
+export class TicketsRepositoryEmpl implements ITicketsHeadingRepository {
   constructor(
-    @InjectRepository(Tickets)
-    private ticketsRepository: Repository<Tickets>,
+    @InjectRepository(TicketsHeading)
+    private ticketsRepository: Repository<TicketsHeading>,
     private readonly dataSource: DataSource,
   ) {}
 
   async create(
     event_id: IdValueObject,
-    createTicketsDto: CreateTicketsDto,
-  ): Promise<Tickets> {
+    createTicketsHeadingDto: CreateTicketsHeadingDto,
+  ): Promise<TicketsHeading> {
     try {
-      const ticket = this.ticketsRepository.create(createTicketsDto);
+      const ticket = this.ticketsRepository.create(createTicketsHeadingDto);
       return await this.ticketsRepository.save(ticket);
     } catch (error) {
       throw new HttpException(
@@ -33,7 +33,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     page: number,
     limit: number,
   ): Promise<{
-    tickets: Tickets[] | null;
+    tickets: TicketsHeading[] | null;
     total: number;
     page: number;
     limit: number;
@@ -55,7 +55,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     }
   }
 
-  async findOne(id: string): Promise<Tickets | null> {
+  async findOne(id: string): Promise<TicketsHeading | null> {
     try{
       const ticket =  await this.ticketsRepository.findOne({ where: { id: id } });
       if(!ticket){
@@ -72,7 +72,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   }
 
 
-  async update(id: string, ticket: Tickets, user: any): Promise<Tickets> {
+  async update(id: string, ticket: TicketsHeading, user: any): Promise<TicketsHeading> {
     try {
       const ticketToBeUpdate = await this.findOne(id);
 
@@ -93,6 +93,6 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
 
 
 
-export class CreateTicketsDtoWithEventId extends CreateTicketsDto {
+export class CreateTicketsDtoWithEventId extends CreateTicketsHeadingDto {
   event_id: IdValueObject;
 }

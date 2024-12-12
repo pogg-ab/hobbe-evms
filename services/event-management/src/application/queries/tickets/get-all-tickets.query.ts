@@ -1,9 +1,11 @@
 import { IQuery } from "@nestjs/cqrs";
+import { IdValueObject } from "src/domain/value-objects/event-id.value-object";
+
 
 
 export class GetAllTicketsQuery implements IQuery{
     constructor(
-      public readonly page: number,
-      public readonly limit: number,
+        public readonly page: number, 
+        public readonly limit: number
     ){}
 }

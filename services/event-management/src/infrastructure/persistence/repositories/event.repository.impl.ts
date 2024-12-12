@@ -1,14 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { log } from 'console';
-import { CreateTicketsListCommand } from 'src/application/commands/ticket/create-ticketslist.command';
+import { CreateTicketsCommand } from 'src/application/commands/ticket/create-tickets.command';
 import { Events } from 'src/domain/entities/events.entity';
-import { Tickets } from 'src/domain/entities/tickets.entity';
-import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
-import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
-import { Like, Repository } from 'typeorm';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import * as qrcode from 'qrcode';
 import { GetEventsAllTicketsListCommand } from 'src/application/queries/tickets/get-events-all-ticketslist.query';
@@ -22,7 +19,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     // @InjectRepository(TicketsList)
     // private ticketsListRepository: Repository<Tickets>,
 
-    public readonly createTicketsListDto: CreateTicketsListDto,
+    public readonly createTicketsDto: CreateTicketsDto,
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) {}
@@ -42,14 +39,14 @@ export class EventRepositoryEmpl implements IEventRepository {
         const qrCode = await qrcode.toDataURL(ticketNumber);
 
         // Create the ticket DTO and assign values
-        const ticketListDto = this.createTicketsListDto;
+        const ticketListDto = this.createTicketsDto;
         ticketListDto.price = storedEvent.ticket.price;
-        ticketListDto.ticket_id = storedEvent.ticket.id;
+        ticketListDto.ticket_heading_id = storedEvent.ticket.id;
         ticketListDto.qr_code = qrCode; // Assign the generated QR code
         ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
 
         // Execute the command to save the ticket
-        const command = new CreateTicketsListCommand(ticketListDto);
+        const command = new CreateTicketsCommand(ticketListDto);
         await this.commandBus.execute(command);
       }
 
@@ -59,14 +56,14 @@ export class EventRepositoryEmpl implements IEventRepository {
         // Generate the QR Code based on the ticket number
         const qrCode = await qrcode.toDataURL(ticketNumber);
 
-        const ticketListDto = this.createTicketsListDto;
+        const ticketListDto = this.createTicketsDto;
         ticketListDto.price = storedEvent.ticket.vip_price;
         ticketListDto.type = "VIP";
-        ticketListDto.ticket_id = storedEvent.ticket.id;
+        ticketListDto.ticket_heading_id = storedEvent.ticket.id;
         ticketListDto.qr_code = qrCode; // Assign the generated QR code
         ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
 
-        const command = new CreateTicketsListCommand(ticketListDto);
+        const command = new CreateTicketsCommand(ticketListDto);
         await this.commandBus.execute(command);
       }
 
@@ -76,14 +73,14 @@ export class EventRepositoryEmpl implements IEventRepository {
         // Generate the QR Code based on the ticket number
         const qrCode = await qrcode.toDataURL(ticketNumber);
 
-        const ticketListDto = this.createTicketsListDto;
+        const ticketListDto = this.createTicketsDto;
         ticketListDto.price = storedEvent.ticket.vvip_price;
         ticketListDto.type = "VVIP";
-        ticketListDto.ticket_id = storedEvent.ticket.id;
+        ticketListDto.ticket_heading_id = storedEvent.ticket.id;
         ticketListDto.qr_code = qrCode; // Assign the generated QR code
         ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
 
-        const command = new CreateTicketsListCommand(ticketListDto);
+        const command = new CreateTicketsCommand(ticketListDto);
         await this.commandBus.execute(command);
       }
 
@@ -91,7 +88,7 @@ export class EventRepositoryEmpl implements IEventRepository {
         new GetEventsAllTicketsListCommand(storedEvent.ticket.id),
       );
 
-      storedEvent.ticket.ticket_list = tickets;
+      storedEvent.ticket.tickets = tickets;
 
       return storedEvent;
     } catch (error) {

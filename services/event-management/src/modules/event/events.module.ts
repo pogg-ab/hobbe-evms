@@ -1,5 +1,5 @@
 import { AutomapperModule } from '@automapper/nestjs';
-import { forwardRef, Inject, Module } from '@nestjs/common';
+import { Inject, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
@@ -22,21 +22,16 @@ import { JwtStrategy } from './jwt.strategy';
 import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
 import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
 import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
-import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
-import { CategoriesModule } from './categories/categories.module';
-import { TicketsListModule } from './ticketes/tickets-list.module';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { TicketsController } from 'src/presentation/controllers/tickets/tickets.controller';
-import { GetAllTicketsQueryHandler } from 'src/application/handlers/tickets/get-all-tickets.handler';
-import { FindOneTicketQueryHandler } from 'src/application/handlers/tickets/find-one-tickets.handler';
-import { UpdatedTicketHeadingCommandHandler } from 'src/application/queries/tickets/update-ticket-heading.handler';
+import { CategoriesModule } from './categories/categories.module';
 import { TicketsModule } from './ticketes/tickets.module';
+import { TicketsHeadingModule } from './ticketes/tickets-heading.module';
 
 
 @Module({
   imports: [
+    TicketsHeadingModule,
     TicketsModule,
-    TicketsListModule,
     CategoriesModule,
     AutomapperModule,
     PassportModule,
@@ -59,7 +54,7 @@ import { TicketsModule } from './ticketes/tickets.module';
   ],
   providers: [
     EventsService,
-    CreateTicketsListDto,
+    CreateTicketsDto,
     CreateEventCommandHandler,
     UpdateEventsCommandHandler,
     DeleteEventCommandHandler,

@@ -1,12 +1,9 @@
-
 import { createMap, forMember, mapFrom, Mapper } from '@automapper/core';
 import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
 import { Events } from 'src/domain/entities/events.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
-import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
-import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 
 
@@ -24,8 +21,8 @@ export class TicktesProfile extends AutomapperProfile {
         CreateTicketsDto,
         Tickets,
         forMember(
-          (destination) => destination.name,
-          mapFrom((src) => src.name),
+          (destination) => destination.discount,
+          mapFrom((src) => src.discount),
         ),
 
 
@@ -34,32 +31,26 @@ export class TicktesProfile extends AutomapperProfile {
           mapFrom((src) => src.price),
         ),
 
-        forMember(
-            (destination) => destination.quantity,
-            mapFrom((src) => src.quantity),
-          ),
 
         forMember(
-            (destination) => destination.sales_start,
-            mapFrom((src) => src.sales_start),
-          ),
-
-          forMember(
-            (destination) => destination.sales_end,
-            mapFrom((src) => src.sales_end),
-          ),
-  
-
-        forMember(
-          (destination) => destination.description,
-          mapFrom((src) => src.description),
+          (destination) => destination.type,
+          mapFrom((src) => src.type),
         ),
 
         forMember(
-            (destination) => destination.schedule,
-            mapFrom((src) => src.schedule),
+          (destination) => destination.qr_code,
+          mapFrom((src) => src.qr_code),
+        ),
+
+        forMember(
+          (destination) => destination.ticket_no,
+          mapFrom((src) => src.ticket_no),
+        ),
+
+        forMember(
+            (destination) => destination.ticket_heading_id,
+            mapFrom((src) => src.ticket_heading_id),
           ),
-        
       );
 
     };

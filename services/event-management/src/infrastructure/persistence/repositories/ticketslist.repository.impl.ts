@@ -1,24 +1,24 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { TicketsList } from 'src/domain/entities/tickets_list.entity';
-import { ITicketsListRepository } from 'src/domain/repositories/tickets/tickets-list.repository';
+import { Tickets } from 'src/domain/entities/tickets.entity';
+import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
-import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { DataSource, Repository } from 'typeorm';
 
 @Injectable()
-export class TicketsListRepositoryEmpl implements ITicketsListRepository {
+export class TicketsListRepositoryEmpl implements ITicketsRepository {
   constructor(
-    @InjectRepository(TicketsList)
-    private ticketsListRepository: Repository<TicketsList>,
+    @InjectRepository(Tickets)
+    private ticketsListRepository: Repository<Tickets>,
     private readonly dataSource: DataSource,
   ) {}
 
   async create(
-    createTicketsListDto: CreateTicketsListDto,
+    createTicketsDto: CreateTicketsDto,
   ): Promise<void> {
     try {
-      const newTicket = this.ticketsListRepository.create(createTicketsListDto);
+      const newTicket = this.ticketsListRepository.create(createTicketsDto);
        await this.ticketsListRepository.save(newTicket);
     } catch (error) {
       throw new HttpException(
@@ -28,7 +28,7 @@ export class TicketsListRepositoryEmpl implements ITicketsListRepository {
     }
   }
 
-  async findOne(id: string): Promise<TicketsList | null> {
+  async findOne(id: string): Promise<Tickets | null> {
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { id: id },
@@ -53,7 +53,7 @@ export class TicketsListRepositoryEmpl implements ITicketsListRepository {
     page: number,
     limit: number,
   ): Promise<{
-    ticketsList: TicketsList[] | null;
+    ticketsList: Tickets[] | null;
     total: number;
     page: number;
     limit: number;
@@ -80,12 +80,12 @@ export class TicketsListRepositoryEmpl implements ITicketsListRepository {
   }
 
   async getEventsAllTicketsList(
-    ticket_id: IdValueObject,
-  ): Promise<TicketsList[] | null> {
+    ticket_heading_id: IdValueObject,
+  ): Promise<Tickets[] | null> {
     try {
       // Use 'find' instead of 'findBy'
-      const data = `SELECT * FROM tickets_list
-      WHERE ticket_id = '${ticket_id}'`;
+      const data = `SELECT * FROM tickets
+      WHERE ticket_heading_id = '${ticket_heading_id}'`;
       const tickets = this.dataSource.query(data);
       // Check if no events were found
 
@@ -93,7 +93,7 @@ export class TicketsListRepositoryEmpl implements ITicketsListRepository {
     } catch (error) {
       console.error('Error fetching tickets list:', error);
       throw new HttpException(
-        `Error fetching Tickets List with Tickets id ${ticket_id}: ${error.message}`,
+        `Error fetching Tickets List with Tickets id ${ticket_heading_id}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

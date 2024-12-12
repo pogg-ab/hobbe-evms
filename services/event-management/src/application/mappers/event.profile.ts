@@ -2,12 +2,9 @@ import { createMap, forMember, mapFrom, Mapper } from '@automapper/core';
 import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
 import { Events } from 'src/domain/entities/events.entity';
-import { Tickets } from 'src/domain/entities/tickets.entity';
-import { TicketsList } from 'src/domain/entities/tickets_list.entity';
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
-import { CreateTicketsListDto } from 'src/presentation/dtos/tickets/create-tickets-list.dto';
-import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+
 
 
 @Injectable()
