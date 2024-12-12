@@ -24,7 +24,7 @@ import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { UpdateTicketsHeadingDto } from 'src/presentation/dtos/tickets/update-tickets-heading.dto';
 import { ActivateTicketsByHeadingCommand } from 'src/application/commands/ticket/activate-tickets-by-heading.command';
-import { TicketHeadingStatus } from 'src/domain/value-objects/event-status.value-object';
+import { TicketHeadingStatus } from 'src/domain/value-objects/tickets-heading-status.value-object';
 
 @Controller('tickets-heading')
 @ApiTags('Tickets-Heading')

@@ -12,6 +12,7 @@ import { GetAllTicketsHandler } from 'src/application/handlers/tickets/get-all-e
 import { TicketsFindByIdQueryHandler } from 'src/application/handlers/tickets/findone-tickets.handler';
 import { GetAllTicketsQueryHandler } from 'src/application/handlers/tickets/get-all-tickets.handler';
 import { CreateTicketsCommandHandler } from 'src/application/handlers/tickets/create-tickets.handler';
+import { TicketsFindByHeadingQueryHandler } from 'src/application/handlers/tickets/find-all-tickets-by-heading.handler';
 
 @Module({
   
@@ -29,6 +30,7 @@ import { CreateTicketsCommandHandler } from 'src/application/handlers/tickets/cr
       GetAllTicketsQueryHandler,
       GetAllTicketsHandler,
       TicketsFindByIdQueryHandler,
+      TicketsFindByHeadingQueryHandler,
       {
         provide: TICKETS_LIST_REPOSITORY_TOKEN,
         useClass: TicketsRepositoryEmpl,

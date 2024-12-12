@@ -4,13 +4,14 @@ import { TicketsHeading } from 'src/domain/entities/tickets-heading.entity';
 import { ITicketsHeadingRepository } from 'src/domain/repositories/tickets/tickets-heading.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateTicketsHeadingDto } from 'src/presentation/dtos/tickets/create-tickets-heading.dto';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
   constructor(
     @InjectRepository(TicketsHeading)
     private ticketsHeadingRepository: Repository<TicketsHeading>,
+    private readonly entityManager: EntityManager, 
     // private readonly dataSource: DataSource,
   ) {}
 
@@ -100,6 +101,14 @@ export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
       ticket.status = status;
       ticket.update_by = user;
       ticket.updated_at = new Date();
+
+      try {
+        await this.entityManager.query(
+          `UPDATE tickets SET status = '${status}' WHERE ticket_heading_id = '${ticket.id}'`,
+        );
+      } catch (error) {
+        throw new Error(`Error updating tickets: ${error.message}`);
+      }
   
       return await this.ticketsHeadingRepository.save(ticket);
     } catch (error) {

@@ -13,7 +13,7 @@ export class Tickets{
     type: string;
 
     @Column({default:'New', 
-        enum:['New','Available','Pending Payment','Paid','Completed','Cancelled','Cancelled','Refunded','Hold']
+        enum:['New','active','Available','Pending Payment','Paid','Completed','Cancelled','Cancelled','Refunded','Hold']
      })
      status: string;
 

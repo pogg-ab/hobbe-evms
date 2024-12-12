@@ -133,6 +133,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     try {
       const event = await this.eventRepository.findOne({
         where: { id: id },
+        relations: ['ticket'],
       });
       if (!event) {
         throw new HttpException(

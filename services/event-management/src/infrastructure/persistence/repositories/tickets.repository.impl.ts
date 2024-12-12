@@ -4,7 +4,7 @@ import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Equal, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketsRepositoryEmpl implements ITicketsRepository {
@@ -53,7 +53,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     page: number,
     limit: number,
   ): Promise<{
-    ticketsList: Tickets[] | null;
+    tickets: Tickets[] | null;
     total: number;
     page: number;
     limit: number;
@@ -64,16 +64,56 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       const offset = (page - 1) * limit; // Calculate the offset
 
       // Use QueryBuilder to handle pagination
-      const [ticketsList, total] = await this.ticketsListRepository
-        .createQueryBuilder('event') // 'event' is the alias for your table/entity
+      const [tickets, total] = await this.ticketsListRepository
+        .createQueryBuilder('tickets') // 'tickets' is the alias for your table/entity
         .skip(offset) // Number of rows to skip
         .take(limit) // Number of rows to fetch
         .getManyAndCount(); // Fetch entities and total count
 
-      return { ticketsList, total, page, limit };
+      return { tickets, total, page, limit };
     } catch (error) {
       throw new HttpException(
         `Error fetching Events: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findAllByTicketsHeading(
+    ticket_heading_id:string,
+    tickets_type?:string,
+    status?:string,
+  ): Promise<{
+    tickets: Tickets[] | null;
+  
+  }> {
+    try {
+      if(!tickets_type && !status){
+        const tickets = await this.ticketsListRepository
+        .find({
+          where: { ticket_heading_id: Equal(ticket_heading_id) },
+        });
+        return {tickets};
+      }else if(tickets_type){
+        const tickets = await this.ticketsListRepository
+        .find({
+          where: { ticket_heading_id: Equal(ticket_heading_id), type: Equal(tickets_type) }
+
+          // relations: ['ticket_heading_id'],
+        }); // 'event' is the alias for your table/entity
+        return {tickets};
+      }else if(status){
+        const tickets = await this.ticketsListRepository
+        .find({
+          where: { ticket_heading_id: Equal(ticket_heading_id), status: Equal(status) }
+
+        });
+        return {tickets};
+      }
+     
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Tickets : ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
