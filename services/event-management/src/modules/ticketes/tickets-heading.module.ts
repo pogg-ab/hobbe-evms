@@ -8,12 +8,12 @@ import { TicketsHeadingService } from 'src/application/services/tickets/tickets-
 import { TicktesHeadingProfile } from 'src/application/mappers/tickets-heading.profile';
 import { TicketsHeadingRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets-heading.repository.impl';
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
-import { EventsModule } from '../events.module';
 import { GetAllTicketsByHeadingQueryHandler } from 'src/application/handlers/tickets/get-all-tickets-by-heading.handler';
 import { FindOneTicketsHeadingQueryHandler } from 'src/application/handlers/tickets/find-one-tickets-heading.handler';
 import { UpdatedTicketHeadingCommandHandler } from 'src/application/handlers/tickets/update-ticket-heading.handler';
 import { CreateTicketsHeadingCommandHandler } from 'src/application/handlers/tickets/create-tickets-heading.handler';
 import { ActivateTicketsByHeadingCommandHandler } from 'src/application/handlers/tickets/activate-tickets-by-heading.handler';
+import { EventsModule } from '../event/events.module';
 
 @Module({
     imports: [

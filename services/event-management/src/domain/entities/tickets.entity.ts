@@ -1,6 +1,8 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { IdValueObject } from "../value-objects/event-id.value-object";
 import { TicketsHeading } from "./tickets-heading.entity";
+import { Promocodes } from "./promocodes.entity";
+import { Events } from "./events.entity";
 
 
 @Entity()
@@ -52,11 +54,8 @@ export class Tickets{
     price: number;
 
 
-    @Column({nullable:true})
-    promo_code: string;
-
-    @Column({type: 'decimal', nullable:true})
-    discount: number;
+    @Column({default:false})
+    hasPromcode: boolean;
 
     @Column('text')
     qr_code:string;
@@ -64,7 +63,15 @@ export class Tickets{
     @Column({unique:true})
     ticket_no:string;
 
-    @ManyToOne(()=>TicketsHeading,(ticket)=> ticket.id,{cascade:true})
+    @ManyToOne(()=>TicketsHeading,(ticket)=> ticket.id)
     @JoinColumn({ name: 'ticket_heading_id'})
     ticket_heading_id: IdValueObject;
+
+    @ManyToOne(()=>Events,(event)=> event.id)
+    @JoinColumn({ name: 'event_id'})
+    event_id: IdValueObject;
+
+    @ManyToOne(() => Promocodes, (promocode) => promocode.id,{nullable:true})
+    @JoinColumn({ name: 'promocode_id' })
+    promocode_id?: Promocodes;
 }

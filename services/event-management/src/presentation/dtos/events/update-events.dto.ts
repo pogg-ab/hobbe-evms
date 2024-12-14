@@ -9,6 +9,14 @@ export class UpdateEventsDto extends PartialType(CreateEventsDto) {
     @IsNotEmpty()
     title: string;
 
+    @ApiProperty({ description: 'Event Has Promocode ?', example: false })
+    @IsNotEmpty()
+    hasPromocode: boolean;
+  
+    @ApiProperty({ description: 'Event is Paid ?', example: true })
+    @IsNotEmpty()
+    isPaid: boolean;
+
     @ApiProperty({description: 'Event Description',example:'Demo Event Description'  })
     @IsNotEmpty()
     description: string;
