@@ -23,15 +23,18 @@ import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events
 import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
 import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { CategoriesModule } from './categories/categories.module';
-import { TicketsModule } from './ticketes/tickets.module';
-import { TicketsHeadingModule } from './ticketes/tickets-heading.module';
+import { CategoriesModule } from '../categories/categories.module';
+import { TicketsModule } from '../ticketes/tickets.module';
+import { TicketsHeadingModule } from '../ticketes/tickets-heading.module';
+import { PromocodeModule } from '../promocode/promocode.module';
+
 
 
 @Module({
   imports: [
     TicketsHeadingModule,
     TicketsModule,
+    PromocodeModule,
     CategoriesModule,
     AutomapperModule,
     PassportModule,

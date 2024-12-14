@@ -6,20 +6,16 @@ import {
   HttpCode,
   Param,
   Patch,
-  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {  ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UpdatedTicketHeadingCommand } from 'src/application/commands/ticket/update-ticket-heading.command';
 import { FindTicketHeadingByIdQuery } from 'src/application/queries/tickets/find-tickets-heading-by-id.query';
 import { GetAllTicketsHeadingQuery } from 'src/application/queries/tickets/get-all-tickets-heading.query';
-import { UpdatedTicketHeadingCommandHandler } from 'src/application/handlers/tickets/update-ticket-heading.handler';
 import { TicketsHeading } from 'src/domain/entities/tickets-heading.entity';
-import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
-import { CreateTicketsHeadingDto } from 'src/presentation/dtos/tickets/create-tickets-heading.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { UpdateTicketsHeadingDto } from 'src/presentation/dtos/tickets/update-tickets-heading.dto';

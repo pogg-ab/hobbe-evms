@@ -6,8 +6,6 @@ import { Tickets } from 'src/domain/entities/tickets.entity';
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 
-
-
 @Injectable()
 export class TicktesProfile extends AutomapperProfile {
   constructor(@InjectMapper() mapper: Mapper) {
@@ -20,17 +18,12 @@ export class TicktesProfile extends AutomapperProfile {
         mapper,
         CreateTicketsDto,
         Tickets,
-        forMember(
-          (destination) => destination.discount,
-          mapFrom((src) => src.discount),
-        ),
-
+       
 
         forMember(
           (destination) => destination.price,
           mapFrom((src) => src.price),
         ),
-
 
         forMember(
           (destination) => destination.type,
@@ -48,11 +41,16 @@ export class TicktesProfile extends AutomapperProfile {
         ),
 
         forMember(
-            (destination) => destination.ticket_heading_id,
-            mapFrom((src) => src.ticket_heading_id),
-          ),
-      );
+          (destination) => destination.ticket_heading_id,
+          mapFrom((src) => src.ticket_heading_id),
+        ),
+        forMember(
+          (destination) => destination.event_id,
+          mapFrom((src) => src.event_id),
+        ),
 
+
+      );
     };
   }
 }

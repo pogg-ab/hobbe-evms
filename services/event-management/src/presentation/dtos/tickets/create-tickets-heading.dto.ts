@@ -84,7 +84,4 @@ export class CreateTicketsHeadingDto {
   @IsNotEmpty()
   sales_end: Date;
 
-  @ApiProperty({ description: 'Tickets List', type: CreateTicketsDto })
-  // @IsNotEmpty()
-  tickets_list?: CreateTicketsDto[];
 }

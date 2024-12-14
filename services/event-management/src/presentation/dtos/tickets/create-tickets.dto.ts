@@ -13,13 +13,13 @@ export class CreateTicketsDto{
     @ApiProperty({description:"Price", example:500})
     @IsNotEmpty()
     price: number;
-
-    @ApiProperty({description:"Discount in Percent", example:10})
-    discount: number;
-
   
     qr_code?: string;
     ticket_no?: string;
+
+    @ApiProperty({description:"Event"})
+    @IsNotEmpty()
+    event_id: IdValueObject;
 
     @ApiProperty({description:"Ticket Header"})
     @IsNotEmpty()
