@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, Max } from "class-validator";
 import { CreateEventsDto } from "../events/create-events.dto";
+import { IdValueObject } from "src/domain/value-objects/event-id.value-object";
 
 
 export class CreatePromocodeDto{
@@ -17,13 +18,13 @@ export class CreatePromocodeDto{
     @Max(100)
     discount: number;
 
-    @ApiProperty({ description: 'Event ID'})
-  // @IsNotEmpty()
-     event_id?: string;
+  //   @ApiProperty({ description: 'Event ID'})
+  // // @IsNotEmpty()
+  //    event_id: IdValueObject;
 
-     @ApiProperty({ description: 'Ticket Heading ID'})
-     // @IsNotEmpty()
-     ticket_heading_id?: string;
+  //    @ApiProperty({ description: 'Ticket Heading ID'})
+  //    // @IsNotEmpty()
+  //    ticket_heading_id: IdValueObject;
 
     @ApiProperty({ description: 'Promocode start from', example: new Date() })
     // @IsNotEmpty()

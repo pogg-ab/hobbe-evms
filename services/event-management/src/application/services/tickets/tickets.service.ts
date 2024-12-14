@@ -21,7 +21,7 @@ export class TicketsService {
       CreateTicketsDto,
       Tickets,
     );
-    return await this.createTicketsRepository.create(tickets);
+    await this.createTicketsRepository.create(tickets);
   }
 
   async getEventsAllTicketsList(ticket_id: IdValueObject) {

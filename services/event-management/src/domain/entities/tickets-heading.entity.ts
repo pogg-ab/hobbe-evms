@@ -11,6 +11,7 @@ import {
 import { IdValueObject } from '../value-objects/event-id.value-object';
 import { Events } from './events.entity';
 import { Tickets } from './tickets.entity';
+import { Promocodes } from './promocodes.entity';
 
 @Entity()
 export class TicketsHeading {
@@ -94,12 +95,18 @@ export class TicketsHeading {
   })
   updated_at: Date;
 
-  @OneToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
-  // @JoinColumn({ name: 'event_id' })
+  @OneToOne(() => Events, (event) => event.id)
+  @JoinColumn({ name: 'event_id' })
   event_id: Events;
 
   @OneToMany(() => Tickets, (tickets) => tickets.ticket_heading_id, {
-    nullable: true,
+    cascade: true, 
+    onDelete: 'CASCADE',
+    nullable:true
   })
+  @JoinColumn({ name: 'ticket_heading_id' })
   tickets?: Tickets[];
+
+  @OneToMany(() => Promocodes, (promocode) => promocode.id,{nullable:true})
+  promocode_id?: Promocodes[];
 }

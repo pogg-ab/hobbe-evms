@@ -15,10 +15,6 @@ export class EventRepositoryEmpl implements IEventRepository {
   constructor(
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
-
-    // @InjectRepository(TicketsList)
-    // private ticketsListRepository: Repository<Tickets>,
-
     public readonly createTicketsDto: CreateTicketsDto,
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
@@ -31,64 +27,6 @@ export class EventRepositoryEmpl implements IEventRepository {
       newEvent.created_by = user;
       newEvent.created_at = new Date();
       const storedEvent = await this.eventRepository.save(newEvent);
-
-      for (let i = 0; i < storedEvent.ticket.quantity; i++) {
-        // Generate a unique ticket number (UUID)
-        const ticketNumber = uuidv4();
-        // Generate the QR Code based on the ticket number
-        const qrCode = await qrcode.toDataURL(ticketNumber);
-
-        // Create the ticket DTO and assign values
-        const ticketListDto = this.createTicketsDto;
-        ticketListDto.price = storedEvent.ticket.price;
-        ticketListDto.ticket_heading_id = storedEvent.ticket.id;
-        ticketListDto.qr_code = qrCode; // Assign the generated QR code
-        ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
-
-        // Execute the command to save the ticket
-        const command = new CreateTicketsCommand(ticketListDto);
-        await this.commandBus.execute(command);
-      }
-
-      for (let i = 0; i < storedEvent.ticket.vip_quantity; i++) {
-        // Generate a unique ticket number (UUID)
-        const ticketNumber = uuidv4();
-        // Generate the QR Code based on the ticket number
-        const qrCode = await qrcode.toDataURL(ticketNumber);
-
-        const ticketListDto = this.createTicketsDto;
-        ticketListDto.price = storedEvent.ticket.vip_price;
-        ticketListDto.type = "VIP";
-        ticketListDto.ticket_heading_id = storedEvent.ticket.id;
-        ticketListDto.qr_code = qrCode; // Assign the generated QR code
-        ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
-
-        const command = new CreateTicketsCommand(ticketListDto);
-        await this.commandBus.execute(command);
-      }
-
-      for (let i = 0; i < storedEvent.ticket.vvip_quantity; i++) {
-        // Generate a unique ticket number (UUID)
-        const ticketNumber = uuidv4();
-        // Generate the QR Code based on the ticket number
-        const qrCode = await qrcode.toDataURL(ticketNumber);
-
-        const ticketListDto = this.createTicketsDto;
-        ticketListDto.price = storedEvent.ticket.vvip_price;
-        ticketListDto.type = "VVIP";
-        ticketListDto.ticket_heading_id = storedEvent.ticket.id;
-        ticketListDto.qr_code = qrCode; // Assign the generated QR code
-        ticketListDto.ticket_no = ticketNumber; // Assign the ticket number
-
-        const command = new CreateTicketsCommand(ticketListDto);
-        await this.commandBus.execute(command);
-      }
-
-      const tickets = await this.queryBus.execute(
-        new GetEventsAllTicketsListCommand(storedEvent.ticket.id),
-      );
-
-      storedEvent.ticket.tickets = tickets;
 
       return storedEvent;
     } catch (error) {

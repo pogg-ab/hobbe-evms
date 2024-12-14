@@ -36,10 +36,10 @@ export class PromocodeProfile extends AutomapperProfile {
           mapFrom((src) => src.discount),
         ),
 
-        forMember(
-          (destination) => destination.available_quantity,
-          mapFrom((src) => src.quantity),
-        ),
+        // forMember(
+        //   (destination) => destination.available_quantity,
+        //   mapFrom((src) => src.quantity),
+        // ),
 
         forMember(
           (destination) => destination.promo_start_date,
@@ -50,15 +50,20 @@ export class PromocodeProfile extends AutomapperProfile {
           (destination) => destination.promo_end_date,
           mapFrom((src) => src.promo_end_date),
         ),
-        forMember(
-          (destination) => destination.event_id,
-          mapFrom((src) => src.event_id),
-        ),
+        // forMember(
+        //   (destination) => destination.event_id,
+        //   mapFrom((src) => src.event_id),
+        // ),
 
-        forMember(
-          (destination) => destination.ticket_heading_id,
-          mapFrom((src) => src.ticket_heading_id),
-        ),
+        // forMember(
+        //   (destination) => destination.event_id,
+        //   mapFrom((src) => src.event_id),
+        // ),
+
+        // forMember(
+        //   (destination) => destination.ticket_heading_id,
+        //   mapFrom((src) => src.ticket_heading_id),
+        // ),
 
         forMember(
           (destination) => destination.description,
@@ -85,10 +90,6 @@ export class PromocodeProfile extends AutomapperProfile {
           mapFrom((src) => src.discount),
         ),
 
-        forMember(
-          (destination) => destination.available_quantity,
-          mapFrom((src) => src.quantity),
-        ),
 
         forMember(
           (destination) => destination.promo_start_date,
@@ -105,6 +106,8 @@ export class PromocodeProfile extends AutomapperProfile {
           (destination) => destination.description,
           mapFrom((src) => src.description),
         ),
+
+      
       );
     };
   }

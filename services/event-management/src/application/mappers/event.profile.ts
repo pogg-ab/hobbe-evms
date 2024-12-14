@@ -25,6 +25,16 @@ export class EventsProfile extends AutomapperProfile {
         ),
 
         forMember(
+          (destination) => destination.isPaid,
+          mapFrom((src) => src.isPaid),
+        ),
+
+        forMember(
+          (destination) => destination.hasPromocode,
+          mapFrom((src) => src.hasPromocode),
+        ),
+
+        forMember(
           (destination) => destination.description,
           mapFrom((src) => src.description),
         ),
@@ -65,18 +75,17 @@ export class EventsProfile extends AutomapperProfile {
         ),
      
 
-        // forMember(
-        //   (destination) => destination.ticket,
-        //   mapFrom((source) => source.ticket),
-        // ),
-
         forMember(
-          (destination) => destination.ticket,
-          mapFrom((source) => source.ticket,
+          (destination) => destination.ticket_heading,
+          mapFrom((source) => source.ticket_heading,
          )
         ),
 
-      
+        forMember(
+          (destination) => destination.promocodes,
+          mapFrom((source) => source.promocodes,
+         )
+        ),
 
         forMember(
           (destination) => destination.bank_accounts,

@@ -3,6 +3,8 @@ import { IsEnum, IsNotEmpty, IsUUID} from 'class-validator';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create-bank-acounts.dto';
 import { CreateTicketsHeadingDto } from '../tickets/create-tickets-heading.dto';
+import { CreateTicketsDto } from '../tickets/create-tickets.dto';
+import { CreatePromocodeDto } from '../tickets/create-promocode.dto';
 
 export class CreateEventsDto {
 
@@ -11,6 +13,14 @@ export class CreateEventsDto {
   @ApiProperty({ description: 'Event Title', example: 'Demo Event' })
   @IsNotEmpty()
   title: string;
+
+  @ApiProperty({ description: 'Event Has Promocode ?', example: false })
+  @IsNotEmpty()
+  hasPromocode: boolean;
+
+  @ApiProperty({ description: 'Event is Paid ?', example: true })
+  @IsNotEmpty()
+  isPaid: boolean;
 
   @ApiProperty({
     description: 'Event Description',
@@ -23,6 +33,8 @@ export class CreateEventsDto {
   @IsNotEmpty()
   @IsEnum(['public', 'private', 'group'])
   privacy: string;
+
+
 
   @ApiProperty({ description: 'Event Category', example: 'Technology' })
   @IsNotEmpty()
@@ -50,22 +62,19 @@ export class CreateEventsDto {
 
 
   @ApiProperty({description:"Tickets" , type: CreateTicketsHeadingDto})
-  ticket?:CreateTicketsHeadingDto;
+  ticket_heading?:CreateTicketsHeadingDto;
 
   @ApiProperty({
-    // example: [
-    //   {
-    //     bank_name: 'Bank of Abyssina',
-    //     account_owner: 'Mohammed Ali',
-    //     account_number: '4415278',
-    //   },
-    //   {
-    //     bank_name: 'CBE',
-    //     account_owner: 'Challa Eabba',
-    //     account_number: '10004456789',
-    //   },
-    // ],
-    description: 'List of associated bank accounts',
+    description:"Promo Code" ,
+    isArray: true,
+    type: CreatePromocodeDto})
+    promocodes?:CreatePromocodeDto[];
+
+  // @ApiProperty({description:"Tickets" , type: CreateTicketsDto})
+  // tickets?:CreateTicketsDto;
+
+  @ApiProperty({
+    description: 'List of Associated Bank Accounts',
     isArray: true,
     type: CreateBankAccountDto,
   })
