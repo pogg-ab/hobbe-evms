@@ -1,0 +1,115 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CreateTicketBookingCommand } from 'src/application/commands/ticket/create-ticket-booking.command';
+import { DeleteTicketBookingCommand } from 'src/application/commands/ticket/delete-ticket-booking.command';
+import { UpdateTicketBookingCommand } from 'src/application/commands/ticket/update-ticket-booking.command';
+import { GetAllTicketBookingsQuery } from 'src/application/queries/tickets/get-all-ticket-bookings.query';
+import { GetTicketBookingByIdQuery } from 'src/application/queries/tickets/get-ticket-booking-by-id.query';
+import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
+import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
+import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
+import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
+import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
+
+@ApiTags('Ticket Booking')
+@Controller('ticket-booking')
+export class TicketBookingController {
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
+
+  @ApiOperation({ description: 'Get All Ticket Bookings' })
+  @HttpCode(200)
+  @Get()
+  async findAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ): Promise<{
+    ticketBookings: TicketBooking[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    return await this.queryBus.execute(
+      new GetAllTicketBookingsQuery(page, limit),
+    );
+  }
+
+  @ApiBody({ type: CreateTicketBookingDto })
+  @ApiOperation({ description: 'Create a new ticket booking' })
+  @HttpCode(200)
+  @ApiResponse({
+    type: CreateTicketBookingDto,
+  })
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  async createTicketBooking(
+    @Body() createTicketBookingDto: CreateTicketBookingDto,
+    @CurrentUserId() user: any,
+  ): Promise<{ message: string; ticketBooking: TicketBooking }> {
+    const command = new CreateTicketBookingCommand(
+      createTicketBookingDto,
+      user.user.user_id.toString(),
+    );
+    const createdTicketBooking = await this.commandBus.execute(command);
+    return {
+      message: 'Ticket Booking created successfully',
+      ticketBooking: createdTicketBooking,
+    };
+  }
+
+  @ApiOperation({ description: 'Get Ticket Booking By ID' })
+  @HttpCode(200)
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<TicketBooking | null> {
+    return this.queryBus.execute(new GetTicketBookingByIdQuery(id));
+  }
+
+  @ApiOperation({ description: 'Update Ticket Booking By ID' })
+  @HttpCode(200)
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  async update(
+    @Param('id') id: string,
+    @Body() updateTicketBookingDto: UpdateTicketBookingDto,
+    @CurrentUserId() user: any,
+  ): Promise<TicketBooking> {
+    const ticketBooking = await this.queryBus.execute(
+      new GetTicketBookingByIdQuery(id),
+    );
+    if (!ticketBooking) throw new Error('Ticket Booking not found');
+    Object.assign(ticketBooking, updateTicketBookingDto);
+    return this.commandBus.execute(
+      new UpdateTicketBookingCommand(
+        id,
+        ticketBooking,
+        user.user.user_id.toString(),
+      ),
+    );
+  }
+
+  @ApiOperation({ description: 'Delete Ticket Booking By ID' })
+  @HttpCode(200)
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  async remove(@Param('id') id: string): Promise<void> {
+    const ticketBooking = await this.queryBus.execute(
+      new GetTicketBookingByIdQuery(id),
+    );
+    if (!ticketBooking) throw new Error('Ticket Booking not found');
+    await this.commandBus.execute(new DeleteTicketBookingCommand(id));
+  }
+}
