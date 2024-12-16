@@ -1,13 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsUUID} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create-bank-acounts.dto';
 import { CreateTicketsHeadingDto } from '../tickets/create-tickets-heading.dto';
 import { CreateTicketsDto } from '../tickets/create-tickets.dto';
 import { CreatePromocodeDto } from '../tickets/create-promocode.dto';
+import { CreateCategoriesDto } from '../categories/categories.dto';
 
 export class CreateEventsDto {
-
   // user_id: string;
 
   @ApiProperty({ description: 'Event Title', example: 'Demo Event' })
@@ -34,12 +34,6 @@ export class CreateEventsDto {
   @IsEnum(['public', 'private', 'group'])
   privacy: string;
 
-
-
-  @ApiProperty({ description: 'Event Category', example: 'Technology' })
-  @IsNotEmpty()
-  category: string;
-
   @ApiProperty({ description: 'Event Location', example: 'Addis Ababa' })
   @IsNotEmpty()
   location: string;
@@ -60,16 +54,23 @@ export class CreateEventsDto {
   @IsNotEmpty()
   event_end_date: Date;
 
+  @ApiProperty({
+    description: 'Event Category',
+    isArray: true,
+    example:['Sports','Health'],
+  })
+  @IsNotEmpty()
+  categories: string[];
 
-  @ApiProperty({description:"Tickets" , type: CreateTicketsHeadingDto})
-  ticket_heading?:CreateTicketsHeadingDto;
+  @ApiProperty({ description: 'Tickets', type: CreateTicketsHeadingDto })
+  ticket_heading?: CreateTicketsHeadingDto;
 
   @ApiProperty({
-    description:"Promo Code" ,
+    description: 'Promo Code',
     isArray: true,
-    type: CreatePromocodeDto})
-    promocodes?:CreatePromocodeDto[];
-
+    type: CreatePromocodeDto,
+  })
+  promocodes?: CreatePromocodeDto[];
 
   @ApiProperty({
     description: 'List of Associated Bank Accounts',

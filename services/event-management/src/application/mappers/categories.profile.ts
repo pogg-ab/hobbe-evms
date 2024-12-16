@@ -24,10 +24,10 @@ export class CategoriesProfile extends AutomapperProfile {
           mapFrom((src) => src.name),
         ),
 
-        forMember(
-          (destination) => destination.description,
-          mapFrom((src) => src.description),
-        ),
+        // forMember(
+        //   (destination) => destination.description,
+        //   mapFrom((src) => src.description),
+        // ),
 
       );
 

@@ -91,10 +91,12 @@ export class EventRepositoryEmpl implements IEventRepository {
 
   async findByCategory(category: string): Promise<Events[]> {
     try {
-      // Use 'find' instead of 'findBy'
-      const events = await this.eventRepository.find({
-        where: { category: category },
-      });
+      const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .where('event.categories @> :category', {
+        category: [category],  // Pass category as an array
+      })
+      .getMany();
 
       // Check if no events were found
       if (events.length === 0) {
@@ -158,12 +160,13 @@ export class EventRepositoryEmpl implements IEventRepository {
         .orWhere('LOWER(event.location) LIKE LOWER(:keyword)', {
           keyword: `%${keyword}%`,
         })
-        .orWhere('LOWER(event.category) LIKE LOWER(:keyword)', {
-          keyword: `%${keyword}%`,
-        })
+        // .orWhere('LOWER(event.category) LIKE LOWER(:keyword)', {
+        //   keyword: `%${keyword}%`,
+        // })
         .orWhere('LOWER(event.description) LIKE LOWER(:keyword)', {
           keyword: `%${keyword}%`,
         })
+        
         .skip(offset)
         .take(limit)
         .getManyAndCount();

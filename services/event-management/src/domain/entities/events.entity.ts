@@ -1,6 +1,8 @@
 import {
   Column,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -10,6 +12,7 @@ import { BankAccounts } from './bank_accounts.entity';
 import { TicketsHeading } from './tickets-heading.entity';
 import { Promocodes } from './promocodes.entity';
 import { Tickets } from './tickets.entity';
+import { Categories } from './categories.entity';
 
 @Entity()
 export class Events {
@@ -62,8 +65,8 @@ export class Events {
   @Column()
   event_end_date: Date;
 
-  @Column({ nullable: true })
-  category: string;
+  // @Column({ nullable: true })
+  // category: string;
 
   @Column({ nullable: true })
   created_by: string;
@@ -76,6 +79,9 @@ export class Events {
 
   @Column({ type: 'timestamp', nullable: true })
   updated_at: Date;
+
+  @Column('text', { array: true })
+  categories:string[];
 
   @OneToOne(() => TicketsHeading, (ticket) => ticket.event_id, {
     cascade: true,
