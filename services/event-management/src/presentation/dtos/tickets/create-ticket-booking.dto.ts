@@ -11,6 +11,14 @@ import {
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 
 export class CreateTicketBookingDto {
+  @ApiProperty({
+    description: 'Event ID related to the booking',
+    example: '6c842f9f-8d07-4c2d-b5ae-9b7b1164741a',
+  })
+  @IsNotEmpty()
+  @IsUUID()
+  event_id: IdValueObject;
+
   @ApiProperty({ description: 'Booking Type', example: 'VIP' })
   @IsNotEmpty()
   @IsEnum(['Regular', 'VIP', 'VVIP'])
@@ -80,18 +88,10 @@ export class CreateTicketBookingDto {
   payment_method?: string;
 
   @ApiProperty({
-    description: 'Total Price of the booking after payment',
+    description: 'Total Price of the booking',
     example: 950,
   })
   @IsOptional()
   @IsNumber()
   total_price?: number;
-
-  @ApiProperty({
-    description: 'Event ID related to the booking',
-    example: '6c842f9f-8d07-4c2d-b5ae-9b7b1164741a',
-  })
-  @IsNotEmpty()
-  @IsUUID()
-  event_id: IdValueObject;
 }

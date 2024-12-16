@@ -2,14 +2,14 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
-import { ITicketBookingRepository } from 'src/domain/repositories/ticket-booking/ticket-booking.repository';
-import { TICKET_BOOKING_LIST_REPOSITORY_TOKEN } from 'src/domain/repositories/ticket-booking/ticket-bookinglist.repository.token';
+import { ITicketBookingRepository } from 'src/domain/repositories/tickets/ticket-booking.repository';
+import { CREATE_TICKET_BOOKING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-booking.repository.token';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 
 @Injectable()
 export class TicketBookingService {
   constructor(
-    @Inject(TICKET_BOOKING_LIST_REPOSITORY_TOKEN)
+    @Inject(CREATE_TICKET_BOOKING_REPOSITORY_TOKEN)
     private readonly ticketBookingRepository: ITicketBookingRepository,
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
@@ -55,11 +55,11 @@ export class TicketBookingService {
     return this.ticketBookingRepository.findAllByTicketBuyer(ticket_buyer_id);
   }
 
-  async findAllByTicketOrganizer(ticket_organizer_id: string): Promise<{
+  async findAllByEventOrganizer(event_organizer_id: string): Promise<{
     ticketBookings: TicketBooking[] | null;
   }> {
-    return this.ticketBookingRepository.findAllByTicketOrganizer(
-      ticket_organizer_id,
+    return this.ticketBookingRepository.findAllByEventOrganizer(
+      event_organizer_id,
     );
   }
 

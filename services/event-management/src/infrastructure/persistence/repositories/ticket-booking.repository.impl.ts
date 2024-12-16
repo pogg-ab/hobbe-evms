@@ -1,16 +1,18 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { BookingHasPayment } from 'src/domain/entities/booking-has-payment.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
-import { ITicketBookingRepository } from 'src/domain/repositories/ticket-booking.repository';
-import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
-import { CreateTicketBookingDto } from 'src/presentation/dtos/ticket-booking/create-ticket-booking.dto';
+import { ITicketBookingRepository } from 'src/domain/repositories/tickets/ticket-booking.repository';
+import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 import { DataSource, Equal, Repository } from 'typeorm';
 
 @Injectable()
-export class TicketBookingRepositoryEmpl implements ITicketBookingRepository {
+export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
   constructor(
     @InjectRepository(TicketBooking)
     private ticketBookingRepository: Repository<TicketBooking>,
+    @InjectRepository(BookingHasPayment)
+    private bookingHasPaymentRepository: Repository<BookingHasPayment>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -28,12 +30,36 @@ export class TicketBookingRepositoryEmpl implements ITicketBookingRepository {
     }
   }
 
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<{
+    ticketBookings: TicketBooking[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    try {
+      const offset = (page - 1) * limit;
+      const [ticketBookings, total] = await this.ticketBookingRepository
+        .createQueryBuilder('ticketBooking')
+        .skip(offset)
+        .take(limit)
+        .getManyAndCount();
+      return { ticketBookings: ticketBookings, total, page, limit };
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Ticket Bookings: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async findOne(id: string): Promise<TicketBooking | null> {
     try {
       const ticketBooking = await this.ticketBookingRepository.findOne({
-        where: { id: id },
+        where: { booking_id: id },
       });
-
       if (!ticketBooking) {
         throw new HttpException(
           `Ticket Booking with id ${id} not found`,
@@ -49,70 +75,81 @@ export class TicketBookingRepositoryEmpl implements ITicketBookingRepository {
     }
   }
 
-  async findAll(
-    page: number,
-    limit: number,
-  ): Promise<{
-    ticketBookings: TicketBooking[] | null;
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  async findAllByEvent(event_id: string): Promise<TicketBooking[] | null> {
     try {
-      const offset = (page - 1) * limit;
-
-      const [ticketBookings, total] = await this.ticketBookingRepository
-        .createQueryBuilder('ticketBooking')
-        .skip(offset)
-        .take(limit)
-        .getManyAndCount();
-
-      return { ticketBookings, total, page, limit };
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching Ticket Bookings: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async findAllByTicketHeading(
-    ticket_heading_id: string,
-    status?: string,
-  ): Promise<{ ticketBookings: TicketBooking[] | null }> {
-    try {
-      if (!status) {
-        const ticketBookings = await this.ticketBookingRepository.find({
-          where: { ticket_heading_id: Equal(ticket_heading_id) },
-        });
-        return { ticketBookings };
-      } else {
-        const ticketBookings = await this.ticketBookingRepository.find({
-          where: {
-            ticket_heading_id: Equal(ticket_heading_id),
-            status: Equal(status),
-          },
-        });
-        return { ticketBookings };
-      }
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching Ticket Bookings by Ticket Heading: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async getTicketBookingsByEvent(
-    event_id: IdValueObject,
-  ): Promise<TicketBooking[] | null> {
-    try {
-      const data = `SELECT * FROM ticket_bookings WHERE event_id = '${event_id}'`;
-      const ticketBookings = await this.dataSource.query(data);
+      const ticketBookings = await this.ticketBookingRepository.find({
+        where: { event_id: Equal(event_id) },
+      });
       return ticketBookings;
     } catch (error) {
       throw new HttpException(
         `Error fetching Ticket Bookings for Event ID ${event_id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findAllByTicketBuyer(
+    ticket_buyer_id: string,
+  ): Promise<TicketBooking[] | null> {
+    try {
+      const ticketBookings = await this.ticketBookingRepository.find({
+        where: { user_id: Equal(ticket_buyer_id) },
+      });
+      return ticketBookings;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Ticket Bookings for Ticket Buyer ID ${ticket_buyer_id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findAllByEventOrganizer(
+    event_organizer_id: string,
+  ): Promise<TicketBooking[] | null> {
+    try {
+      const ticketBookings = await this.ticketBookingRepository.find({
+        where: { created_by: Equal(event_organizer_id) },
+      });
+      return ticketBookings;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Ticket Bookings for Event Organizer ID ${event_organizer_id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async update(
+    id: string,
+    updateTicketBookingDto: CreateTicketBookingDto,
+    user: any,
+  ): Promise<TicketBooking> {
+    try {
+      const ticketBooking = await this.findOne(id);
+      const updatedTicketBooking = this.ticketBookingRepository.merge(
+        ticketBooking,
+        updateTicketBookingDto,
+      );
+      updatedTicketBooking.updated_by = user;
+      await this.ticketBookingRepository.save(updatedTicketBooking);
+      return updatedTicketBooking;
+    } catch (error) {
+      throw new HttpException(
+        `Error updating Ticket Booking with ID ${id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    try {
+      const ticketBooking = await this.findOne(id);
+      await this.ticketBookingRepository.remove(ticketBooking);
+    } catch (error) {
+      throw new HttpException(
+        `Error deleting Ticket Booking with ID ${id}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

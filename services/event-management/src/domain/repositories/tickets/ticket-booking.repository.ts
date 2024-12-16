@@ -1,25 +1,29 @@
-import { Tickets } from 'src/domain/entities/tickets.entity';
-import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
-import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
+import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 
 export interface ITicketBookingRepository {
-  create(createTicketsDto: CreateTicketsDto): Promise<void>;
+  create(createTicketBookingDto: CreateTicketBookingDto): Promise<void>;
   findAll(
     page: number,
     limit: number,
   ): Promise<{
-    tickets: Tickets[] | null;
+    ticketBookings: TicketBooking[] | null;
     total: number;
     page: number;
     limit: number;
   }>;
-  findAllByTicketsHeading(
-    ticket_heading_id: string,
-    tickets_type?: string,
-    status?: string,
-  ): Promise<{ tickets: Tickets[] | null }>;
-  findOne(id: string): Promise<Tickets | null>;
-  getEventsAllTicketsList(
-    ticket_heading_id: IdValueObject,
-  ): Promise<Tickets[] | null>;
+  findOne(id: string): Promise<TicketBooking | null>;
+  update(
+    id: string,
+    updatedTicketBooking: TicketBooking,
+    user: any,
+  ): Promise<TicketBooking>;
+  delete(id: string): Promise<void>;
+  findAllByEvent(event_id: string): Promise<TicketBooking[] | null>;
+  findAllByTicketBuyer(
+    ticket_buyer_id: string,
+  ): Promise<TicketBooking[] | null>;
+  findAllByEventOrganizer(
+    event_organizer_id: string,
+  ): Promise<TicketBooking[] | null>;
 }

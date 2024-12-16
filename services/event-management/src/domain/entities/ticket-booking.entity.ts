@@ -5,6 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { IdValueObject } from '../value-objects/event-id.value-object';
 import { Events } from './events.entity';
 
 @Entity()
@@ -21,7 +22,7 @@ export class TicketBooking {
 
   @ManyToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'event_id' })
-  event_id: Events;
+  event_id: IdValueObject;
 
   @Column({ type: 'numeric' })
   total_amount: number;
