@@ -55,8 +55,8 @@ export class EventsProfile extends AutomapperProfile {
 
         
         forMember(
-          (destination) => destination.category,
-          mapFrom((src) => src.category),
+          (destination) => destination.categories,
+          mapFrom((src) => src.categories),
         ),
 
         forMember(
@@ -137,8 +137,8 @@ export class EventsProfile extends AutomapperProfile {
           mapFrom((src) => src.longitude),
         ),
         forMember(
-          (destination) => destination.category,
-          mapFrom((src) => src.category),
+          (destination) => destination.categories,
+          mapFrom((src) => src.categories),
         ),
 
         forMember(
