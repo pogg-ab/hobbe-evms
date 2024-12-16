@@ -5,6 +5,7 @@ import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { ITicketBookingRepository } from 'src/domain/repositories/tickets/ticket-booking.repository';
 import { CREATE_TICKET_BOOKING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-booking.repository.token';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
+import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 
 @Injectable()
 export class TicketBookingService {
@@ -43,21 +44,19 @@ export class TicketBookingService {
     return this.ticketBookingRepository.findAll(page, limit);
   }
 
-  async findAllByEvent(event_id: string): Promise<{
-    ticketBookings: TicketBooking[] | null;
-  }> {
+  async findAllByEvent(event_id: string): Promise<TicketBooking[] | null> {
     return this.ticketBookingRepository.findAllByEvent(event_id);
   }
 
-  async findAllByTicketBuyer(ticket_buyer_id: string): Promise<{
-    ticketBookings: TicketBooking[] | null;
-  }> {
+  async findAllByTicketBuyer(
+    ticket_buyer_id: string,
+  ): Promise<TicketBooking[] | null> {
     return this.ticketBookingRepository.findAllByTicketBuyer(ticket_buyer_id);
   }
 
-  async findAllByEventOrganizer(event_organizer_id: string): Promise<{
-    ticketBookings: TicketBooking[] | null;
-  }> {
+  async findAllByEventOrganizer(
+    event_organizer_id: string,
+  ): Promise<TicketBooking[] | null> {
     return this.ticketBookingRepository.findAllByEventOrganizer(
       event_organizer_id,
     );
@@ -65,7 +64,7 @@ export class TicketBookingService {
 
   async update(
     id: string,
-    updateTicketBookingDto: CreateTicketBookingDto,
+    updateTicketBookingDto: UpdateTicketBookingDto,
     user: any,
   ): Promise<TicketBooking> {
     const ticketBooking = await this.getTicketBookingById(id);

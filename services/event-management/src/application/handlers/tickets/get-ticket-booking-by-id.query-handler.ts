@@ -1,16 +1,16 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { FindTicketBookingByIdQuery } from 'src/application/queries/ticket-booking/find-ticket-booking-by-id.query';
-import { TicketBookingsService } from 'src/application/services/ticket-bookings/ticket-bookings.service';
+import { GetTicketBookingByIdQuery } from 'src/application/queries/tickets/get-ticket-booking-by-id.query';
+import { TicketBookingService } from 'src/application/services/tickets/ticket-booking/ticket-booking.service';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 
-@QueryHandler(FindTicketBookingByIdQuery)
+@QueryHandler(GetTicketBookingByIdQuery)
 export class FindTicketBookingByIdQueryHandler
-  implements IQueryHandler<FindTicketBookingByIdQuery>
+  implements IQueryHandler<GetTicketBookingByIdQuery>
 {
-  constructor(private readonly ticketBookingsService: TicketBookingsService) {}
+  constructor(private readonly ticketBookingsService: TicketBookingService) {}
 
-  execute(query: FindTicketBookingByIdQuery): Promise<TicketBooking | null> {
+  execute(query: GetTicketBookingByIdQuery): Promise<TicketBooking | null> {
     const { id } = query;
-    return this.ticketBookingsService.findById(id);
+    return this.ticketBookingsService.getTicketBookingById(id);
   }
 }

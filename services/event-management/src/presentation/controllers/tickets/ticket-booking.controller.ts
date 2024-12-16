@@ -15,6 +15,9 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateTicketBookingCommand } from 'src/application/commands/ticket/create-ticket-booking.command';
 import { DeleteTicketBookingCommand } from 'src/application/commands/ticket/delete-ticket-booking.command';
 import { UpdateTicketBookingCommand } from 'src/application/commands/ticket/update-ticket-booking.command';
+import { FindTicketBookingsByEventOrganizerQuery } from 'src/application/queries/tickets/find-ticket-booking-by-event-organizer.query';
+import { FindTicketBookingByEventQuery } from 'src/application/queries/tickets/find-ticket-booking-by-event.query';
+import { FindTicketBookingsByTicketBuyerQuery } from 'src/application/queries/tickets/find-ticket-booking-by-ticket-buyer.query';
 import { GetAllTicketBookingsQuery } from 'src/application/queries/tickets/get-all-ticket-bookings.query';
 import { GetTicketBookingByIdQuery } from 'src/application/queries/tickets/get-ticket-booking-by-id.query';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
@@ -43,9 +46,7 @@ export class TicketBookingController {
     page: number;
     limit: number;
   }> {
-    return await this.queryBus.execute(
-      new GetAllTicketBookingsQuery(page, limit),
-    );
+    return this.queryBus.execute(new GetAllTicketBookingsQuery(page, limit));
   }
 
   @ApiBody({ type: CreateTicketBookingDto })
@@ -87,18 +88,12 @@ export class TicketBookingController {
     @Body() updateTicketBookingDto: UpdateTicketBookingDto,
     @CurrentUserId() user: any,
   ): Promise<TicketBooking> {
-    const ticketBooking = await this.queryBus.execute(
-      new GetTicketBookingByIdQuery(id),
+    const command = new UpdateTicketBookingCommand(
+      id,
+      updateTicketBookingDto,
+      user.user.user_id.toString(),
     );
-    if (!ticketBooking) throw new Error('Ticket Booking not found');
-    Object.assign(ticketBooking, updateTicketBookingDto);
-    return this.commandBus.execute(
-      new UpdateTicketBookingCommand(
-        id,
-        ticketBooking,
-        user.user.user_id.toString(),
-      ),
-    );
+    return this.commandBus.execute(command);
   }
 
   @ApiOperation({ description: 'Delete Ticket Booking By ID' })
@@ -106,10 +101,38 @@ export class TicketBookingController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string): Promise<void> {
-    const ticketBooking = await this.queryBus.execute(
-      new GetTicketBookingByIdQuery(id),
+    const command = new DeleteTicketBookingCommand(id);
+    await this.commandBus.execute(command);
+  }
+
+  @ApiOperation({ description: 'Find Ticket Bookings By Event' })
+  @HttpCode(200)
+  @Get('event/:eventId')
+  async findByEvent(
+    @Param('eventId') eventId: string,
+  ): Promise<TicketBooking[] | null> {
+    return this.queryBus.execute(new FindTicketBookingByEventQuery(eventId));
+  }
+
+  @ApiOperation({ description: 'Find Ticket Bookings By Ticket Buyer' })
+  @HttpCode(200)
+  @Get('ticket-buyer/:ticketBuyerId')
+  async findByTicketBuyer(
+    @Param('ticketBuyerId') ticketBuyerId: string,
+  ): Promise<TicketBooking[] | null> {
+    return this.queryBus.execute(
+      new FindTicketBookingsByTicketBuyerQuery(ticketBuyerId),
     );
-    if (!ticketBooking) throw new Error('Ticket Booking not found');
-    await this.commandBus.execute(new DeleteTicketBookingCommand(id));
+  }
+
+  @ApiOperation({ description: 'Find Ticket Bookings By Event Organizer' })
+  @HttpCode(200)
+  @Get('event-organizer/:eventOrganizerId')
+  async findByEventOrganizer(
+    @Param('eventOrganizerId') eventOrganizerId: string,
+  ): Promise<TicketBooking[] | null> {
+    return this.queryBus.execute(
+      new FindTicketBookingsByEventOrganizerQuery(eventOrganizerId),
+    );
   }
 }

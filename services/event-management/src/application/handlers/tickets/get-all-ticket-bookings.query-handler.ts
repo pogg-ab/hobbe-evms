@@ -1,13 +1,13 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { GetAllTicketBookingsQuery } from 'src/application/queries/ticket-booking/get-all-ticket-bookings.query';
-import { TicketBookingsService } from 'src/application/services/ticket-bookings/ticket-bookings.service';
+import { GetAllTicketBookingsQuery } from 'src/application/queries/tickets/get-all-ticket-bookings.query';
+import { TicketBookingService } from 'src/application/services/tickets/ticket-booking/ticket-booking.service';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 
 @QueryHandler(GetAllTicketBookingsQuery)
 export class GetAllTicketBookingsQueryHandler
   implements IQueryHandler<GetAllTicketBookingsQuery>
 {
-  constructor(private readonly ticketBookingsService: TicketBookingsService) {}
+  constructor(private readonly ticketBookingsService: TicketBookingService) {}
 
   execute(query: GetAllTicketBookingsQuery): Promise<{
     ticketBookings: TicketBooking[] | null;
