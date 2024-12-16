@@ -51,9 +51,9 @@ export class TicketBooking {
   @Column({ nullable: true })
   updated_by: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp' })
   created_at: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp' })
   updated_at: Date;
 }

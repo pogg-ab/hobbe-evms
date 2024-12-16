@@ -2,8 +2,11 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
+import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketBookingRepository } from 'src/domain/repositories/tickets/ticket-booking.repository';
 import { CREATE_TICKET_BOOKING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-booking.repository.token';
+import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
+import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 
@@ -12,16 +15,21 @@ export class TicketBookingService {
   constructor(
     @Inject(CREATE_TICKET_BOOKING_REPOSITORY_TOKEN)
     private readonly ticketBookingRepository: ITicketBookingRepository,
+    @Inject(CREATE_TICKET_REPOSITORY_TOKEN)
+    private readonly ticketRepository: ITicketsRepository,
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
 
-  async create(createTicketBookingDto: CreateTicketBookingDto): Promise<void> {
+  async create(
+    createTicketBookingDto: CreateTicketBookingDto,
+    user: any,
+  ): Promise<void> {
     const ticketBooking = this.mapper.map(
       createTicketBookingDto,
       CreateTicketBookingDto,
       TicketBooking,
     );
-    await this.ticketBookingRepository.create(ticketBooking);
+    await this.ticketBookingRepository.create(ticketBooking, user);
   }
 
   async getTicketBookingById(id: string): Promise<TicketBooking | null> {
@@ -83,5 +91,20 @@ export class TicketBookingService {
       throw new NotFoundException(`Ticket booking with id ${id} not found.`);
     }
     await this.ticketBookingRepository.delete(id);
+  }
+
+  async markTicketAsAttended(
+    ticketId: string,
+    scannedBy: string,
+  ): Promise<Tickets> {
+    const ticket = await this.ticketRepository.findOne(ticketId);
+
+    if (!ticket) {
+      throw new Error('Ticket not found');
+    }
+
+    ticket.status = 'ATTENDED';
+
+    return null;
   }
 }

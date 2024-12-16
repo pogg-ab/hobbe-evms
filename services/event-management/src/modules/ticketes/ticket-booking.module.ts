@@ -8,14 +8,18 @@ import { FindTicketBookingByEventQueryHandler } from 'src/application/handlers/t
 import { GetAllTicketBookingsQueryHandler } from 'src/application/handlers/tickets/get-all-ticket-bookings.query-handler';
 import { FindTicketBookingByIdQueryHandler } from 'src/application/handlers/tickets/get-ticket-booking-by-id.query-handler';
 import { UpdateTicketBookingCommandHandler } from 'src/application/handlers/tickets/update-ticket-booking.command-handler';
+import { UpdateTicketStatusHandler } from 'src/application/handlers/tickets/update-ticket-status.handler';
 import { TicketBookingProfile } from 'src/application/mappers/ticket-booking.profile';
 import { TicketBookingService } from 'src/application/services/tickets/ticket-booking/ticket-booking.service';
 import { BookingHasPayment } from 'src/domain/entities/booking-has-payment.entity';
 import { BookingHasPromocode } from 'src/domain/entities/booking-has-promocode.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
+import { Tickets } from 'src/domain/entities/tickets.entity';
 import { CREATE_TICKET_BOOKING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-booking.repository.token';
+import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
 import { TicketBookingRepositoryImpl } from 'src/infrastructure/persistence/repositories/ticket-booking.repository.impl';
-import { TicketBookingController } from 'src/presentation/controllers/tickets/ticket-booking.controller';
+import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets.repository.impl';
+import { TicketBookingController } from 'src/presentation/controllers/ticket-booking/ticket-booking.controller';
 
 @Module({
   imports: [
@@ -24,6 +28,7 @@ import { TicketBookingController } from 'src/presentation/controllers/tickets/ti
       TicketBooking,
       BookingHasPayment,
       BookingHasPromocode,
+      Tickets,
     ]),
     CqrsModule,
   ],
@@ -31,6 +36,7 @@ import { TicketBookingController } from 'src/presentation/controllers/tickets/ti
   providers: [
     CreateTicketBookingCommandHandler,
     GetAllTicketBookingsQueryHandler,
+    UpdateTicketStatusHandler,
     FindTicketBookingByEventQueryHandler,
     FindTicketBookingByIdQueryHandler,
     UpdateTicketBookingCommandHandler,
@@ -40,6 +46,10 @@ import { TicketBookingController } from 'src/presentation/controllers/tickets/ti
     {
       provide: CREATE_TICKET_BOOKING_REPOSITORY_TOKEN,
       useClass: TicketBookingRepositoryImpl,
+    },
+    {
+      provide: CREATE_TICKET_REPOSITORY_TOKEN,
+      useClass: TicketsRepositoryEmpl,
     },
   ],
 })

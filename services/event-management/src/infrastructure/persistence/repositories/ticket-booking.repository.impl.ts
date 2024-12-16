@@ -16,11 +16,14 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(createTicketBookingDto: CreateTicketBookingDto): Promise<void> {
+  async create(ticketBooking: TicketBooking, user: any): Promise<void> {
     try {
-      const newTicketBooking = this.ticketBookingRepository.create(
-        createTicketBookingDto,
-      );
+      const newTicketBooking =
+        this.ticketBookingRepository.create(ticketBooking);
+      newTicketBooking.user_id = user;
+      newTicketBooking.created_by = user;
+      newTicketBooking.created_at = new Date();
+      newTicketBooking.updated_at = new Date();
       await this.ticketBookingRepository.save(newTicketBooking);
     } catch (error) {
       throw new HttpException(

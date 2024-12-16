@@ -9,7 +9,7 @@ export class CreateTicketBookingCommandHandler
   constructor(private readonly ticketBookingsService: TicketBookingService) {}
 
   async execute(command: CreateTicketBookingCommand): Promise<void> {
-    const { createTicketBookingDto } = command;
-    return this.ticketBookingsService.create(createTicketBookingDto);
+    const { createTicketBookingDto, user } = command;
+    return this.ticketBookingsService.create(createTicketBookingDto, user);
   }
 }

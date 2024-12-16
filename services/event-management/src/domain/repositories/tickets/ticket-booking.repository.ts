@@ -2,7 +2,10 @@ import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 
 export interface ITicketBookingRepository {
-  create(createTicketBookingDto: CreateTicketBookingDto): Promise<void>;
+  create(
+    createTicketBookingDto: CreateTicketBookingDto,
+    user: any,
+  ): Promise<void>;
   findAll(
     page: number,
     limit: number,

@@ -22,19 +22,6 @@ export class UpdateTicketBookingDto {
   @IsOptional()
   total_amount?: number;
 
-  @ApiProperty({
-    description: 'User ID of the person making the booking',
-    example: '12345',
-  })
-  @IsOptional()
-  @IsString()
-  user_id?: string;
-
-  @ApiProperty({ description: 'Booking Status', example: 'pending' })
-  @IsOptional()
-  @IsString()
-  booking_status?: string;
-
   @ApiProperty({ description: 'Is this booking a gift?', example: false })
   @IsBoolean()
   @IsOptional()

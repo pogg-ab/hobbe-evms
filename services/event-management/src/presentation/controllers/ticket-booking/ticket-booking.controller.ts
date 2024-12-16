@@ -15,6 +15,7 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateTicketBookingCommand } from 'src/application/commands/ticket/create-ticket-booking.command';
 import { DeleteTicketBookingCommand } from 'src/application/commands/ticket/delete-ticket-booking.command';
 import { UpdateTicketBookingCommand } from 'src/application/commands/ticket/update-ticket-booking.command';
+import { UpdateTicketStatusCommand } from 'src/application/commands/ticket/update-ticket-status.command';
 import { FindTicketBookingsByEventOrganizerQuery } from 'src/application/queries/tickets/find-ticket-booking-by-event-organizer.query';
 import { FindTicketBookingByEventQuery } from 'src/application/queries/tickets/find-ticket-booking-by-event.query';
 import { FindTicketBookingsByTicketBuyerQuery } from 'src/application/queries/tickets/find-ticket-booking-by-ticket-buyer.query';
@@ -23,6 +24,7 @@ import { GetTicketBookingByIdQuery } from 'src/application/queries/tickets/get-t
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
+import { MarkTicketAsAttendedDto } from 'src/presentation/dtos/tickets/mark-ticket-as-attended.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 
@@ -134,5 +136,51 @@ export class TicketBookingController {
     return this.queryBus.execute(
       new FindTicketBookingsByEventOrganizerQuery(eventOrganizerId),
     );
+  }
+
+  @ApiOperation({
+    description:
+      'Mark a Ticket as Attended. Triggered when the ticket is scanned at the event entrance.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The ticket status has been successfully updated to ATTENDED.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example:
+            'Ticket successfully marked as ATTENDED (scanned by QRScanner).',
+        },
+      },
+    },
+  })
+  @HttpCode(200)
+  @Patch(':id/attend')
+  @UseGuards(JwtAuthGuard)
+  async markTicketAsAttended(
+    @Param('id') id: string,
+    @Body() markTicketAsAttendedDto: MarkTicketAsAttendedDto,
+    @CurrentUserId() user: any,
+  ): Promise<{ message: string }> {
+    const { scannedBy } = markTicketAsAttendedDto;
+
+    if (!scannedBy) {
+      throw new Error(
+        'The "scannedBy" field is required. Please provide the system or individual who scanned the ticket.',
+      );
+    }
+
+    const command = new UpdateTicketStatusCommand(
+      id,
+      user.user.user_id.toString(),
+    );
+
+    await this.commandBus.execute(command);
+
+    return {
+      message: `Ticket successfully marked as ATTENDED (scanned by ${scannedBy}).`,
+    };
   }
 }

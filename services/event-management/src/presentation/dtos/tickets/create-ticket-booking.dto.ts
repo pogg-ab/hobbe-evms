@@ -31,19 +31,6 @@ export class CreateTicketBookingDto {
   @IsNotEmpty()
   total_amount: number;
 
-  @ApiProperty({
-    description: 'User ID of the person making the booking',
-    example: '12345',
-  })
-  @IsNotEmpty()
-  @IsString()
-  user_id: string;
-
-  @ApiProperty({ description: 'Booking Status', example: 'pending' })
-  @IsNotEmpty()
-  @IsString()
-  booking_status: string;
-
   @ApiProperty({ description: 'Is this booking a gift?', example: false })
   @IsBoolean()
   @IsOptional()

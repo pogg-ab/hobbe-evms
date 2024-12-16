@@ -30,12 +30,8 @@ export class TicketBookingProfile extends AutomapperProfile {
           mapFrom((source) => source.total_amount),
         ),
         forMember(
-          (destination) => destination.user_id,
-          mapFrom((source) => source.user_id),
-        ),
-        forMember(
           (destination) => destination.booking_status,
-          mapFrom((source) => source.booking_status),
+          mapFrom(() => 'Pending'),
         ),
         forMember(
           (destination) => destination.hasGift,
