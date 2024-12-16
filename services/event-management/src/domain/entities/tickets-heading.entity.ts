@@ -95,18 +95,17 @@ export class TicketsHeading {
   })
   updated_at: Date;
 
-  @OneToOne(() => Events, (event) => event.id)
+  @OneToOne(() => Events, (event) => event.ticket_heading,{  onDelete: 'CASCADE', })
   @JoinColumn({ name: 'event_id' })
   event_id: Events;
 
   @OneToMany(() => Tickets, (tickets) => tickets.ticket_heading_id, {
-    cascade: true, 
     onDelete: 'CASCADE',
     nullable:true
   })
   @JoinColumn({ name: 'ticket_heading_id' })
-  tickets?: Tickets[];
+  tickets: Tickets[];
 
   @OneToMany(() => Promocodes, (promocode) => promocode.id,{nullable:true})
-  promocode_id?: Promocodes[];
+  promocode_id: Promocodes[];
 }

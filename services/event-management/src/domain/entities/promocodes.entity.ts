@@ -35,7 +35,7 @@ export class Promocodes{
      status: string;
 
 
-     @ManyToOne(() => Events, (event) => event.id)
+    @ManyToOne(() => Events, (event) => event.promocodes,{  onDelete: 'CASCADE', })
     @JoinColumn({ name: 'event_id' })
     event_id: Events;
 
@@ -43,8 +43,8 @@ export class Promocodes{
     //  @JoinColumn({ name: 'ticket_heading_id'})
     //  ticket_heading_id?: IdValueObject;
 
-     @OneToMany(()=>Tickets,(ticket)=> ticket.id,{nullable:true})
-     ticket_id?: IdValueObject[];
+     @OneToMany(()=>Tickets,(ticket)=> ticket.id)
+     ticket_id: IdValueObject[];
 
 
      @Column({nullable:true,type: 'text'})

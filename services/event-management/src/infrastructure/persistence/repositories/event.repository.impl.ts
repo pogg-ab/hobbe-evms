@@ -71,7 +71,8 @@ export class EventRepositoryEmpl implements IEventRepository {
     try {
       const event = await this.eventRepository.findOne({
         where: { id: id },
-        relations: ['ticket'],
+        // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
+        relations: ['promocodes','bank_accounts','ticket_heading.tickets'],
       });
       if (!event) {
         throw new HttpException(
@@ -210,14 +211,8 @@ export class EventRepositoryEmpl implements IEventRepository {
 
   async delete(id: string): Promise<void> {
     try {
-      const eventToDelete = await this.findOne(id);
-      if (!eventToDelete) {
-        throw new HttpException(
-          `Event with ID ${id} not found`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
+      const eventToDelete = await this.findOne(id);      
+     
       await this.eventRepository.delete(id);
     } catch (error) {
       throw new HttpException(

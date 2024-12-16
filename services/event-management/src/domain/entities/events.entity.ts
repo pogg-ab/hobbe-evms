@@ -1,8 +1,6 @@
 import {
   Column,
   Entity,
-  JoinColumn,
-  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -81,29 +79,25 @@ export class Events {
 
   @OneToOne(() => TicketsHeading, (ticket) => ticket.event_id, {
     cascade: true,
-    nullable: true,
     onDelete: 'CASCADE'
   })
-  ticket_heading?: TicketsHeading;
+  ticket_heading: TicketsHeading;
 
   @OneToMany(() => Tickets, (ticket) => ticket.event_id, {
-    cascade: true, // Ensures related BankAccounts are automatically saved
+    cascade: true, 
     onDelete: 'CASCADE',
-    nullable:true
   })
-  tickets?: Tickets[];
+  tickets: Tickets[];
 
   @OneToMany(() => Promocodes, (promocode) => promocode.event_id,{
-    cascade: true, // Ensures related BankAccounts are automatically saved
+    cascade: true, 
     onDelete: 'CASCADE',
-    nullable:true
   })
-  promocodes?: Promocodes[];
+  promocodes: Promocodes[];
 
   @OneToMany(() => BankAccounts, (bankAccount) => bankAccount.event_id, {
-    cascade: true, // Ensures related BankAccounts are automatically saved
+    cascade: true, 
     onDelete: 'CASCADE',
-    nullable:true
   })
-  bank_accounts?: BankAccounts[];
+  bank_accounts: BankAccounts[];
 }

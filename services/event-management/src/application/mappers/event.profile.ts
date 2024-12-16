@@ -106,6 +106,17 @@ export class EventsProfile extends AutomapperProfile {
           (destination) => destination.title,
           mapFrom((src) => src.title),
         ),
+
+        forMember(
+          (destination) => destination.isPaid,
+          mapFrom((src) => src.isPaid),
+        ),
+
+        forMember(
+          (destination) => destination.hasPromocode,
+          mapFrom((src) => src.hasPromocode),
+        ),
+
         forMember(
           (destination) => destination.description,
           mapFrom((src) => src.description),
