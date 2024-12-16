@@ -16,8 +16,11 @@ export class BankAccounts{
     @Column()
     account_number: string;
 
+    @Column({nullable: true})
+    user_id: string;
 
-    @ManyToOne(() => Events, (event) => event.id)
+    @ManyToOne(() => Events, (event) => event.bank_accounts,{  onDelete: 'CASCADE', })
+
     @JoinColumn({ name: 'event_id' })
     event_id: Events;
 }

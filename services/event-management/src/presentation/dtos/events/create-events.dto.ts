@@ -70,8 +70,6 @@ export class CreateEventsDto {
     type: CreatePromocodeDto})
     promocodes?:CreatePromocodeDto[];
 
-  // @ApiProperty({description:"Tickets" , type: CreateTicketsDto})
-  // tickets?:CreateTicketsDto;
 
   @ApiProperty({
     description: 'List of Associated Bank Accounts',
