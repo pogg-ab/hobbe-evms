@@ -15,7 +15,7 @@ export class TicketGifts {
 
   @OneToOne(() => TicketBooking, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'booking_id' })
-  booking_id: TicketBooking;
+  booking_id: IdValueObject;
 
   @Column({ nullable: true })
   gifter_id: string;

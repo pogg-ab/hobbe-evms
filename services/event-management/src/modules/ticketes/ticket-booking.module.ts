@@ -13,13 +13,26 @@ import { TicketBookingProfile } from 'src/application/mappers/ticket-booking.pro
 import { TicketBookingService } from 'src/application/services/tickets/ticket-booking/ticket-booking.service';
 import { BookingHasPayment } from 'src/domain/entities/booking-has-payment.entity';
 import { BookingHasPromocode } from 'src/domain/entities/booking-has-promocode.entity';
+import { Events } from 'src/domain/entities/events.entity';
+import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
+import { TicketGifts } from 'src/domain/entities/ticket-gifts.entity';
+import { TicketsHeading } from 'src/domain/entities/tickets-heading.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
+import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
+import { CREATE_PARTICIPANT_HAS_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/participant-has-ticket.repository';
 import { CREATE_TICKET_BOOKING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-booking.repository.token';
+import { CREATE_TICKET_GIFTS_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-gifts.repository.token';
+import { CREATE_TICKET_HEADING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets-heading.repository.token';
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
+import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
+import { ParticipantHasTicketRepositoryImpl } from 'src/infrastructure/persistence/repositories/participant-has-ticket.repository.impl';
 import { TicketBookingRepositoryImpl } from 'src/infrastructure/persistence/repositories/ticket-booking.repository.impl';
+import { TicketGiftsRepositoryImpl } from 'src/infrastructure/persistence/repositories/ticket-gifts.repository.impl';
+import { TicketsHeadingRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets-heading.repository.impl';
 import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets.repository.impl';
 import { TicketBookingController } from 'src/presentation/controllers/ticket-booking/ticket-booking.controller';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 
 @Module({
   imports: [
@@ -29,11 +42,16 @@ import { TicketBookingController } from 'src/presentation/controllers/ticket-boo
       BookingHasPayment,
       BookingHasPromocode,
       Tickets,
+      Events,
+      TicketsHeading,
+      TicketGifts,
+      ParticipantHasTicket,
     ]),
     CqrsModule,
   ],
   controllers: [TicketBookingController],
   providers: [
+    CreateTicketsDto,
     CreateTicketBookingCommandHandler,
     GetAllTicketBookingsQueryHandler,
     UpdateTicketStatusHandler,
@@ -50,6 +68,22 @@ import { TicketBookingController } from 'src/presentation/controllers/ticket-boo
     {
       provide: CREATE_TICKET_REPOSITORY_TOKEN,
       useClass: TicketsRepositoryEmpl,
+    },
+    {
+      provide: CREATE_EVENT_REPOSITORY_TOKEN,
+      useClass: EventRepositoryEmpl,
+    },
+    {
+      provide: CREATE_TICKET_HEADING_REPOSITORY_TOKEN,
+      useClass: TicketsHeadingRepositoryEmpl,
+    },
+    {
+      provide: CREATE_PARTICIPANT_HAS_TICKET_REPOSITORY_TOKEN,
+      useClass: ParticipantHasTicketRepositoryImpl,
+    },
+    {
+      provide: CREATE_TICKET_GIFTS_REPOSITORY_TOKEN,
+      useClass: TicketGiftsRepositoryImpl,
     },
   ],
 })

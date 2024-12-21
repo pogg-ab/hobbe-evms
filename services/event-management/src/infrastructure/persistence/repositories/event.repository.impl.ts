@@ -1,14 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateTicketsCommand } from 'src/application/commands/ticket/create-tickets.command';
 import { Events } from 'src/domain/entities/events.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
-import * as qrcode from 'qrcode';
-import { GetEventsAllTicketsListCommand } from 'src/application/queries/tickets/get-events-all-ticketslist.query';
 
 @Injectable()
 export class EventRepositoryEmpl implements IEventRepository {
@@ -71,7 +67,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     try {
       const event = await this.eventRepository.findOne({
         where: { id: id },
-        relations: ['ticket'],
+        relations: ['tickets'],
       });
       if (!event) {
         throw new HttpException(

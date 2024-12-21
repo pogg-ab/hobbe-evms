@@ -4,14 +4,14 @@ import { TicketsHeading } from 'src/domain/entities/tickets-heading.entity';
 import { ITicketsHeadingRepository } from 'src/domain/repositories/tickets/tickets-heading.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateTicketsHeadingDto } from 'src/presentation/dtos/tickets/create-tickets-heading.dto';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
   constructor(
     @InjectRepository(TicketsHeading)
     private ticketsHeadingRepository: Repository<TicketsHeading>,
-    private readonly entityManager: EntityManager, 
+    private readonly entityManager: EntityManager,
     // private readonly dataSource: DataSource,
   ) {}
 
@@ -20,7 +20,9 @@ export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
     createTicketsHeadingDto: CreateTicketsHeadingDto,
   ): Promise<TicketsHeading> {
     try {
-      const ticket = this.ticketsHeadingRepository.create(createTicketsHeadingDto);
+      const ticket = this.ticketsHeadingRepository.create(
+        createTicketsHeadingDto,
+      );
       return await this.ticketsHeadingRepository.save(ticket);
     } catch (error) {
       throw new HttpException(
@@ -57,14 +59,19 @@ export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
   }
 
   async findOne(id: string): Promise<TicketsHeading | null> {
-    try{
-      const ticket =  await this.ticketsHeadingRepository.findOne({ where: { id: id } });
-      if(!ticket){
-        throw new HttpException(`Ticket with id ${id} not found.`, HttpStatus.NOT_FOUND);
+    try {
+      const ticket = await this.ticketsHeadingRepository.findOne({
+        where: { id: id },
+      });
+      if (!ticket) {
+        throw new HttpException(
+          `Ticket with id ${id} not found.`,
+          HttpStatus.NOT_FOUND,
+        );
       }
 
       return ticket;
-    }catch(error){
+    } catch (error) {
       throw new HttpException(
         `Error fetching ticket: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -72,8 +79,11 @@ export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
     }
   }
 
-
-  async update(id: string, ticket: TicketsHeading, user: any): Promise<TicketsHeading> {
+  async update(
+    id: string,
+    ticket: TicketsHeading,
+    user: any,
+  ): Promise<TicketsHeading> {
     try {
       const ticketToBeUpdate = await this.findOne(id);
 
@@ -90,14 +100,18 @@ export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
     }
   }
 
-  async activate(id: string, status: string, user: any): Promise<TicketsHeading | null> {
+  async activate(
+    id: string,
+    status: string,
+    user: any,
+  ): Promise<TicketsHeading | null> {
     try {
       const ticket = await this.findOne(id);
-  
+
       if (!ticket) {
         throw new HttpException('Ticket not found', HttpStatus.NOT_FOUND);
       }
-  
+
       ticket.status = status;
       ticket.update_by = user;
       ticket.updated_at = new Date();
@@ -109,7 +123,7 @@ export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
       } catch (error) {
         throw new Error(`Error updating tickets: ${error.message}`);
       }
-  
+
       return await this.ticketsHeadingRepository.save(ticket);
     } catch (error) {
       throw new HttpException(
@@ -118,11 +132,27 @@ export class TicketsHeadingRepositoryEmpl implements ITicketsHeadingRepository {
       );
     }
   }
-  
 
+  async findHeadingsByEventId(eventId: string): Promise<TicketsHeading[]> {
+    try {
+      const ticketHeadings = await this.ticketsHeadingRepository.find({
+        where: {
+          event_id: {
+            id: eventId,
+          },
+        },
+        relations: ['event_id'],
+      });
+
+      return ticketHeadings;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching ticket headings by event ID: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
-
-
 
 export class CreateTicketsDtoWithEventId extends CreateTicketsHeadingDto {
   event_id: IdValueObject;

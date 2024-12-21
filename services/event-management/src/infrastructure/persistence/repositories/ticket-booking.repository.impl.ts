@@ -16,7 +16,10 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(ticketBooking: TicketBooking, user: any): Promise<void> {
+  async create(
+    ticketBooking: TicketBooking,
+    user: any,
+  ): Promise<TicketBooking> {
     try {
       const newTicketBooking =
         this.ticketBookingRepository.create(ticketBooking);
@@ -25,9 +28,10 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
       newTicketBooking.created_at = new Date();
       newTicketBooking.updated_at = new Date();
       await this.ticketBookingRepository.save(newTicketBooking);
+      return newTicketBooking;
     } catch (error) {
       throw new HttpException(
-        `Error creating Ticket Booking: ${error.message}`,
+        `Error creating Ticket Booking: ${error.message || error}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

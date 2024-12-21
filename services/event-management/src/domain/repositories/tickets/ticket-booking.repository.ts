@@ -5,7 +5,7 @@ export interface ITicketBookingRepository {
   create(
     createTicketBookingDto: CreateTicketBookingDto,
     user: any,
-  ): Promise<void>;
+  ): Promise<TicketBooking>;
   findAll(
     page: number,
     limit: number,

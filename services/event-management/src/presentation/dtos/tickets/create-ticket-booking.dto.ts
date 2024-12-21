@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  ValidateIf,
 } from 'class-validator';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 
@@ -21,7 +22,10 @@ export class CreateTicketBookingDto {
 
   @ApiProperty({ description: 'Booking Type', example: 'VIP' })
   @IsNotEmpty()
-  @IsEnum(['Regular', 'VIP', 'VVIP'])
+  @IsEnum(['Regular', 'VIP', 'VVIP'], {
+    message:
+      'booking_type must be one of the following values: Regular, VIP, or VVIP',
+  })
   booking_type: 'Regular' | 'VIP' | 'VVIP';
 
   @ApiProperty({
@@ -38,10 +42,11 @@ export class CreateTicketBookingDto {
 
   @ApiProperty({
     description: 'Recipient ID if booking is a gift',
-    example: '67890',
+    example: 'd9b2d63d-a233-4c2b-8c6d-82e19a93cbbb',
   })
-  @IsOptional()
-  @IsString()
+  @ValidateIf((o) => o.hasGift === true)
+  @IsNotEmpty()
+  @IsUUID()
   recipient_id?: string;
 
   @ApiProperty({
@@ -52,8 +57,12 @@ export class CreateTicketBookingDto {
   @IsOptional()
   hasPromocode?: boolean;
 
-  @ApiProperty({ description: 'Promocode value if used', example: 'SUMMER20' })
-  @IsOptional()
+  @ApiProperty({
+    description: 'Promocode value if used',
+    example: 'SUMMER20',
+  })
+  @ValidateIf((o) => o.hasPromocode === true)
+  @IsNotEmpty()
   @IsString()
   promocode_value?: string;
 
