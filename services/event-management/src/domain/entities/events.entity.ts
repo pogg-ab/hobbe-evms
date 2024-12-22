@@ -1,18 +1,15 @@
 import {
   Column,
   Entity,
-  JoinTable,
-  ManyToMany,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { IdValueObject } from '../value-objects/event-id.value-object';
 import { BankAccounts } from './bank_accounts.entity';
-import { TicketsHeading } from './tickets-heading.entity';
 import { Promocodes } from './promocodes.entity';
+import { TicketsHeading } from './tickets-heading.entity';
 import { Tickets } from './tickets.entity';
-import { Categories } from './categories.entity';
 
 @Entity()
 export class Events {
@@ -81,28 +78,28 @@ export class Events {
   updated_at: Date;
 
   @Column('text', { array: true })
-  categories:string[];
+  categories: string[];
 
   @OneToOne(() => TicketsHeading, (ticket) => ticket.event_id, {
     cascade: true,
-    onDelete: 'CASCADE'
+    onDelete: 'CASCADE',
   })
   ticket_heading: TicketsHeading;
 
   @OneToMany(() => Tickets, (ticket) => ticket.event_id, {
-    cascade: true, 
+    cascade: true,
     onDelete: 'CASCADE',
   })
   tickets: Tickets[];
 
-  @OneToMany(() => Promocodes, (promocode) => promocode.event_id,{
-    cascade: true, 
+  @OneToMany(() => Promocodes, (promocode) => promocode.event_id, {
+    cascade: true,
     onDelete: 'CASCADE',
   })
   promocodes: Promocodes[];
 
   @OneToMany(() => BankAccounts, (bankAccount) => bankAccount.event_id, {
-    cascade: true, 
+    cascade: true,
     onDelete: 'CASCADE',
   })
   bank_accounts: BankAccounts[];
