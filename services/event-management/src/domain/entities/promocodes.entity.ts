@@ -36,21 +36,13 @@ export class Promocodes {
   @Column({ default: 'Active', enum: ['Active', 'Used', 'Expire', 'Deactive'] })
   status: string;
 
-  @ManyToOne(() => Events, (event) => event.id)
+  @ManyToOne(() => Events, (event) => event.promocodes, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'event_id' })
   event_id: Events;
 
-    @ManyToOne(() => Events, (event) => event.promocodes,{  onDelete: 'CASCADE', })
-    @JoinColumn({ name: 'event_id' })
-    event_id: Events;
+  @OneToMany(() => Tickets, (ticket) => ticket.id)
+  ticket_id: IdValueObject[];
 
-  @OneToMany(() => Tickets, (ticket) => ticket.id, { nullable: true })
-  ticket_id?: IdValueObject[];
-
-     @OneToMany(()=>Tickets,(ticket)=> ticket.id)
-     ticket_id: IdValueObject[];
-
-
-     @Column({nullable:true,type: 'text'})
-     description:string
+  @Column({ nullable: true, type: 'text' })
+  description: string;
 }
