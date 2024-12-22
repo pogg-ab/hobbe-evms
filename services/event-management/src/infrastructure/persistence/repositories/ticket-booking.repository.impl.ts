@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BookingHasPayment } from 'src/domain/entities/booking-has-payment.entity';
+import { Events } from 'src/domain/entities/events.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { ITicketBookingRepository } from 'src/domain/repositories/tickets/ticket-booking.repository';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
@@ -11,6 +12,8 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
   constructor(
     @InjectRepository(TicketBooking)
     private ticketBookingRepository: Repository<TicketBooking>,
+    @InjectRepository(Events)
+    private eventRepository: Repository<Events>,
     @InjectRepository(BookingHasPayment)
     private bookingHasPaymentRepository: Repository<BookingHasPayment>,
     private readonly dataSource: DataSource,
@@ -115,12 +118,33 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
 
   async findAllByEventOrganizer(
     event_organizer_id: string,
-  ): Promise<TicketBooking[] | null> {
+  ): Promise<{ event: Event; ticketBookings: TicketBooking[] }[] | null> {
     try {
-      const ticketBookings = await this.ticketBookingRepository.find({
-        where: { created_by: Equal(event_organizer_id) },
+      const events = await this.eventRepository.find({
+        where: { user_id: Equal(event_organizer_id) },
       });
-      return ticketBookings;
+
+      if (!events.length) {
+        return null;
+      }
+
+      const eventsGroupedByBooking: {
+        event: any;
+        ticketBookings: TicketBooking[];
+      }[] = [];
+
+      for (const event of events) {
+        const ticketBookings = await this.ticketBookingRepository.find({
+          where: { event_id: Equal(event.id) },
+        });
+
+        eventsGroupedByBooking.push({
+          event,
+          ticketBookings,
+        });
+      }
+
+      return eventsGroupedByBooking;
     } catch (error) {
       throw new HttpException(
         `Error fetching Ticket Bookings for Event Organizer ID ${event_organizer_id}: ${error.message}`,

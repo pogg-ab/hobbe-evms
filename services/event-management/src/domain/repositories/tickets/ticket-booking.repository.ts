@@ -30,5 +30,5 @@ export interface ITicketBookingRepository {
   ): Promise<TicketBooking[] | null>;
   findAllByEventOrganizer(
     event_organizer_id: string,
-  ): Promise<TicketBooking[] | null>;
+  ): Promise<{ event: Event; ticketBookings: TicketBooking[] }[] | null>;
 }

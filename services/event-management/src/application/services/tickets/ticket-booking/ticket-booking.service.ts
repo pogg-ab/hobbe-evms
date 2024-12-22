@@ -10,6 +10,8 @@ import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
+import { IBookingHasPaymentRepository } from 'src/domain/repositories/tickets/booking-has-payment.repository';
+import { CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/booking-has-payment.repository.token';
 import { IBookingHasPromocodeRepository } from 'src/domain/repositories/tickets/booking-has-promocode.repository';
 import { CREATE_BOOKING_HAS_PROMOCODE_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/booking-has-promocode.repository.token';
 import {
@@ -53,6 +55,8 @@ export class TicketBookingService {
     private readonly promocodeRepository: IPromocode,
     @Inject(CREATE_BOOKING_HAS_PROMOCODE_REPOSITORY_TOKEN)
     private readonly bookingHasPromocodeRepository: IBookingHasPromocodeRepository,
+    @Inject(CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN)
+    private readonly bookingHasPaymentRepository: IBookingHasPaymentRepository,
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
   ) {}
@@ -69,7 +73,6 @@ export class TicketBookingService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Validate event existence and status
       const event = await this.eventRepository.findOne(eventId);
       if (!event) {
         throw new NotFoundException({
@@ -85,7 +88,6 @@ export class TicketBookingService {
         );
       }
 
-      // 2. Validate ticket heading availability
       const ticketHeadings =
         await this.ticketHeadingRepository.findHeadingsByEventId(eventId);
       if (!ticketHeadings || ticketHeadings.length === 0) {
@@ -96,7 +98,6 @@ export class TicketBookingService {
 
       const ticketHeading = ticketHeadings[0];
 
-      // 3. Validate sales start and end dates
       if (ticketHeading.sales_start > currentDate) {
         throw new BadRequestException(
           `Ticket sales have not started yet. Sales start date: ${ticketHeading.sales_start}`,
@@ -109,7 +110,6 @@ export class TicketBookingService {
         );
       }
 
-      // 4. Validate ticket count based on booking type
       const ticketType = createTicketBookingDto.booking_type;
       let pricePerTicket: number;
       let minOrder: number;
@@ -144,10 +144,8 @@ export class TicketBookingService {
         throw new BadRequestException(minOrderErrorMessage);
       }
 
-      // 5. Calculate initial total price
       let calculatedPrice = pricePerTicket * ticketCount;
 
-      // 6. Check availability of tickets
       const tickets =
         await this.ticketRepository.findTicketsByStatusTypeAndPromocode(
           event.id,
@@ -165,9 +163,34 @@ export class TicketBookingService {
         );
       }
 
-      // 7. Apply promocode discount if applicable
-      let promocode = null;
+      if (calculatedPrice !== createTicketBookingDto.total_price) {
+        throw new BadRequestException(
+          `Total price for tickets is invalid. Expected price: ${calculatedPrice}, but received: ${createTicketBookingDto.total_price}.`,
+        );
+      }
+
+      if (ticketCount > tickets.length) {
+        throw new BadRequestException(
+          `Requested ticket count (${ticketCount}) exceeds the available tickets (${tickets.length}).`,
+        );
+      }
+
+      const selectedTickets = this.getRandomTickets(tickets, ticketCount);
+
+      const ticketBooking = this.mapper.map(
+        createTicketBookingDto,
+        CreateTicketBookingDto,
+        TicketBooking,
+      );
+
+      const createdBooking = await this.ticketBookingRepository.create(
+        queryRunner.manager,
+        ticketBooking,
+        user,
+      );
+
       if (createTicketBookingDto.hasPromocode) {
+        let promocode = null;
         promocode = await this.promocodeRepository.findByCode(
           createTicketBookingDto.promocode_value,
           eventId,
@@ -191,57 +214,23 @@ export class TicketBookingService {
         const remainingPromocodeQuantity =
           promocode.quantity - existingTicketCount;
 
-        if (ticketCount > promocode.quantity - existingTicketCount) {
+        if (ticketCount > remainingPromocodeQuantity) {
           throw new BadRequestException(
             `Promocode limit reached. No more tickets can be booked with this promocode.`,
           );
         }
 
-        // Apply discount to the calculated price
         calculatedPrice -= (calculatedPrice * promocode.discount) / 100;
+        if (createTicketBookingDto.hasPromocode && promocode) {
+          await this.bookingHasPromocodeRepository.create(
+            queryRunner.manager,
+            createdBooking.booking_id,
+            promocode.id,
+            user,
+          );
+        }
       }
 
-      // 8. Ensure calculated price matches the provided total_price
-      if (calculatedPrice !== createTicketBookingDto.total_price) {
-        throw new BadRequestException(
-          `Total price for tickets is invalid. Expected price: ${calculatedPrice}, but received: ${createTicketBookingDto.total_price}.`,
-        );
-      }
-
-      // 9. Check if the requested ticket count does not exceed available tickets
-      if (ticketCount > tickets.length) {
-        throw new BadRequestException(
-          `Requested ticket count (${ticketCount}) exceeds the available tickets (${tickets.length}).`,
-        );
-      }
-
-      // 10. Select tickets randomly
-      const selectedTickets = this.getRandomTickets(tickets, ticketCount);
-
-      // 11. Create the ticket booking
-      const ticketBooking = this.mapper.map(
-        createTicketBookingDto,
-        CreateTicketBookingDto,
-        TicketBooking,
-      );
-
-      const createdBooking = await this.ticketBookingRepository.create(
-        queryRunner.manager,
-        ticketBooking,
-        user,
-      );
-
-      // 12. Apply promocode to the booking if applicable
-      if (createTicketBookingDto.hasPromocode && promocode) {
-        await this.bookingHasPromocodeRepository.create(
-          queryRunner.manager,
-          createdBooking.booking_id,
-          promocode.id,
-          user,
-        );
-      }
-
-      // 13. Handle partnership (if applicable)
       if (createTicketBookingDto.is_partnership) {
         const partnership = await this.partnershipRepository.create(
           queryRunner.manager,
@@ -255,7 +244,6 @@ export class TicketBookingService {
         }
       }
 
-      // 14. Handle gift (if applicable)
       if (createTicketBookingDto.hasGift) {
         const existingGift = await this.giftRepository.findByBookingId(
           queryRunner.manager,
@@ -273,7 +261,16 @@ export class TicketBookingService {
         }
       }
 
-      // 15. Update ticket status and create participant tickets
+      if (createTicketBookingDto.hasPayment) {
+        await this.bookingHasPaymentRepository.create(
+          queryRunner.manager,
+          createdBooking.booking_id,
+          createTicketBookingDto.payment_method,
+          calculatedPrice,
+          user,
+        );
+      }
+
       for (let i = 0; i < ticketCount; i++) {
         const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
         const participantId = createTicketBookingDto.hasGift
@@ -350,7 +347,7 @@ export class TicketBookingService {
 
   async findAllByEventOrganizer(
     event_organizer_id: string,
-  ): Promise<TicketBooking[] | null> {
+  ): Promise<{ event: Event; ticketBookings: TicketBooking[] }[] | null> {
     return this.ticketBookingRepository.findAllByEventOrganizer(
       event_organizer_id,
     );

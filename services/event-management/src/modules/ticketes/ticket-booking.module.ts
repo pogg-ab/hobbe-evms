@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateTicketBookingCommandHandler } from 'src/application/handlers/tickets/create-ticket-booking.command-handler';
 import { DeleteTicketBookingCommandHandler } from 'src/application/handlers/tickets/delete-ticket-booking.command-handler';
 import { FindTicketBookingByEventQueryHandler } from 'src/application/handlers/tickets/find-ticket-booking-by-event.query-handler';
+import { FindTicketBookingsByTicketBuyerQueryHandler } from 'src/application/handlers/tickets/find-ticket-booking-by-ticket-buyer.handler';
+import { FindTicketBookingsByEventOrganizerQueryHandler } from 'src/application/handlers/tickets/find-ticket-bookings-by-event-organizer.handler';
 import { GetAllTicketBookingsQueryHandler } from 'src/application/handlers/tickets/get-all-ticket-bookings.query-handler';
 import { FindTicketBookingByIdQueryHandler } from 'src/application/handlers/tickets/get-ticket-booking-by-id.query-handler';
 import { UpdateTicketBookingCommandHandler } from 'src/application/handlers/tickets/update-ticket-booking.command-handler';
@@ -22,6 +24,7 @@ import { TicketGifts } from 'src/domain/entities/ticket-gifts.entity';
 import { TicketsHeading } from 'src/domain/entities/tickets-heading.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
+import { CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/booking-has-payment.repository.token';
 import { CREATE_BOOKING_HAS_PROMOCODE_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/booking-has-promocode.repository.token';
 import { CREATE_PARTICIPANT_HAS_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/participant-has-ticket.repository';
 import { CREATE_PARTNERSHIP_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/partnership.repository.token';
@@ -67,6 +70,8 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     UpdateTicketStatusHandler,
     FindTicketBookingByEventQueryHandler,
     FindTicketBookingByIdQueryHandler,
+    FindTicketBookingsByTicketBuyerQueryHandler,
+    FindTicketBookingsByEventOrganizerQueryHandler,
     UpdateTicketBookingCommandHandler,
     DeleteTicketBookingCommandHandler,
     TicketBookingProfile,
@@ -105,6 +110,10 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     },
     {
       provide: CREATE_BOOKING_HAS_PROMOCODE_REPOSITORY_TOKEN,
+      useClass: BookingHasPromocodeRepositoryImpl,
+    },
+    {
+      provide: CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN,
       useClass: BookingHasPromocodeRepositoryImpl,
     },
   ],

@@ -11,7 +11,7 @@ export class FindTicketBookingsByEventOrganizerQueryHandler
 
   execute(
     query: FindTicketBookingsByEventOrganizerQuery,
-  ): Promise<TicketBooking[] | null> {
+  ): Promise<{ event: Event; ticketBookings: TicketBooking[] }[] | null> {
     const { eventOrganizerId } = query;
     return this.ticketBookingsService.findAllByEventOrganizer(eventOrganizerId);
   }
