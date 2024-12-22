@@ -40,13 +40,17 @@ export class Promocodes {
   @JoinColumn({ name: 'event_id' })
   event_id: Events;
 
-  //  @ManyToOne(()=>TicketsHeading,(heading)=> heading.id)
-  //  @JoinColumn({ name: 'ticket_heading_id'})
-  //  ticket_heading_id?: IdValueObject;
+    @ManyToOne(() => Events, (event) => event.promocodes,{  onDelete: 'CASCADE', })
+    @JoinColumn({ name: 'event_id' })
+    event_id: Events;
 
   @OneToMany(() => Tickets, (ticket) => ticket.id, { nullable: true })
   ticket_id?: IdValueObject[];
 
-  @Column({ nullable: true, type: 'text' })
-  description: string;
+     @OneToMany(()=>Tickets,(ticket)=> ticket.id)
+     ticket_id: IdValueObject[];
+
+
+     @Column({nullable:true,type: 'text'})
+     description:string
 }

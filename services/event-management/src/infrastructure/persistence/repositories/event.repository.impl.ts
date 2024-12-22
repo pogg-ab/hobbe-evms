@@ -67,7 +67,8 @@ export class EventRepositoryEmpl implements IEventRepository {
     try {
       const event = await this.eventRepository.findOne({
         where: { id: id },
-        relations: ['tickets'],
+        // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
+        relations: ['promocodes','bank_accounts','ticket_heading.tickets'],
       });
       if (!event) {
         throw new HttpException(
@@ -86,10 +87,12 @@ export class EventRepositoryEmpl implements IEventRepository {
 
   async findByCategory(category: string): Promise<Events[]> {
     try {
-      // Use 'find' instead of 'findBy'
-      const events = await this.eventRepository.find({
-        where: { category: category },
-      });
+      const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .where('event.categories @> :category', {
+        category: [category],  // Pass category as an array
+      })
+      .getMany();
 
       // Check if no events were found
       if (events.length === 0) {
@@ -153,12 +156,13 @@ export class EventRepositoryEmpl implements IEventRepository {
         .orWhere('LOWER(event.location) LIKE LOWER(:keyword)', {
           keyword: `%${keyword}%`,
         })
-        .orWhere('LOWER(event.category) LIKE LOWER(:keyword)', {
-          keyword: `%${keyword}%`,
-        })
+        // .orWhere('LOWER(event.category) LIKE LOWER(:keyword)', {
+        //   keyword: `%${keyword}%`,
+        // })
         .orWhere('LOWER(event.description) LIKE LOWER(:keyword)', {
           keyword: `%${keyword}%`,
         })
+        
         .skip(offset)
         .take(limit)
         .getManyAndCount();
@@ -206,14 +210,8 @@ export class EventRepositoryEmpl implements IEventRepository {
 
   async delete(id: string): Promise<void> {
     try {
-      const eventToDelete = await this.findOne(id);
-      if (!eventToDelete) {
-        throw new HttpException(
-          `Event with ID ${id} not found`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
+      const eventToDelete = await this.findOne(id);      
+     
       await this.eventRepository.delete(id);
     } catch (error) {
       throw new HttpException(

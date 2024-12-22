@@ -84,11 +84,15 @@ export class Tickets {
   @JoinColumn({ name: 'ticket_heading_id' })
   ticket_heading_id: IdValueObject;
 
-  @ManyToOne(() => Events, (event) => event.id)
-  @JoinColumn({ name: 'event_id' })
-  event_id: IdValueObject;
+    @ManyToOne(()=>TicketsHeading,(ticket)=> ticket.tickets,{  onDelete: 'CASCADE', })
+    @JoinColumn({ name: 'ticket_heading_id'})
+    ticket_heading_id: IdValueObject;
 
-  @ManyToOne(() => Promocodes, (promocode) => promocode.id, { nullable: true })
-  @JoinColumn({ name: 'promocode_id' })
-  promocode_id?: Promocodes;
+    @ManyToOne(()=>Events,(event)=> event.tickets,{  onDelete: 'CASCADE', })
+    @JoinColumn({ name: 'event_id'})
+    event_id: IdValueObject;
+
+    @ManyToOne(() => Promocodes, (promocode) => promocode.id)
+    @JoinColumn({ name: 'promocode_id' })
+    promocode_id: Promocodes;
 }

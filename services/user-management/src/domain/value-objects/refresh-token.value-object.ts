@@ -1,3 +1,4 @@
+
 // src/domain/value-objects/refresh-token.value-object.ts
 
 export class RefreshToken {

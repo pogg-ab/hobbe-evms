@@ -1,8 +1,8 @@
 import {
   Column,
   Entity,
-  JoinColumn,
-  ManyToOne,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -12,6 +12,7 @@ import { BankAccounts } from './bank_accounts.entity';
 import { TicketsHeading } from './tickets-heading.entity';
 import { Promocodes } from './promocodes.entity';
 import { Tickets } from './tickets.entity';
+import { Categories } from './categories.entity';
 
 @Entity()
 export class Events {
@@ -64,8 +65,8 @@ export class Events {
   @Column()
   event_end_date: Date;
 
-  @Column({ nullable: true })
-  category: string;
+  // @Column({ nullable: true })
+  // category: string;
 
   @Column({ nullable: true })
   created_by: string;
@@ -79,31 +80,30 @@ export class Events {
   @Column({ type: 'timestamp', nullable: true })
   updated_at: Date;
 
+  @Column('text', { array: true })
+  categories:string[];
+
   @OneToOne(() => TicketsHeading, (ticket) => ticket.event_id, {
     cascade: true,
-    nullable: true,
     onDelete: 'CASCADE'
   })
-  ticket_heading?: TicketsHeading;
+  ticket_heading: TicketsHeading;
 
   @OneToMany(() => Tickets, (ticket) => ticket.event_id, {
-    cascade: true, // Ensures related BankAccounts are automatically saved
+    cascade: true, 
     onDelete: 'CASCADE',
-    nullable:true
   })
-  tickets?: Tickets[];
+  tickets: Tickets[];
 
   @OneToMany(() => Promocodes, (promocode) => promocode.event_id,{
-    cascade: true, // Ensures related BankAccounts are automatically saved
+    cascade: true, 
     onDelete: 'CASCADE',
-    nullable:true
   })
-  promocodes?: Promocodes[];
+  promocodes: Promocodes[];
 
   @OneToMany(() => BankAccounts, (bankAccount) => bankAccount.event_id, {
-    cascade: true, // Ensures related BankAccounts are automatically saved
+    cascade: true, 
     onDelete: 'CASCADE',
-    nullable:true
   })
-  bank_accounts?: BankAccounts[];
+  bank_accounts: BankAccounts[];
 }

@@ -23,7 +23,7 @@ export class CreateTicketsHeadingDto {
   @IsNotEmpty()
   schedule: string;
 
-  @ApiProperty({ description: 'Regular Quantity', example: 500 })
+  @ApiProperty({ description: 'Regular Quantity', example: 50 })
   @IsNotEmpty()
   quantity: number;
 
@@ -41,11 +41,11 @@ export class CreateTicketsHeadingDto {
 
   // VIP TICKETS
 
-  @ApiProperty({ description: 'VIP Tickets Quantity', example: 100 })
+  @ApiProperty({ description: 'VIP Tickets Quantity', example: 10 })
   @IsNotEmpty()
   vip_quantity: number;
 
-  @ApiProperty({ description: 'VIP Tickets Price', example: 1500 })
+  @ApiProperty({ description: 'VIP Tickets Price', example: 2000 })
   @IsNotEmpty()
   vip_price: number;
 
@@ -57,11 +57,11 @@ export class CreateTicketsHeadingDto {
 
 // VVIP TICKETS
 
-  @ApiProperty({ description: 'V-VIP Tickets Amount', example: 20 })
+  @ApiProperty({ description: 'V-VIP Tickets Amount', example: 5 })
   @IsNotEmpty()
   vvip_quantity: number;
 
-  @ApiProperty({ description: 'V-VIP Tickets Price', example: 500 })
+  @ApiProperty({ description: 'V-VIP Tickets Price', example: 5000 })
   @IsNotEmpty()
   vvip_price: number;
 
