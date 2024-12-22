@@ -1,25 +1,43 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { IdValueObject } from "../value-objects/event-id.value-object";
-import { TicketsHeading } from "./tickets-heading.entity";
-import { Promocodes } from "./promocodes.entity";
-import { Events } from "./events.entity";
-
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { IdValueObject } from '../value-objects/event-id.value-object';
+import { Events } from './events.entity';
+import { Promocodes } from './promocodes.entity';
+import { TicketsHeading } from './tickets-heading.entity';
 
 @Entity()
+export class Tickets {
+  @PrimaryGeneratedColumn('uuid')
+  id: IdValueObject;
 
-export class Tickets{
-    @PrimaryGeneratedColumn('uuid')
-    id:IdValueObject;
+  @Column({ default: 'Regular', enum: ['Regular', 'VIP', 'VVIP'] })
+  type: string;
 
-    @Column({default:'Regular', enum:['Regular','VIP','VVIP']})
-    type: string;
+  @Column({
+    default: 'New',
+    enum: [
+      'New',
+      'active',
+      'Available',
+      'Pending Payment',
+      'Paid',
+      'Completed',
+      'Cancelled',
+      'Cancelled',
+      'Refunded',
+      'Hold',
+      'Booked',
+      'Gifted',
+    ],
+  })
+  status: string;
 
-    @Column({default:'New', 
-        enum:['New','active','Available','Pending Payment','Paid','Completed','Cancelled','Cancelled','Refunded','Hold']
-     })
-     status: string;
-
-    /*
+  /*
     Ticket Status List and thier description        
         - New
             A ticket has been created but not processed yet.
@@ -50,18 +68,21 @@ export class Tickets{
          The ticket has expired. This status is applicable for tickets that have a sales_end date.s
     */
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    price: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  price: number;
 
+  @Column({ default: false })
+  hasPromcode: boolean;
 
-    @Column({default:false})
-    hasPromcode: boolean;
+  @Column('text')
+  qr_code: string;
 
-    @Column('text')
-    qr_code:string;
+  @Column({ unique: true })
+  ticket_no: string;
 
-    @Column({unique:true})
-    ticket_no:string;
+  @ManyToOne(() => TicketsHeading, (ticket) => ticket.id)
+  @JoinColumn({ name: 'ticket_heading_id' })
+  ticket_heading_id: IdValueObject;
 
     @ManyToOne(()=>TicketsHeading,(ticket)=> ticket.tickets,{  onDelete: 'CASCADE', })
     @JoinColumn({ name: 'ticket_heading_id'})

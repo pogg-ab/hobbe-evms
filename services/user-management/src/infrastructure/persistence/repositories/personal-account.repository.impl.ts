@@ -137,4 +137,19 @@ export class PersonalAccountRepositoryImpl
       );
     }
   }
+  async findByPhoneNumber(
+    phone_number: string,
+  ): Promise<PersonalAccount | null> {
+    try {
+      const account = await this.personalAccountRepository.findOne({
+        where: { phone_number },
+      });
+      return account || null;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching PersonalAccount by phone number ${phone_number}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

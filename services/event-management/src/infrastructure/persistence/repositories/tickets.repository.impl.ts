@@ -4,7 +4,7 @@ import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { DataSource, Equal, Repository } from 'typeorm';
+import { DataSource, EntityManager, Equal, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketsRepositoryEmpl implements ITicketsRepository {
@@ -14,12 +14,10 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(
-    createTicketsDto: CreateTicketsDto,
-  ): Promise<void> {
+  async create(createTicketsDto: CreateTicketsDto): Promise<void> {
     try {
       const newTicket = this.ticketsListRepository.create(createTicketsDto);
-       await this.ticketsListRepository.save(newTicket);
+      await this.ticketsListRepository.save(newTicket);
     } catch (error) {
       throw new HttpException(
         `Error creating Ticket: ${error.message}`,
@@ -80,37 +78,37 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   }
 
   async findAllByTicketsHeading(
-    ticket_heading_id:string,
-    tickets_type?:string,
-    status?:string,
+    ticket_heading_id: string,
+    tickets_type?: string,
+    status?: string,
   ): Promise<{
     tickets: Tickets[] | null;
-  
   }> {
     try {
-      if(!tickets_type && !status){
-        const tickets = await this.ticketsListRepository
-        .find({
+      if (!tickets_type && !status) {
+        const tickets = await this.ticketsListRepository.find({
           where: { ticket_heading_id: Equal(ticket_heading_id) },
         });
-        return {tickets};
-      }else if(tickets_type){
-        const tickets = await this.ticketsListRepository
-        .find({
-          where: { ticket_heading_id: Equal(ticket_heading_id), type: Equal(tickets_type) }
+        return { tickets };
+      } else if (tickets_type) {
+        const tickets = await this.ticketsListRepository.find({
+          where: {
+            ticket_heading_id: Equal(ticket_heading_id),
+            type: Equal(tickets_type),
+          },
 
           // relations: ['ticket_heading_id'],
         }); // 'event' is the alias for your table/entity
-        return {tickets};
-      }else if(status){
-        const tickets = await this.ticketsListRepository
-        .find({
-          where: { ticket_heading_id: Equal(ticket_heading_id), status: Equal(status) }
-
+        return { tickets };
+      } else if (status) {
+        const tickets = await this.ticketsListRepository.find({
+          where: {
+            ticket_heading_id: Equal(ticket_heading_id),
+            status: Equal(status),
+          },
         });
-        return {tickets};
+        return { tickets };
       }
-     
     } catch (error) {
       throw new HttpException(
         `Error fetching Tickets : ${error.message}`,
@@ -134,6 +132,56 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       console.error('Error fetching tickets list:', error);
       throw new HttpException(
         `Error fetching Tickets List with Tickets id ${ticket_heading_id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  async findTicketsByStatusTypeAndPromocode(
+    eventId: IdValueObject,
+    type: string,
+    status: string,
+    hasPromocode: boolean,
+  ): Promise<Tickets[] | null> {
+    try {
+      const tickets = await this.ticketsListRepository.find({
+        where: {
+          event_id: Equal(eventId),
+          type: type,
+          status: status,
+          hasPromcode: hasPromocode,
+        },
+      });
+
+      return tickets.length > 0 ? tickets : null;
+    } catch (error) {
+      throw new Error(`Error fetching tickets: ${error.message}`);
+    }
+  }
+  async updateStatus(
+    manager: EntityManager,
+    id: IdValueObject,
+    status: string,
+  ): Promise<Tickets | null> {
+    try {
+      const ticket = await manager.findOne(Tickets, {
+        where: { id },
+      });
+
+      if (!ticket) {
+        throw new HttpException(
+          `Ticket with id ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      ticket.status = status;
+
+      await this.ticketsListRepository.save(ticket);
+
+      return ticket;
+    } catch (error) {
+      throw new HttpException(
+        `Error updating status for Ticket with ID ${id}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

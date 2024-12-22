@@ -23,14 +23,11 @@ export class PromocodeServices {
     return await this.createPromocodeRepository.create(promocode);
   }
 
-  async findOne(id: number): Promise<Promocodes | null> {
+  async findOne(id: string): Promise<Promocodes | null> {
     return await this.createPromocodeRepository.findOne(id);
   }
 
-  async update(
-    id: number,
-    promocode: Promocodes,
-  ): Promise<Promocodes> {
+  async update(id: string, promocode: Promocodes): Promise<Promocodes> {
     return await this.createPromocodeRepository.update(id, promocode);
   }
 }
