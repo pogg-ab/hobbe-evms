@@ -7,6 +7,14 @@ import {
 } from 'typeorm';
 import { TicketBooking } from './ticket-booking.entity';
 
+export enum PartnershipStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  CONFIRMED = 'confirmed',
+}
+
 @Entity('partnerships')
 export class Partnership {
   @PrimaryGeneratedColumn('uuid')
@@ -23,6 +31,13 @@ export class Partnership {
   })
   @JoinColumn({ name: 'booking_id' })
   booking_id: TicketBooking;
+
+  @Column({
+    type: 'enum',
+    enum: PartnershipStatus,
+    default: PartnershipStatus.PENDING,
+  })
+  status: PartnershipStatus;
 
   @Column({ nullable: true })
   created_by: string;

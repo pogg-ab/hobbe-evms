@@ -4,7 +4,7 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { IParticipantHasTicketRepository } from 'src/domain/repositories/tickets/participant-has-ticket.repository';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class ParticipantHasTicketRepositoryImpl
@@ -20,17 +20,18 @@ export class ParticipantHasTicketRepositoryImpl
   ) {}
 
   async create(
+    manager: EntityManager,
     bookingId: string,
     ticketId: string,
     participantId: string,
     user: any,
   ): Promise<void> {
     try {
-      const ticketBooking = await this.ticketBookingRepository.findOne({
+      const ticketBooking = await manager.findOne(TicketBooking, {
         where: { booking_id: bookingId },
       });
 
-      const ticket = await this.ticketRepository.findOne({
+      const ticket = await manager.findOne(Tickets, {
         where: { id: ticketId },
       });
 
@@ -53,7 +54,7 @@ export class ParticipantHasTicketRepositoryImpl
       newParticipantHasTicket.created_at = new Date();
       newParticipantHasTicket.updated_at = new Date();
 
-      await this.participantHasTicketRepository.save(newParticipantHasTicket);
+      await manager.save(newParticipantHasTicket);
     } catch (error) {
       throw new HttpException(
         `Error creating Participant Has Ticket: ${error.message}`,

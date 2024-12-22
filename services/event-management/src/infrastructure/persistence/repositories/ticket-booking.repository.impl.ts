@@ -4,7 +4,7 @@ import { BookingHasPayment } from 'src/domain/entities/booking-has-payment.entit
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { ITicketBookingRepository } from 'src/domain/repositories/tickets/ticket-booking.repository';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
-import { DataSource, Equal, Repository } from 'typeorm';
+import { DataSource, EntityManager, Equal, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
@@ -17,6 +17,7 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
   ) {}
 
   async create(
+    manager: EntityManager,
     ticketBooking: TicketBooking,
     user: any,
   ): Promise<TicketBooking> {
@@ -27,7 +28,7 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
       newTicketBooking.created_by = user;
       newTicketBooking.created_at = new Date();
       newTicketBooking.updated_at = new Date();
-      await this.ticketBookingRepository.save(newTicketBooking);
+      await manager.save(TicketBooking, newTicketBooking);
       return newTicketBooking;
     } catch (error) {
       throw new HttpException(

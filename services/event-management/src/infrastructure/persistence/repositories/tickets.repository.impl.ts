@@ -4,7 +4,7 @@ import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { DataSource, Equal, Repository } from 'typeorm';
+import { DataSource, EntityManager, Equal, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketsRepositoryEmpl implements ITicketsRepository {
@@ -158,11 +158,12 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     }
   }
   async updateStatus(
+    manager: EntityManager,
     id: IdValueObject,
     status: string,
   ): Promise<Tickets | null> {
     try {
-      const ticket = await this.ticketsListRepository.findOne({
+      const ticket = await manager.findOne(Tickets, {
         where: { id },
       });
 

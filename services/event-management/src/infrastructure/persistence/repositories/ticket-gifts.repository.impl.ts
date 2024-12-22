@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TicketGifts } from 'src/domain/entities/ticket-gifts.entity';
 import { ITicketGiftsRepository } from 'src/domain/repositories/tickets/ticket-gifts.repository';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketGiftsRepositoryImpl implements ITicketGiftsRepository {
@@ -13,6 +13,7 @@ export class TicketGiftsRepositoryImpl implements ITicketGiftsRepository {
   ) {}
 
   async create(
+    manager: EntityManager,
     user: any,
     bookingId: any,
     recipientId: any,
@@ -29,7 +30,7 @@ export class TicketGiftsRepositoryImpl implements ITicketGiftsRepository {
         updated_at: new Date(),
       });
 
-      await this.ticketGiftsRepository.save(newTicketGift);
+      await manager.save(newTicketGift);
     } catch (error) {
       throw new HttpException(
         `Error creating Ticket Gift: ${error.message}`,
@@ -38,9 +39,12 @@ export class TicketGiftsRepositoryImpl implements ITicketGiftsRepository {
     }
   }
 
-  async findByBookingId(bookingId: string): Promise<TicketGifts | null> {
+  async findByBookingId(
+    manager: EntityManager,
+    bookingId: string,
+  ): Promise<TicketGifts | null> {
     try {
-      const ticketGift = await this.ticketGiftsRepository.findOne({
+      const ticketGift = await manager.findOne(TicketGifts, {
         where: { booking_id: bookingId },
       });
       return ticketGift || null;

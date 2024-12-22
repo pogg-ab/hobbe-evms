@@ -1,8 +1,10 @@
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
+import { EntityManager } from 'typeorm';
 
 export interface ITicketBookingRepository {
   create(
+    manager: EntityManager,
     createTicketBookingDto: CreateTicketBookingDto,
     user: any,
   ): Promise<TicketBooking>;

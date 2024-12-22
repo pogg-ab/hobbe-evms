@@ -1,7 +1,9 @@
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
+import { EntityManager } from 'typeorm';
 
 export interface IParticipantHasTicketRepository {
   create(
+    manager: EntityManager,
     bookingId: string,
     ticketId: string,
     participantId: string,
