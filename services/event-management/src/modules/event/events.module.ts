@@ -27,6 +27,7 @@ import { CategoriesModule } from '../categories/categories.module';
 import { TicketsModule } from '../ticketes/tickets.module';
 import { TicketsHeadingModule } from '../ticketes/tickets-heading.module';
 import { PromocodeModule } from '../promocode/promocode.module';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 
 
 
@@ -59,6 +60,7 @@ import { PromocodeModule } from '../promocode/promocode.module';
     EventsService,
     CreateTicketsDto,
     CreateEventCommandHandler,
+    KafkaProducerService,
     UpdateEventsCommandHandler,
     DeleteEventCommandHandler,
     GetAllEventsQueryHandler,
