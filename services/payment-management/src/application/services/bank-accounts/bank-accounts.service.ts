@@ -8,17 +8,22 @@ import { CreateBankAccountDto } from "src/presentation/dtos/bank-accounts/create
 import { Mapper } from '@automapper/core';
 
 export class BankAccountsServices{
-    // constructor(
-    //     @Inject(CREATE_BANK_ACCOUNT_TOKEN)
-    //     private readonly createBankAccountRepository: IBankAccountRepository,
-    //     @InjectMapper() private readonly mapper: Mapper,
-    //     public readonly createBankAccountDto:CreateBankAccountDto,
-    //     private readonly commandBus:CommandBus,
-    //     // private readonly kafkaProducerService:KafkaProducerService
-    //   ) {}
-    // Implement bank account related services here
-    // async createBankAccountFromEventMaicroService(accounts:BankAccounts[]): Promise<BankAccounts[]>{
-    //     const accounts_list = this.createBankAccountRepository.createFromEventMS(accounts);
-    //    return  accounts_list;
-    // }
+    constructor(
+        @Inject(CREATE_BANK_ACCOUNT_TOKEN)
+        private readonly createBankAccountRepository: IBankAccountRepository,
+        @InjectMapper() private readonly mapper: Mapper,
+      ) {}
+    
+    async create(user:any,event:string, createBankAccountDto:CreateBankAccountDto): Promise<BankAccounts>{
+        const bankAccounts  = this.mapper.map(createBankAccountDto,CreateBankAccountDto,BankAccounts);
+        return await this.createBankAccountRepository.create(user,event,bankAccounts);
+    }
+
+    async findOne(id:string): Promise<BankAccounts>{
+        return await this.createBankAccountRepository.findOne(id);
+    }
+
+    async findByEvent(event:string): Promise<BankAccounts[] | null>{
+        return await this.createBankAccountRepository.findByEvent(event);
+    }
 }
