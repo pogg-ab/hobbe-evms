@@ -87,10 +87,10 @@ export class EventsProfile extends AutomapperProfile {
          )
         ),
 
-        forMember(
-          (destination) => destination.bank_accounts,
-          mapFrom((source) => source.bank_accounts),
-        ),
+        // forMember(
+        //   (destination) => destination.bank_accounts,
+        //   mapFrom((source) => source.bank_accounts),
+        // ),
       );
 
       
