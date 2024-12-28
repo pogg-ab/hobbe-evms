@@ -118,7 +118,7 @@ export class EventsService {
     updateEventsDto: UpdateEventsDto,
     user: any,
   ): Promise<Events> {
-    const event = await this.findOne(id);
+    await this.findOne(id);
     const updatedEvent = this.mapper.map(
       updateEventsDto,
       UpdateEventsDto,

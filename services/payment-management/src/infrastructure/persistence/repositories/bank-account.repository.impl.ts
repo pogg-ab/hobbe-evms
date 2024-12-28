@@ -53,6 +53,9 @@ export class BankAccountRepositoryImpl implements IBankAccountRepository{
           );
         }
       }
+
+
+
   
 
     // async findAll(): Promise<Promocodes[]> {
@@ -88,20 +91,32 @@ export class BankAccountRepositoryImpl implements IBankAccountRepository{
       }
     }
 
-    // async update(id:number,promocode:Promocodes):Promise<Promocodes>{
-    //   try {
-    //     const promocodeToBeUpdate = await this.findOne(id);
-  
-    //     const updatedPromocode = Object.assign(promocodeToBeUpdate, promocode);
-       
-  
-    //     return await this.promocodeRepository.save(updatedPromocode);
-    //   } catch (error) {
-    //     throw new HttpException(
-    //       `Error Updating Promocode: ${error.message}`,
-    //       HttpStatus.INTERNAL_SERVER_ERROR,
-    //     );
-    //   }
-    // }
+     async update(id: string, bank_account: BankAccounts): Promise<BankAccounts> {
+        try {
+          const bankAccountToBeUpdate = await this.findOne(id);
+    
+          const updatedAccount = Object.assign(bankAccountToBeUpdate, bank_account);
+    
+          return await this.bankAccountRepository.save(updatedAccount);
+        } catch (error) {
+          throw new HttpException(
+            `Error updating bank account: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      }
+
+      async delete(id: string): Promise<void> {
+        try {
+          const bankAccontToDelete = await this.findOne(id);      
+         
+          await this.bankAccountRepository.delete(id);
+        } catch (error) {
+          throw new HttpException(
+            `Error deleting bank accourt: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      }
     
 }
