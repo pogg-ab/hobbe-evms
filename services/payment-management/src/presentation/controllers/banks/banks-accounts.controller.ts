@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards 
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateBankAccountCommand } from 'src/application/commands/bank-accounts/create.bank-account.command';
+import { DeleteBankAccountCommand } from 'src/application/commands/bank-accounts/delete.bank-account.command';
+import { UpdateBankAccountCommand } from 'src/application/commands/bank-accounts/update.bank-account.command';
 import { FindBankAccountByEventQuery } from 'src/application/queries/bank-accounts/find-by-event.query';
 import { FindOneBankAccountQuery } from 'src/application/queries/bank-accounts/find-one.query';
 import { BankAccounts } from 'src/domain/entities/bank_accounts.entity';
@@ -58,34 +60,29 @@ export class BankAccountsController {
       type: CreateBankAccountDto,
     })
     @Patch(':id')
-    @Roles('User')
-    @UseGuards(JwtAuthGuard, RolesGuard)
+    // @Roles('User')
+    // @UseGuards(JwtAuthGuard, RolesGuard)
     async updateBankAccount(
       @Param('id') id: string,
       @Body() createBankAccountDto: CreateBankAccountDto,
     ): Promise<{ message: string; account: BankAccounts }> {
-     
-    //   const command = new CreateEventCommand(createBankAccountDto);
-    //   const createdBankAccount = await this.commandBus.execute(command);
-    //   return { message: 'Event created successfully', account: createdBankAccount };
-    return ;
-    
+      const command = new UpdateBankAccountCommand(id, createBankAccountDto);
+      const updatedBankAccount = await this.commandBus.execute(command);
+      return { message: 'Bank Account updated successfully', account: updatedBankAccount };
     }
 
 
     @ApiOperation({ description: 'Remove Single Bank Account' })
     @HttpCode(200)
     @Delete(':id')
-    @Roles('User')
-    @UseGuards(JwtAuthGuard, RolesGuard)
+    // @Roles('User')
+    // @UseGuards(JwtAuthGuard, RolesGuard)
     async delete(
-      @Param('id') id: number,
+      @Param('id') id: string,
     ): Promise<{ message: string; }> {
-     
-    //   const command = new CreateEventCommand(createBankAccountDto);
-    //   const createdBankAccount = await this.commandBus.execute(command);
-    //   return { message: 'Event created successfully', account: createdBankAccount };
-    return ;
+      const command = new DeleteBankAccountCommand(id);
+      await this.commandBus.execute(command);
+      return { message: 'Bank Account deleted successfully' };
     }
 
 

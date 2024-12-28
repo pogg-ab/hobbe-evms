@@ -13,6 +13,8 @@ import { BankAccountRepositoryImpl } from 'src/infrastructure/persistence/reposi
 import { FindOneBankAccountHandler } from 'src/application/handlers/bank-account/find-one.bank-account.handler';
 import { FindBankAccountByEventQuery } from 'src/application/queries/bank-accounts/find-by-event.query';
 import { FindBankAccountByEventQueryHandler } from 'src/application/handlers/bank-account/find-by-event.handler';
+import { UpdateBankAccountHandler } from 'src/application/handlers/bank-account/update.bank-account.handler';
+import { DeleteBankAccountHandler } from 'src/application/handlers/bank-account/delete.bank-accout.handler';
 
 @Module({
   
@@ -28,6 +30,8 @@ import { FindBankAccountByEventQueryHandler } from 'src/application/handlers/ban
       CreateBankAccountHandler,
       FindOneBankAccountHandler,
       FindBankAccountByEventQueryHandler,
+      UpdateBankAccountHandler,
+      DeleteBankAccountHandler,
       {
         provide: CREATE_BANK_ACCOUNT_TOKEN,
         useClass: BankAccountRepositoryImpl,

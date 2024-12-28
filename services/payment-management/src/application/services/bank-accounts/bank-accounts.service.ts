@@ -26,4 +26,19 @@ export class BankAccountsServices{
     async findByEvent(event:string): Promise<BankAccounts[] | null>{
         return await this.createBankAccountRepository.findByEvent(event);
     }
+
+    async update(id:string, createBankAccountDto:CreateBankAccountDto): Promise<BankAccounts>{
+        const bankAccount = await this.findOne(id);
+        const updatedBankAccount = this.mapper.map(
+            createBankAccountDto,
+            CreateBankAccountDto,
+            BankAccounts,
+          );
+        await this.createBankAccountRepository.update(id, updatedBankAccount);
+        return updatedBankAccount;
+    }
+
+    async delete(id: string): Promise<void> {
+        await this.createBankAccountRepository.delete(id);
+      }
 }
