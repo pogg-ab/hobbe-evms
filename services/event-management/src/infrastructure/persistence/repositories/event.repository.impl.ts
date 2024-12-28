@@ -85,6 +85,28 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
+  async findByUser(user: string): Promise<Events[]> {
+    try {
+      const events = await this.eventRepository.find({
+        where: { user_id: user},
+      });
+
+      // Check if no events were found
+      if (events.length === 0) {
+        throw new HttpException(
+          `Events with user ${user} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return events;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching events with user ${user}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async findByCategory(category: string): Promise<Events[]> {
     try {
       const events = await this.eventRepository

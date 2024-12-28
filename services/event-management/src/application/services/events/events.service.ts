@@ -80,6 +80,14 @@ export class EventsService {
     return event;
   }
 
+  async findByUser(user: string): Promise<Events[]> {
+    const event = await this.createEventRepository.findByUser(user);
+    if (!event) {
+      throw new NotFoundException(`Event with Category ${user} not found.`);
+    }
+    return event;
+  }
+
   async findByCategory(category: string): Promise<Events[]> {
     const event = await this.createEventRepository.findByCategory(category);
     if (!event) {

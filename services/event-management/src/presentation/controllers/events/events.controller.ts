@@ -15,6 +15,7 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateEventCommand } from 'src/application/commands/create-event.command';
 import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
 import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
+import { FindEventsByUserQuery } from 'src/application/queries/events/find-events-by-user.query';
 import { GetAllEventsQuery } from 'src/application/queries/events/get-all-events.query';
 import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
 import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
@@ -82,6 +83,17 @@ export class EventsController {
     return { message: 'Event created successfully', events: createdEvent };
   }
 
+
+  
+  @ApiOperation({ description: 'Get Events By User' })
+  @HttpCode(200)
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('find-by-user')
+  async findByUser(@CurrentUserId() user: any): Promise<Events[]> {
+    return await this.queryBus.execute(new FindEventsByUserQuery(user.user.user_id.toString()));
+  }
+
   @ApiOperation({ description: 'Get Event By ID' })
   @HttpCode(200)
   @Roles('User')
@@ -90,6 +102,7 @@ export class EventsController {
   async findOne(@Param('id') id: string): Promise<Events | null> {
     return this.queryBus.execute(new GetEventsByIdQuery(id));
   }
+
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -154,4 +167,7 @@ export class EventsController {
   async findByLocation(@Param('location') location: string): Promise<Events[]> {
     return this.queryBus.execute(new GetEventsByLocationQuery(location));
   }
+
+  
+  
 }
