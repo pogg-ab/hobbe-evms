@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -10,6 +10,8 @@ import { Auth } from 'src/domain/entities/auth.entity';
 import { Email } from 'src/domain/entities/email.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
 import { User } from 'src/domain/entities/user.entity';
+import { IUserRepository } from 'src/domain/repositories/user.repository';
+import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { AccessToken } from 'src/domain/value-objects/access-token.value-object';
 import { RefreshToken } from 'src/domain/value-objects/refresh-token.value-object';
 import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
@@ -32,6 +34,8 @@ export class AuthService {
     private readonly adminUserAuthRepository: Repository<AdminUserAuth>,
     @InjectRepository(AdminUserRole)
     private readonly adminUserRoleRepository: Repository<AdminUserRole>,
+    @Inject(USER_REPOSITORY_TOKEN)
+    private readonly userWithAccountRepository: IUserRepository,
   ) {}
 
   async validateUser(user_name: string, password: string): Promise<any> {
@@ -107,16 +111,26 @@ export class AuthService {
     };
   }
 
-  async login(user: any) {
-    const payload = { username: user.user_name, sub: user.user_id };
+  async login(user: any, rememberMe: boolean) {
+    const payload = { username: user.user.user_name, sub: user.user.user_id };
     const access_token = new AccessToken(
       this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
         expiresIn: '1d',
       }),
     );
-    const refresh_token = new RefreshToken(this.generateRefreshToken());
-    const token_expires_at = new Date(new Date().getTime() + 86400000); // 1 hour expiration
+    let refresh_token: string | null = null;
+    if (rememberMe) {
+      const refreshPayload = { username: user.user_name, sub: user.user_id };
+      refresh_token = this.jwtService.sign(refreshPayload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '30d',
+      });
+    }
+    const token_expires_at = rememberMe
+      ? new Date(new Date().getTime() + 30 * 86400000) // 1 month expiration for refresh token
+      : new Date(new Date().getTime() + 86400000);
+
     let auth = await this.authRepository.findOne({
       where: { user_id: user.user.user_id },
     });
@@ -124,7 +138,7 @@ export class AuthService {
     if (auth) {
       auth.user_id = user.user.user_id;
       auth.access_token = access_token.toString();
-      auth.refresh_token = refresh_token.toString();
+      auth.refresh_token = refresh_token ? refresh_token.toString() : '';
       auth.token_expires_at = token_expires_at;
       auth.last_login = new Date();
 
@@ -133,7 +147,7 @@ export class AuthService {
       auth = new Auth();
       auth.user_id = user.user.user_id;
       auth.access_token = access_token.toString();
-      auth.refresh_token = refresh_token.toString();
+      auth.refresh_token = refresh_token ? refresh_token.toString() : '';
       auth.token_expires_at = token_expires_at;
       auth.last_login = new Date();
 
@@ -141,8 +155,97 @@ export class AuthService {
     }
     return {
       access_token: access_token.toString(),
-      refresh_token: refresh_token.toString(),
+      ...(refresh_token && { refresh_token: refresh_token.toString() }),
     };
+  }
+
+  async refreshAccessToken(refreshToken: string) {
+    try {
+      const decoded = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      const auth = await this.authRepository.findOne({
+        where: { refresh_token: refreshToken },
+      });
+
+      if (!auth) {
+        throw new HttpException(
+          'Invalid refresh token',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      const now = new Date();
+      if (now > auth.token_expires_at) {
+        const newRefreshToken = this.generateRefreshToken();
+        const newExpiryDate = new Date(now.getTime() + 30 * 86400000); // New expiry for the refresh token (e.g., 1 month)
+
+        auth.refresh_token = newRefreshToken;
+        auth.token_expires_at = newExpiryDate;
+
+        const payload = { username: decoded.username, sub: decoded.sub };
+        const newAccessToken = new AccessToken(
+          this.jwtService.sign(payload, {
+            secret: process.env.JWT_SECRET,
+            expiresIn: '1d', // Access token expiry: 1 day
+          }),
+        );
+
+        auth.access_token = newAccessToken.toString();
+
+        return {
+          message: 'Tokens updated successfully.',
+          access_token: newAccessToken.toString(),
+          refresh_token: newRefreshToken,
+        };
+      }
+      const payload = { username: decoded.username, sub: decoded.sub };
+
+      const newAccessToken = new AccessToken(
+        this.jwtService.sign(payload, {
+          secret: process.env.JWT_SECRET,
+          expiresIn: '1d', // Access token expiry: 1 day
+        }),
+      );
+      auth.access_token = newAccessToken.toString();
+      await this.authRepository.save(auth);
+      return {
+        message: 'Access token refreshed successfully.',
+        access_token: newAccessToken.toString(),
+        refresh_token: refreshToken,
+      };
+    } catch (error) {
+      throw new HttpException(
+        'Invalid or expired refresh token',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+  }
+
+  async decodeAndValidateToken(token: string): Promise<string> {
+    try {
+      const decoded = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
+      return decoded.sub;
+    } catch (error) {
+      throw new HttpException(
+        'Invalid or expired token',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+  }
+
+  async getUserAccountInfo(userId: string): Promise<any> {
+    const userAccountInfo =
+      await this.userWithAccountRepository.findById(userId);
+
+    if (!userAccountInfo) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    return userAccountInfo;
   }
 
   async adminUserLogin(user: any) {
