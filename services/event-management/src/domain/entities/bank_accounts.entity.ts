@@ -20,7 +20,6 @@ export class BankAccounts{
     user_id: string;
 
     @ManyToOne(() => Events, (event) => event.bank_accounts,{  onDelete: 'CASCADE', })
-
     @JoinColumn({ name: 'event_id' })
     event_id: Events;
 }

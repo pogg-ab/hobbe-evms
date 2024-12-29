@@ -69,7 +69,7 @@ export class EventRepositoryEmpl implements IEventRepository {
         where: { id: id },
         // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
         relations: ['promocodes','bank_accounts','ticket_heading.tickets'],
-      });
+      }); 
       if (!event) {
         throw new HttpException(
           `Event with ID ${id} not found`,
@@ -80,6 +80,28 @@ export class EventRepositoryEmpl implements IEventRepository {
     } catch (error) {
       throw new HttpException(
         `Error fetching Event with ID ${id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findByUser(user: string): Promise<Events[]> {
+    try {
+      const events = await this.eventRepository.find({
+        where: { user_id: user},
+      });
+
+      // Check if no events were found
+      if (events.length === 0) {
+        throw new HttpException(
+          `Events with user ${user} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return events;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching events with user ${user}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -130,6 +152,32 @@ export class EventRepositoryEmpl implements IEventRepository {
     } catch (error) {
       throw new HttpException(
         `Error fetching events with location ${location}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
+
+  async findByOrganiser(organiser: string): Promise<Events[]> {
+    try {
+      // Use 'find' instead of 'findBy'
+      const events = await this.eventRepository.find({
+        where: { user_id: organiser },
+      });
+
+      // Check if no events were found
+      if (events.length === 0) {
+        throw new HttpException(
+          `Events with organiser ${organiser} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return events;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching events with organiser ${organiser}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -92,5 +92,5 @@ export class Tickets {
 
   @ManyToOne(() => Promocodes, (promocode) => promocode.id)
   @JoinColumn({ name: 'promocode_id' })
-  promocode_id: Promocodes;
+  promocode_id: Promocodes;      
 }

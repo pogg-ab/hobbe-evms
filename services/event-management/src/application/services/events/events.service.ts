@@ -10,6 +10,7 @@ import { CreateTicketsCommand } from 'src/application/commands/ticket/create-tic
 import { CustomEventTicketMapper } from 'src/application/mappers/event-tickets.mapper';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { CommandBus } from '@nestjs/cqrs';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 
 
 @Injectable()
@@ -19,16 +20,25 @@ export class EventsService {
     private readonly createEventRepository: IEventRepository,
     @InjectMapper() private readonly mapper: Mapper,
     public readonly createTicketsDto:CreateTicketsDto,
-    private readonly commandBus:CommandBus
-
-    
-
-
+    private readonly commandBus:CommandBus,
+    private readonly kafkaProducerService:KafkaProducerService
   ) {}
 
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
     const mappedEvent = this.mapper.map(createEventsDto, CreateEventsDto, Events);
     const event = await this.createEventRepository.create(mappedEvent, user);
+
+    const accounts  = createEventsDto.bank_accounts;
+    accounts.forEach(account => {
+      (account as any).event_id = event.id;// Add event_id property
+    });
+   
+    this.kafkaProducerService.produce({
+      topic: 'bank-account-list-sent',
+      messages:[
+        { value: JSON.stringify(accounts)  },
+      ]
+    });
     for (let i = 0; i < event.ticket_heading.quantity; i++) {
          const ticketDto = await new CustomEventTicketMapper().map(event,this.createTicketsDto,'Regular');
          const command = new CreateTicketsCommand(ticketDto);
@@ -70,6 +80,14 @@ export class EventsService {
     return event;
   }
 
+  async findByUser(user: string): Promise<Events[]> {
+    const event = await this.createEventRepository.findByUser(user);
+    if (!event) {
+      throw new NotFoundException(`Event with Category ${user} not found.`);
+    }
+    return event;
+  }
+
   async findByCategory(category: string): Promise<Events[]> {
     const event = await this.createEventRepository.findByCategory(category);
     if (!event) {
@@ -83,7 +101,14 @@ export class EventsService {
     if (!event) {
       throw new NotFoundException(`Event with location ${location} not found.`);
     }
+    return event;
+  }
 
+  async findByOrganiser(organiser: string): Promise<Events[]> {
+    const event = await this.createEventRepository.findByOrganiser(organiser);
+    if (!event) {
+      throw new NotFoundException(`Event with organiser ${location} not found.`);
+    }
     return event;
   }
 
@@ -108,7 +133,7 @@ export class EventsService {
     updateEventsDto: UpdateEventsDto,
     user: any,
   ): Promise<Events> {
-    const event = await this.findOne(id);
+    await this.findOne(id);
     const updatedEvent = this.mapper.map(
       updateEventsDto,
       UpdateEventsDto,

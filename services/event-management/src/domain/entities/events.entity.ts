@@ -22,6 +22,15 @@ export class Events {
   @Column()
   title: string;
 
+  @Column()
+  thumbnail: string;
+
+  @Column()
+  cover_image: string;
+
+  @Column()
+  event_type: string;
+
   @Column({ type: 'boolean', default: true })
   isPaid: boolean;
 
