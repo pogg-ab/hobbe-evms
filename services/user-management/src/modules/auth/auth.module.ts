@@ -12,8 +12,10 @@ import { Email } from 'src/domain/entities/email.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { EMAIL_REPOSITORY_TOKEN } from 'src/domain/repositories/email.repository.token';
+import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { kafkaConfig } from 'src/infrastructure/kafka/kafka.config';
 import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
+import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { EmailModule } from '../email/email.module';
 import { JwtStrategy } from './jwt.strategy';
@@ -33,7 +35,7 @@ import { JwtStrategy } from './jwt.strategy';
     EmailModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '60s' },
+      signOptions: { expiresIn: '1d' },
     }),
   ],
   providers: [
@@ -42,6 +44,10 @@ import { JwtStrategy } from './jwt.strategy';
     {
       provide: EMAIL_REPOSITORY_TOKEN,
       useClass: EmailRepositoryImpl,
+    },
+    {
+      provide: USER_REPOSITORY_TOKEN,
+      useClass: UserRepositoryImpl,
     },
     {
       provide: 'KAFKA_CONSUMER',

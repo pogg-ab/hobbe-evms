@@ -21,4 +21,33 @@ export class UserRepositoryImpl implements IUserRepository {
       );
     }
   }
+  async findById(userId: string): Promise<any | null> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { user_id: userId },
+        relations: ['personal_account', 'organizational_account'],
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      const userAccountInfo = {
+        user_id: user.user_id,
+        user_name: user.user_name,
+        account_type: user.account_type,
+        account_info:
+          user.account_type === 'personal'
+            ? user.personal_account
+            : user.organizational_account,
+      };
+
+      return userAccountInfo;
+    } catch (error) {
+      throw new HttpException(
+        `Error finding User by ID: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

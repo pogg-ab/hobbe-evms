@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
+  Headers,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -14,6 +16,7 @@ import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from 'src/application/services/auth.service';
 import { AdminUserAuthDto } from '../dtos/create-admin-user-auth.dto';
 import { AuthDto } from '../dtos/create-auth.dto';
+import { RefreshTokenDto } from '../dtos/create-refresh-token.dto';
 import { ResendOtpDto } from '../dtos/resend-otp.dto';
 import { VerifyOtpDto } from '../dtos/verify-otp.dto';
 
@@ -46,7 +49,49 @@ export class AuthController {
         'Your account is not verified or is inactive. Please verify your email or contact support.',
       );
     }
-    return this.authService.login(user);
+    const rememberMe =
+      authDto.rememberMe !== undefined ? authDto.rememberMe : false;
+    return this.authService.login(user, rememberMe);
+  }
+
+  @Post('refresh-token')
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  @HttpCode(200)
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    const { refreshToken } = refreshTokenDto;
+
+    const response = await this.authService.refreshAccessToken(refreshToken);
+
+    return response;
+  }
+
+  @Get('me')
+  @ApiOperation({
+    summary: 'Get authenticated user information with account details',
+  })
+  async getUserInfo(
+    @Headers('authorization') authorization: string,
+  ): Promise<any> {
+    if (!authorization) {
+      throw new UnauthorizedException('Authorization token is required');
+    }
+
+    const tokenParts = authorization.split(' ');
+    if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
+      throw new UnauthorizedException('Invalid token format');
+    }
+
+    const accessToken = tokenParts[1];
+    let userId: string;
+
+    try {
+      userId = await this.authService.decodeAndValidateToken(accessToken);
+    } catch (e) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    return this.authService.getUserAccountInfo(userId);
   }
 
   @Post('admin-user/login')
