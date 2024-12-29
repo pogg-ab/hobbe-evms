@@ -28,6 +28,8 @@ import { TicketsModule } from '../ticketes/tickets.module';
 import { TicketsHeadingModule } from '../ticketes/tickets-heading.module';
 import { PromocodeModule } from '../promocode/promocode.module';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { FindEventsByUserQueryHandler } from 'src/application/handlers/events/find-events-by-user.handler';
+import { FindByOrganiserQueryHandler } from 'src/application/handlers/events/find-evens-byorganiser.handler';
 
 
 
@@ -65,8 +67,10 @@ import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.se
     DeleteEventCommandHandler,
     GetAllEventsQueryHandler,
     GetEventsByIdQueryHandler,
+    FindEventsByUserQueryHandler,
     GetEventsByCategoryQueryHandler,
     GetEventsByLocationQueryHandler,
+    FindByOrganiserQueryHandler,
     SearchEventQueryHandler,
     EventsProfile,
     UserValidationService,
