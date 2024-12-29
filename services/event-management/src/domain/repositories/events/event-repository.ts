@@ -9,6 +9,7 @@ export interface IEventRepository{
     findByUser(user:string):Promise<Events[]>
     findByCategory(category:string):Promise<Events[]>
     findByLocation(location:string):Promise<Events[]>
+    findByOrganiser(organiser:string):Promise<Events[]>
     update(id:string,event: Events,user: any): Promise<Events>
     delete(id:string): Promise<void>
 

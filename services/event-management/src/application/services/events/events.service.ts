@@ -101,7 +101,14 @@ export class EventsService {
     if (!event) {
       throw new NotFoundException(`Event with location ${location} not found.`);
     }
+    return event;
+  }
 
+  async findByOrganiser(organiser: string): Promise<Events[]> {
+    const event = await this.createEventRepository.findByOrganiser(organiser);
+    if (!event) {
+      throw new NotFoundException(`Event with organiser ${location} not found.`);
+    }
     return event;
   }
 

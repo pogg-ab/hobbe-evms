@@ -15,6 +15,7 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateEventCommand } from 'src/application/commands/create-event.command';
 import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
 import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
+import { FindEventsByOrganiserQuery } from 'src/application/queries/events/find-event-by-organiser.query';
 import { FindEventsByUserQuery } from 'src/application/queries/events/find-events-by-user.query';
 import { GetAllEventsQuery } from 'src/application/queries/events/get-all-events.query';
 import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
@@ -43,8 +44,6 @@ export class EventsController {
   */
   @ApiOperation({ description: 'Get All Events' })
   @HttpCode(200)
-  @Roles('User')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   async findAll(
     @Query('page') page = 1,
@@ -104,6 +103,9 @@ export class EventsController {
   }
 
 
+  @ApiOperation({ description: 'Update Event' })
+  @HttpCode(200)
+  @Roles('User')
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async update(
@@ -119,6 +121,9 @@ export class EventsController {
     );
   }
 
+  @ApiOperation({ description: 'Delete Event By ID' })
+  @HttpCode(200)
+  @Roles('User')
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async remove(@Param('id') id: string): Promise<void> {
@@ -129,8 +134,6 @@ export class EventsController {
 
   @ApiOperation({ description: 'Search Event' })
   @HttpCode(200)
-  // @Roles('User')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/search/:keyword')
   async search(
     @Param('keyword') keyword: string,
@@ -144,7 +147,6 @@ export class EventsController {
   }> {
     //  Convert keyword to lowercase before passing it to the query for consistency
     const _keyword = keyword.toLowerCase();
-
     // Clean up the keyword to remove unnecessary whitespace
     const _keyword_ = keyword.trim();
     return this.queryBus.execute(new SearchEventQuery(_keyword_, page, limit));
@@ -152,8 +154,6 @@ export class EventsController {
 
   @ApiOperation({ description: 'Get Events By Category' })
   @HttpCode(200)
-  @Roles('User')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/category/:category')
   async findByCategory(@Param('category') category: string): Promise<Events[]> {
     return this.queryBus.execute(new GetEventsByCategoryQuery(category));
@@ -161,13 +161,17 @@ export class EventsController {
 
   @ApiOperation({ description: 'Get Events By Location' })
   @HttpCode(200)
-  @Roles('User')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/location/:location')
   async findByLocation(@Param('location') location: string): Promise<Events[]> {
     return this.queryBus.execute(new GetEventsByLocationQuery(location));
   }
 
-  
+  @ApiOperation({ description: 'Get Events By Organiser ID' })
+  @HttpCode(200)
+  @Get('/organiser/:organiser')
+  async findByOrganiser(@Param('organiser') organiser: string): Promise<Events[]> {
+    return this.queryBus.execute(new FindEventsByOrganiserQuery(organiser));
+  }
+
   
 }
