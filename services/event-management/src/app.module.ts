@@ -6,6 +6,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { EventsModule } from './modules/event/events.module';
 import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
+import { LikeModule } from './modules/categories copy/like.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -21,6 +22,7 @@ import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
     CqrsModule,
     EventsModule,
     TicketBookingModule,
+    LikeModule,
   ],
 })
 export class AppModule {}
