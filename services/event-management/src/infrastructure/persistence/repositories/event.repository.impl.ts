@@ -12,8 +12,6 @@ export class EventRepositoryEmpl implements IEventRepository {
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
     public readonly createTicketsDto: CreateTicketsDto,
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus,
   ) {}
 
   async create(event: Events, user: any): Promise<Events> {
@@ -43,9 +41,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     limit: number;
   }> {
     try {
-      // return await this.eventRepository.find();
-
-      const offset = (page - 1) * limit; // Calculate the offset
+      const offset = (page - 1) * limit; 
 
       // Use QueryBuilder to handle pagination
       const [events, total] = await this.eventRepository
@@ -65,18 +61,47 @@ export class EventRepositoryEmpl implements IEventRepository {
 
   async findOne(id: string): Promise<Events | null> {
     try {
-      const event = await this.eventRepository.findOne({
-        where: { id: id },
-        // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
-        relations: ['promocodes','bank_accounts','ticket_heading.tickets'],
-      }); 
+      // const event = await this.eventRepository.findOne({
+      //   where: { id: id },
+      //   // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
+      //   relations: ['promocodes','bank_accounts','ticket_heading.tickets','likes'],
+      // }); 
+
+      const event = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.promocodes', 'promocode')
+      .leftJoinAndSelect('event.bank_accounts', 'bank_account')
+      .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
+      .leftJoinAndSelect('event.bookings', 'bookings')
+      .leftJoin('ticket_heading.tickets', 'ticket') // Join tickets
+      // .leftJoin('bookings.participants', 'participant') // Join tickets
+      .loadRelationCountAndMap('event.likes', 'event.likes')
+      .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
+      .loadRelationCountAndMap('event.bookings', 'event.bookings')
+      .where('event.id = :id', { id })
+      .getOne();
+    
       if (!event) {
         throw new HttpException(
           `Event with ID ${id} not found`,
           HttpStatus.NOT_FOUND,
         );
       }
-      return event;
+
+    
+        const bookedTicketCount = await this.eventRepository
+          .createQueryBuilder('event')
+          .leftJoin('event.ticket_heading', 'ticket_heading')
+          .leftJoin('ticket_heading.tickets', 'ticket')
+          .select('COUNT(ticket.id)', 'count')
+          .where('event.id = :id', { id })
+          .andWhere('ticket.status = :status', { status: 'Booked' })
+          .getRawOne();
+
+          const my_event  = {...event, soldOutTickets: parseInt(bookedTicketCount.count, 10)};
+      
+
+      return my_event;
     } catch (error) {
       throw new HttpException(
         `Error fetching Event with ID ${id}: ${error.message}`,

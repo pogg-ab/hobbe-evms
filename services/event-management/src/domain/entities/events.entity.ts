@@ -10,6 +10,8 @@ import { BankAccounts } from './bank_accounts.entity';
 import { Promocodes } from './promocodes.entity';
 import { TicketsHeading } from './tickets-heading.entity';
 import { Tickets } from './tickets.entity';
+import { Like } from './likes.entity';
+import { TicketBooking } from './ticket-booking.entity';
 
 @Entity()
 export class Events {
@@ -112,4 +114,20 @@ export class Events {
     onDelete: 'CASCADE',
   })
   bank_accounts: BankAccounts[];
+
+  @OneToMany(() => Like, (like) => like.event_id,{
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  likes: Like[];
+
+
+  @OneToMany(() => TicketBooking, (booking) => booking.event_id,{
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  bookings: TicketBooking[];
+
+  
+  
 }

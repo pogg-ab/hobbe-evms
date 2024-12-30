@@ -3,10 +3,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { IdValueObject } from '../value-objects/event-id.value-object';
 import { Events } from './events.entity';
+import { ParticipantHasTicket } from './participant-has-ticket.entity';
 
 @Entity()
 export class TicketBooking {
@@ -23,6 +25,13 @@ export class TicketBooking {
   @ManyToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'event_id' })
   event_id: IdValueObject;
+
+
+   @OneToMany(() => ParticipantHasTicket, (participant) => participant.booking_id,{
+      cascade: true,
+      onDelete: 'CASCADE',
+    })
+    participants: ParticipantHasTicket[];
 
   @Column({ type: 'numeric' })
   total_amount: number;
