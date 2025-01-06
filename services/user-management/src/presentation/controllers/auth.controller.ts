@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   NotFoundException,
+  Param,
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -19,7 +20,9 @@ import { AuthDto } from '../dtos/create-auth.dto';
 import { RefreshTokenDto } from '../dtos/create-refresh-token.dto';
 import { ResendOtpDto } from '../dtos/resend-otp.dto';
 import { VerifyOtpDto } from '../dtos/verify-otp.dto';
-
+import { PasswordResetRequestDto } from '../dtos/create-password-reset-request.dto';
+import { PasswordResetDto } from '../dtos/password-reset.dto';
+     
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -146,6 +149,47 @@ export class AuthController {
     const { user_name } = resendOtpDto;
     const response = await this.authService.resendOTP(user_name);
     return response;
+  }
+
+  @Post('password-reset/request')
+  @ApiOperation({ summary: 'Request password reset' })
+  @ApiBody({ type: PasswordResetRequestDto })
+  @HttpCode(200)
+  async requestPasswordReset(@Body() passwordResetRequestDto: PasswordResetRequestDto) {
+    const { user_name } = passwordResetRequestDto;
+
+    const result = await this.authService.requestPasswordReset(user_name);
+    if (result.statusCode === HttpStatus.NOT_FOUND) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return { message: 'Password reset link has been sent to your email.' };
+  }
+
+  @Post('password-reset/verify/:token')
+  @ApiOperation({ summary: 'Verify password reset token' })
+  @HttpCode(200)
+  async verifyPasswordResetToken(@Param('token') token: string) {
+    const isValidToken = await this.authService.verifyPasswordResetToken(token);
+    if (!isValidToken) {
+      throw new BadRequestException('Invalid or expired reset token.');
+    }
+    return { message: 'Password reset token is valid.' };
+  }
+
+  @Post('password-reset')
+  @ApiOperation({ summary: 'Reset user password' })
+  @ApiBody({ type: PasswordResetDto })
+  @HttpCode(200)
+  async resetPassword(@Body() passwordResetDto: PasswordResetDto) {
+    const { token, newPassword } = passwordResetDto;
+
+    const isResetSuccessful = await this.authService.resetPassword(token, newPassword);
+    if (!isResetSuccessful) {
+      throw new BadRequestException('Failed to reset password. Please try again.');
+    }
+
+    return { message: 'Password has been reset successfully.' };
   }
 
   @MessagePattern('validateUser')
