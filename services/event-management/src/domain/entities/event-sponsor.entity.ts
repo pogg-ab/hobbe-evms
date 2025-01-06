@@ -1,4 +1,10 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { IdValueObject } from '../value-objects/event-id.value-object';
 import { Events } from './events.entity';
 export enum EventSponsorStatus {
@@ -12,17 +18,15 @@ export class EventSponsor {
   @PrimaryGeneratedColumn('uuid')
   event_sponsor_id: IdValueObject;
 
-  @ManyToOne(() => Events, (event) => event.id, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
-  event: Events;
+  @ManyToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'event_id' })
+  event_id: string;
 
   @Column('uuid')
   sponsor_user_id: string;
 
   @Column({ type: 'timestamp' })
-  sponsored_at: Date;
+  sponsored_at: string;
 
   @Column({
     type: 'enum',

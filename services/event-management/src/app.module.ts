@@ -4,9 +4,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
-import { EventsModule } from './modules/event/events.module';
-import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
 import { LikeModule } from './modules/categories copy/like.module';
+import { EventSponsorModule } from './modules/event-sponsor/event-sponsor.module';
+import { EventsModule } from './modules/event/events.module';
+import { SpecialGuestModule } from './modules/special-guest/special-guest.module';
+import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -23,6 +25,8 @@ import { LikeModule } from './modules/categories copy/like.module';
     EventsModule,
     TicketBookingModule,
     LikeModule,
+    SpecialGuestModule,
+    EventSponsorModule,
   ],
 })
 export class AppModule {}

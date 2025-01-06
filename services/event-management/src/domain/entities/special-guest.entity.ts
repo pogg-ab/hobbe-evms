@@ -1,5 +1,12 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
+import { IdValueObject } from '../value-objects/event-id.value-object';
 import { Events } from './events.entity'; // Importing the Events entity
 
 export enum SpecialGuestStatus {
@@ -11,19 +18,17 @@ export enum SpecialGuestStatus {
 @Entity()
 export class SpecialGuest {
   @PrimaryGeneratedColumn('uuid')
-  special_guest_id: string;
+  special_guest_id: IdValueObject;
 
-  @ManyToOne(() => Events, (event) => event.id, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
-  event: Events;
+  @ManyToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'event_id' })
+  event_id: IdValueObject;
 
   @Column('uuid')
   guest_user_id: string;
 
   @Column({ type: 'timestamp' })
-  invited_at: Date;
+  invited_at: string;
 
   @Column({
     type: 'enum',
