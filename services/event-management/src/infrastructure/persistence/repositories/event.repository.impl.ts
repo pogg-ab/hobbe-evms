@@ -76,6 +76,7 @@ export class EventRepositoryEmpl implements IEventRepository {
       .leftJoin('ticket_heading.tickets', 'ticket') // Join tickets
       // .leftJoin('bookings.participants', 'participant') // Join tickets
       .loadRelationCountAndMap('event.likes', 'event.likes')
+      .loadRelationCountAndMap('event.comments', 'event.comments')
       .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
       .loadRelationCountAndMap('event.bookings', 'event.bookings')
       .where('event.id = :id', { id })
