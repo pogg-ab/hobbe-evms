@@ -9,6 +9,8 @@ import { EventSponsorModule } from './modules/event-sponsor/event-sponsor.module
 import { EventsModule } from './modules/event/events.module';
 import { SpecialGuestModule } from './modules/special-guest/special-guest.module';
 import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
+import { CommentsModule } from './modules/comments/comments.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -23,10 +25,12 @@ import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
     DatabaseModule,
     CqrsModule,
     EventsModule,
-    TicketBookingModule,
     LikeModule,
     SpecialGuestModule,
     EventSponsorModule,
+    CommentsModule,
+    TicketBookingModule,
+   
   ],
 })
 export class AppModule {}
