@@ -12,6 +12,7 @@ import { TicketsHeading } from './tickets-heading.entity';
 import { Tickets } from './tickets.entity';
 import { Like } from './likes.entity';
 import { TicketBooking } from './ticket-booking.entity';
+import { Comments } from './comments.entity';
 
 @Entity()
 export class Events {
@@ -120,6 +121,13 @@ export class Events {
     onDelete: 'CASCADE',
   })
   likes: Like[];
+
+
+  @OneToMany(() => Comments, (comment) => comment.event_id,{
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  comments: Comments[];
 
 
   @OneToMany(() => TicketBooking, (booking) => booking.event_id,{
