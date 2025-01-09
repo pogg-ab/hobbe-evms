@@ -159,6 +159,111 @@ export class AuthService {
     };
   }
 
+  async requestPasswordReset(user_name: string): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { user_name } });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (!user.is_active) {
+      throw new HttpException('Your account is not active. Please contact support.', HttpStatus.FORBIDDEN);
+    }
+  
+    const now = new Date();
+    const rateLimitWindow = 5 * 60 * 1000;
+  
+    if (user.password_reset_requested_at) {
+      const timeSinceLastRequest = now.getTime() - new Date(user.password_reset_requested_at).getTime();
+      if (timeSinceLastRequest < rateLimitWindow) {
+        throw new HttpException('You can only request a password reset every 5 minutes.', HttpStatus.TOO_MANY_REQUESTS);
+      }
+    }
+  
+    const resetToken = this.generatePasswordResetToken();
+    const resetTokenExpiry = new Date();
+    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
+  
+    user.password_reset_requested_at = now;
+    user.password_reset_token = resetToken;
+    user.password_reset_token_expiry = resetTokenExpiry;
+  
+    await this.userRepository.save(user);
+  
+    const email = this.createPasswordResetEmail(user.user_name, resetToken);
+    await this.emailRepository.save(email);
+  
+    return { message: 'Password reset token sent to your email.' };
+  }
+
+  async verifyPasswordResetToken(token: string): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { password_reset_token: token } });
+    if (!user) {
+      throw new HttpException('Invalid or expired token', HttpStatus.BAD_REQUEST);
+    }
+  
+    const now = new Date();
+    if (now > user.password_reset_token_expiry) {
+      throw new HttpException('Token has expired', HttpStatus.BAD_REQUEST);
+    }
+  
+    return { message: 'Token verified successfully.' };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { password_reset_token: token } });
+    if (!user) {
+      throw new HttpException('Invalid or expired token', HttpStatus.BAD_REQUEST);
+    }
+
+    const now = new Date();
+    if (now > user.password_reset_token_expiry) {
+      throw new HttpException('Token has expired', HttpStatus.BAD_REQUEST);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    user.password_reset_token = null;
+    user.password_reset_token_expiry = null;
+
+    await this.userRepository.save(user);
+
+    return { message: 'Password has been successfully reset.' };
+  }
+
+  private generatePasswordResetToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  private createPasswordResetEmail(recipient: string, token: string): Email {
+    const email = new Email();
+    email.recipient = recipient;
+    email.subject = 'Password Reset Request';
+    const resetTokenExpiry = new Date();
+    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
+  
+    const expiryTime = resetTokenExpiry.toUTCString();
+    email.body = `
+    <html>
+      <body>
+        <p>Dear ${recipient},</p>
+        <p>We have received a request to reset your password for your Hobbe EVMS account. If you did not make this request, please ignore this email.</p>
+        <p>To reset your password, please click the button below:</p>
+        <p><a href="http://yourapp.com/reset-password?token=${token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Your Password</a></p>
+        <p>The reset link will expire at <strong>${expiryTime}</strong>. If you do not reset your password by this time, the link will no longer be valid.</p>
+        <p>If you have any trouble, feel free to contact our support team for assistance.</p>
+        <br>
+        <p>Best regards,</p>
+        <p><strong>Hobbe EVMS Team</strong></p>
+      </body>
+    </html>
+  `;
+    email.created_at = new Date();
+    email.updated_at = new Date();
+    email.sent_at = null;
+    return email;
+  }
+
   async refreshAccessToken(refreshToken: string) {
     try {
       const decoded = this.jwtService.verify(refreshToken, {

@@ -63,6 +63,13 @@ export class PersonalAccountService {
       CreatePersonalAccountDto,
       PersonalAccount,
     );
+    const existingAccount = await this.personalAccountRepository.findByEmail(newAccount.email_address);
+      if (existingAccount) {
+        throw new HttpException(
+          `An account with the email ${newAccount.email_address} already exists.`,
+          HttpStatus.CONFLICT, 
+        );
+      }
     const savedAccount =
       await this.personalAccountRepository.create(newAccount);
     const user = this.mapper.map(
