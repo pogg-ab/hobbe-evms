@@ -4,9 +4,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
+import { LikeModule } from './modules/categories copy/like.module';
+import { EventSponsorModule } from './modules/event-sponsor/event-sponsor.module';
 import { EventsModule } from './modules/event/events.module';
+import { SpecialGuestModule } from './modules/special-guest/special-guest.module';
 import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
-import { LikeModule } from './modules/likes/like.module';
 import { CommentsModule } from './modules/comments/comments.module';
 
 @Module({
@@ -24,6 +26,8 @@ import { CommentsModule } from './modules/comments/comments.module';
     CqrsModule,
     EventsModule,
     LikeModule,
+    SpecialGuestModule,
+    EventSponsorModule,
     CommentsModule,
     TicketBookingModule,
    

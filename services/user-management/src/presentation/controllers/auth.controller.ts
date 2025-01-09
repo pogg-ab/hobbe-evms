@@ -17,12 +17,12 @@ import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from 'src/application/services/auth.service';
 import { AdminUserAuthDto } from '../dtos/create-admin-user-auth.dto';
 import { AuthDto } from '../dtos/create-auth.dto';
+import { PasswordResetRequestDto } from '../dtos/create-password-reset-request.dto';
 import { RefreshTokenDto } from '../dtos/create-refresh-token.dto';
+import { PasswordResetDto } from '../dtos/password-reset.dto';
 import { ResendOtpDto } from '../dtos/resend-otp.dto';
 import { VerifyOtpDto } from '../dtos/verify-otp.dto';
-import { PasswordResetRequestDto } from '../dtos/create-password-reset-request.dto';
-import { PasswordResetDto } from '../dtos/password-reset.dto';
-     
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -155,7 +155,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Request password reset' })
   @ApiBody({ type: PasswordResetRequestDto })
   @HttpCode(200)
-  async requestPasswordReset(@Body() passwordResetRequestDto: PasswordResetRequestDto) {
+  async requestPasswordReset(
+    @Body() passwordResetRequestDto: PasswordResetRequestDto,
+  ) {
     const { user_name } = passwordResetRequestDto;
 
     const result = await this.authService.requestPasswordReset(user_name);
@@ -182,11 +184,17 @@ export class AuthController {
   @ApiBody({ type: PasswordResetDto })
   @HttpCode(200)
   async resetPassword(@Body() passwordResetDto: PasswordResetDto) {
-    const { token, newPassword } = passwordResetDto;
+    const { token, newPassword, confirmPassword } = passwordResetDto;
 
-    const isResetSuccessful = await this.authService.resetPassword(token, newPassword);
+    const isResetSuccessful = await this.authService.resetPassword(
+      token,
+      newPassword,
+      confirmPassword,
+    );
     if (!isResetSuccessful) {
-      throw new BadRequestException('Failed to reset password. Please try again.');
+      throw new BadRequestException(
+        'Failed to reset password. Please try again.',
+      );
     }
 
     return { message: 'Password has been reset successfully.' };

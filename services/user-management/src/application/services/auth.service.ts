@@ -166,53 +166,80 @@ export class AuthService {
     }
 
     if (!user.is_active) {
-      throw new HttpException('Your account is not active. Please contact support.', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Your account is not active. Please contact support.',
+        HttpStatus.FORBIDDEN,
+      );
     }
-  
+
     const now = new Date();
     const rateLimitWindow = 5 * 60 * 1000;
-  
+
     if (user.password_reset_requested_at) {
-      const timeSinceLastRequest = now.getTime() - new Date(user.password_reset_requested_at).getTime();
+      const timeSinceLastRequest =
+        now.getTime() - new Date(user.password_reset_requested_at).getTime();
       if (timeSinceLastRequest < rateLimitWindow) {
-        throw new HttpException('You can only request a password reset every 5 minutes.', HttpStatus.TOO_MANY_REQUESTS);
+        throw new HttpException(
+          'You can only request a password reset every 5 minutes.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
       }
     }
-  
+
     const resetToken = this.generatePasswordResetToken();
     const resetTokenExpiry = new Date();
     resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
-  
+
     user.password_reset_requested_at = now;
     user.password_reset_token = resetToken;
     user.password_reset_token_expiry = resetTokenExpiry;
-  
+
     await this.userRepository.save(user);
-  
+
     const email = this.createPasswordResetEmail(user.user_name, resetToken);
     await this.emailRepository.save(email);
-  
+
     return { message: 'Password reset token sent to your email.' };
   }
 
   async verifyPasswordResetToken(token: string): Promise<any> {
-    const user = await this.userRepository.findOne({ where: { password_reset_token: token } });
+    const user = await this.userRepository.findOne({
+      where: { password_reset_token: token },
+    });
     if (!user) {
-      throw new HttpException('Invalid or expired token', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Invalid or expired token',
+        HttpStatus.BAD_REQUEST,
+      );
     }
-  
+
     const now = new Date();
     if (now > user.password_reset_token_expiry) {
       throw new HttpException('Token has expired', HttpStatus.BAD_REQUEST);
     }
-  
+
     return { message: 'Token verified successfully.' };
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<any> {
-    const user = await this.userRepository.findOne({ where: { password_reset_token: token } });
+  async resetPassword(
+    token: string,
+    newPassword: string,
+    confirmPassword: string,
+  ): Promise<any> {
+    if (newPassword !== confirmPassword) {
+      throw new HttpException(
+        'Password and confirm password do not match',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const user = await this.userRepository.findOne({
+      where: { password_reset_token: token },
+    });
     if (!user) {
-      throw new HttpException('Invalid or expired token', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Invalid or expired token',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const now = new Date();
@@ -220,7 +247,7 @@ export class AuthService {
       throw new HttpException('Token has expired', HttpStatus.BAD_REQUEST);
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await this.hashPassword(newPassword);
     user.password = hashedPassword;
 
     user.password_reset_token = null;
@@ -235,13 +262,18 @@ export class AuthService {
     return crypto.randomBytes(32).toString('hex');
   }
 
+  private async hashPassword(password: string): Promise<string> {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
+  }
+
   private createPasswordResetEmail(recipient: string, token: string): Email {
     const email = new Email();
     email.recipient = recipient;
     email.subject = 'Password Reset Request';
     const resetTokenExpiry = new Date();
     resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
-  
+
     const expiryTime = resetTokenExpiry.toUTCString();
     email.body = `
     <html>
