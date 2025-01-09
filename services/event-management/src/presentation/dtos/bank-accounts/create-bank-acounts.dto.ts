@@ -16,4 +16,12 @@ export class CreateBankAccountDto{
     @ApiProperty({description: 'Account Number',example:'10002458488'  })
     @IsNotEmpty()
     account_number: string;
+
+    @ApiProperty({description: 'Country',example:'Ethiopia'  })
+    @IsNotEmpty()
+    country: string;
+
+    @ApiProperty({description: 'Currency',example:'ETB'  })
+    @IsNotEmpty()
+    currency: string;
 }

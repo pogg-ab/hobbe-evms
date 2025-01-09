@@ -19,5 +19,11 @@ export class CreateBankAccountDto{
     @IsNotEmpty()
     account_number: string;
 
-    // event_id?: string;
+    @ApiProperty({description: 'Country',example:'Ethiopia'  })
+    @IsNotEmpty()
+    country: string;
+
+    @ApiProperty({description: 'Currency',example:'ETB'  })
+    @IsNotEmpty()
+    currency: string;
 }
