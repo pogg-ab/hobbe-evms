@@ -27,7 +27,13 @@ export class AppService {
           const bank_accounts = JSON.parse(message.value.toString());
           bank_accounts.forEach(async(account: BankAccounts) => {
             const bankAccounts = this.mapper.map(
-              {bank_name:account.bank_name,account_number: account.account_number, account_owner:account.account_owner},
+              {
+                bank_name:account.bank_name,
+                account_number: account.account_number, 
+                account_owner:account.account_owner,
+                country:account.country,
+                currency:account.currency,
+              },
               CreateBankAccountDto,
               BankAccounts,
             );

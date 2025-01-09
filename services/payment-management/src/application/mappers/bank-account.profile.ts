@@ -33,6 +33,15 @@ export class BankAccountProfile extends AutomapperProfile {
             (destination) => destination.account_number,
             mapFrom((src) => src.account_number),
           ),
+        forMember(
+          (destination) => destination.country,
+          mapFrom((src) => src.country),
+        ),
+
+        forMember(
+          (destination) => destination.currency,
+          mapFrom((src) => src.currency),
+        ),
 
       );
 

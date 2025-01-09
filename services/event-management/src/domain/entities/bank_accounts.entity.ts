@@ -16,6 +16,12 @@ export class BankAccounts{
     @Column()
     account_number: string;
 
+    @Column()
+    country: string;
+
+    @Column()
+    currency: string;
+
     @Column({nullable: true})
     user_id: string;
 
