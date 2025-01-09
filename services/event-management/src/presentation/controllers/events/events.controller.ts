@@ -16,6 +16,7 @@ import { CreateEventCommand } from 'src/application/commands/create-event.comman
 import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
 import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
 import { FindEventsByOrganiserQuery } from 'src/application/queries/events/find-event-by-organiser.query';
+import { FindEventsByThisWeekendQuery } from 'src/application/queries/events/find-event-by-this-weekend.query';
 import { FindEventsByUserQuery } from 'src/application/queries/events/find-events-by-user.query';
 import { GetAllEventsQuery } from 'src/application/queries/events/get-all-events.query';
 import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
@@ -23,7 +24,6 @@ import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by
 import { GetEventsByLocationQuery } from 'src/application/queries/events/get-events-by-location.query';
 import { SearchEventQuery } from 'src/application/queries/events/search-event.query';
 import { Events } from 'src/domain/entities/events.entity';
-import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
@@ -82,16 +82,24 @@ export class EventsController {
     return { message: 'Event created successfully', events: createdEvent };
   }
 
-
-  
   @ApiOperation({ description: 'Get Events By User' })
   @HttpCode(200)
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('find-by-user')
   async findByUser(@CurrentUserId() user: any): Promise<Events[]> {
-    return await this.queryBus.execute(new FindEventsByUserQuery(user.user.user_id.toString()));
+    return await this.queryBus.execute(
+      new FindEventsByUserQuery(user.user.user_id.toString()),
+    );
   }
+
+  @ApiOperation({ description: 'Get This Weekend Events' })
+    @HttpCode(200)
+    @Get('/this-weekend-events')
+    async findByThisWeekend(
+    ): Promise<any> {
+      return this.queryBus.execute(new FindEventsByThisWeekendQuery());
+    }
 
   @ApiOperation({ description: 'Get Event By ID' })
   @HttpCode(200)
@@ -101,7 +109,6 @@ export class EventsController {
   async findOne(@Param('id') id: string): Promise<Events | null> {
     return this.queryBus.execute(new GetEventsByIdQuery(id));
   }
-
 
   @ApiOperation({ description: 'Update Event' })
   @HttpCode(200)
@@ -113,12 +120,11 @@ export class EventsController {
     @Body() updateEventsDto: UpdateEventsDto,
     @CurrentUserId() user: any, // This decorator will automatically fetch the user ID from the request context
   ): Promise<Events> {
-    const event = await this.queryBus.execute(new GetEventsByIdQuery(id));
-    if (!event) throw new Error('Event not found');
-    Object.assign(event, updateEventsDto);
-    return this.commandBus.execute(
-      new UpdateEventsCommand(id, event, user.user.user_id.toString()),
-    );
+    // const event = await this.queryBus.execute(new GetEventsByIdQuery(id));
+    // if (!event) throw new Error('Event not found');
+    // Object.assign(event, updateEventsDto);
+    const command = new UpdateEventsCommand(id, updateEventsDto, user.user.user_id.toString());
+    return this.commandBus.execute(command);
   }
 
   @ApiOperation({ description: 'Delete Event By ID' })
@@ -169,9 +175,11 @@ export class EventsController {
   @ApiOperation({ description: 'Get Events By Organiser ID' })
   @HttpCode(200)
   @Get('/organiser/:organiser')
-  async findByOrganiser(@Param('organiser') organiser: string): Promise<Events[]> {
+  async findByOrganiser(
+    @Param('organiser') organiser: string,
+  ): Promise<Events[]> {
     return this.queryBus.execute(new FindEventsByOrganiserQuery(organiser));
   }
 
-  
+    
 }
