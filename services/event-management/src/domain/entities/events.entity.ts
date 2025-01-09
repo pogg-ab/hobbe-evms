@@ -68,10 +68,10 @@ export class Events {
   })
   status: string;
 
-  @Column()
+  @Column({type:'timestamptz'})
   event_start_date: Date;
 
-  @Column()
+  @Column({type:'timestamptz'})
   event_end_date: Date;
 
   // @Column({ nullable: true })
@@ -83,10 +83,10 @@ export class Events {
   @Column({ nullable: true })
   update_by: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   created_at: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   updated_at: Date;
 
   @Column('text', { array: true })
