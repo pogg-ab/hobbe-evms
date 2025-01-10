@@ -11,7 +11,7 @@ export interface IEventRepository{
     findByCategory(category:string):Promise<Events[]>
     findByLocation(location:string):Promise<Events[]>
     findByOrganiser(organiser:string):Promise<Events[]>
-    findByDateRange(startOfDay:Date, endOfDay:Date):Promise<Events[]>
+    findByDateRange(startOfDay:Date, endOfDay:Date):Promise<Events[] | []>
     update(id:string,event: Events,user: any): Promise<Events>
     delete(id:string): Promise<void>
 

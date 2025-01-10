@@ -16,7 +16,9 @@ import { CreateEventCommand } from 'src/application/commands/create-event.comman
 import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
 import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
 import { FindEventsByOrganiserQuery } from 'src/application/queries/events/find-event-by-organiser.query';
+import { FindEventsBySpecificDate } from 'src/application/queries/events/find-event-by-specific-date.query';
 import { FindEventsByThisWeekendQuery } from 'src/application/queries/events/find-event-by-this-weekend.query';
+import { FindEventsByDateRangeQuery } from 'src/application/queries/events/find-events-by-daterange.query';
 import { FindEventsByUserQuery } from 'src/application/queries/events/find-events-by-user.query';
 import { GetAllEventsQuery } from 'src/application/queries/events/get-all-events.query';
 import { GetEventsByCategoryQuery } from 'src/application/queries/events/get-events-by-category.query';
@@ -97,8 +99,26 @@ export class EventsController {
     @HttpCode(200)
     @Get('/this-weekend-events')
     async findByThisWeekend(
-    ): Promise<any> {
+    ): Promise<Events[] | []> {
       return this.queryBus.execute(new FindEventsByThisWeekendQuery());
+    }
+    @ApiOperation({ description: 'Get Events By Specific Date' })
+    @HttpCode(200)
+    @Get('/date/:date')
+    async findBySpecificDate(
+      @Param('date') date:Date
+    ): Promise<Events[] | []> {
+      return this.queryBus.execute(new FindEventsBySpecificDate(date));
+    }
+
+    @ApiOperation({ description: 'Get Events By  Daterange' })
+    @HttpCode(200)
+    @Post('date-range')
+    async findByDateRange(
+      @Body() body: { startDate: Date; endDate: Date }
+    ): Promise<Events[] | []> {
+      const { startDate, endDate } = body;
+      return this.queryBus.execute(new FindEventsByDateRangeQuery(startDate, endDate));
     }
 
   @ApiOperation({ description: 'Get Event By ID' })

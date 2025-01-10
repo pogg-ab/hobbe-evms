@@ -41,7 +41,6 @@ export class EventRepositoryEmpl implements IEventRepository {
     page: number;
     limit: number;
   }> {
-    try {
       const offset = (page - 1) * limit; 
 
       // Use QueryBuilder to handle pagination
@@ -53,16 +52,9 @@ export class EventRepositoryEmpl implements IEventRepository {
         .getManyAndCount(); // Fetch entities and total count
 
       return { events, total, page, limit };
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching Events: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async findOneEventOnly(id: string): Promise<Events | null> {
-    try {
       const event = await this.eventRepository.findOne({
         where: { id: id },
         // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
@@ -90,21 +82,8 @@ export class EventRepositoryEmpl implements IEventRepository {
       
 
       return my_event;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching Event with ID ${id}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
   async findOne(id: string): Promise<Events | null> {
-    try {
-      // const event = await this.eventRepository.findOne({
-      //   where: { id: id },
-      //   // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
-      //   relations: ['promocodes','bank_accounts','ticket_heading.tickets','likes'],
-      // }); 
-
       const event = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.promocodes', 'promocode')
@@ -141,16 +120,9 @@ export class EventRepositoryEmpl implements IEventRepository {
       
 
       return my_event;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching Event with ID ${id}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async findByUser(user: string): Promise<Events[]> {
-    try {
       const events = await this.eventRepository.find({
         where: { user_id: user},
         order: {
@@ -166,16 +138,9 @@ export class EventRepositoryEmpl implements IEventRepository {
         );
       }
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with user ${user}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async findByCategory(category: string): Promise<Events[]> {
-    try {
       const events = await this.eventRepository
       .createQueryBuilder('event')
       .where('event.categories @> :category', {
@@ -195,17 +160,10 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with category ${category}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    
   }
 
   async findByLocation(location: string): Promise<Events[]> {
-    try {
-      // Use 'find' instead of 'findBy'
       const events = await this.eventRepository.find({
         where: { location: location },
         order: {
@@ -222,19 +180,11 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with location ${location}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
 
 
   async findByOrganiser(organiser: string): Promise<Events[]> {
-    try {
-      // Use 'find' instead of 'findBy'
       const events = await this.eventRepository.find({
         where: { user_id: organiser },
         order: {
@@ -251,17 +201,9 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with organiser ${organiser}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
-  async findByDateRange(startOfDay: Date, endOfDay:Date): Promise<Events[]> {
-    try {
-      // Use 'find' instead of 'findBy'
+  async findByDateRange(startOfDay: Date, endOfDay:Date): Promise<Events[] | []> {
       const events = await this.eventRepository.find({
         where: { event_start_date: Between(startOfDay,endOfDay) },
         order: {
@@ -272,18 +214,12 @@ export class EventRepositoryEmpl implements IEventRepository {
       // Check if no events were found
       if (events.length === 0) {
         throw new HttpException(
-          `Events with on this weekend not found`,
+          `Events with this given date range not found`,
           HttpStatus.NOT_FOUND,
         );
       }
 
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events on this weekend Not Found: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async search(
@@ -296,7 +232,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     page: number;
     limit: number;
   }> {
-    try {
+
       const offset = (page - 1) * limit;
       const [events, total] = await this.eventRepository
         .createQueryBuilder('event')
@@ -335,41 +271,25 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return { events, total: total, page: page, limit: limit };
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with keyword ${keyword}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async update(id: string, event: Events, user: any): Promise<Events> {
-    try {
+    try{
       const eventToBeUpdate = await this.findOneEventOnly(id);
       const updatedAccount = Object.assign(eventToBeUpdate, event);
       updatedAccount.update_by = user;
       updatedAccount.updated_at = new Date();
-      
-
       return await this.eventRepository.save(updatedAccount);
     } catch (error) {
       throw new HttpException(
-        `Error updating Event: ${error.message}`,
+        `Error Updating Event: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   async delete(id: string): Promise<void> {
-    try {
       const eventToDelete = await this.findOne(id);      
-     
       await this.eventRepository.delete(id);
-    } catch (error) {
-      throw new HttpException(
-        `Error deleting Event: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 }

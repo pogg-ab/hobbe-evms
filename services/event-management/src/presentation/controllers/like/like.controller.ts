@@ -28,6 +28,5 @@ export class LikeController{
     async create(@Param('event_id') event_id:string,  @CurrentUserId() user: any):Promise<{message:string}>{
       const command = new LikeEventCommand(user.user.user_id.toString(), event_id);      
        return await this.commandBus.execute(command);
-       
     }
 }
