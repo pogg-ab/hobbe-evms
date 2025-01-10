@@ -147,10 +147,24 @@ export class EventsService {
   }
 
 
-  async findByThisWeek(): Promise<any> {
+  async findBySpecificDate(date:Date): Promise<Events[] | []> {
+    const start_of_day = startOfDay(date);    
+    const end_of_day = endOfDay(date);    
+    return await this.createEventRepository.findByDateRange(start_of_day,end_of_day);
+  }
+
+  async findByDateRange(startDate:Date, endDate:Date): Promise<Events[] | []> {
+    const start_of_day = startOfDay(startDate);    
+    const end_of_day = endOfDay(endDate);    
+    return await this.createEventRepository.findByDateRange(start_of_day,end_of_day);
+  }
+
+
+  async findByThisWeek(): Promise<Events[] | []> {
     const weekend = await this.getWeekend();    
     return await this.createEventRepository.findByDateRange(weekend.saturday,weekend.sunday);
   }
+
   async delete(id: string): Promise<void> {
     await this.createEventRepository.delete(id);
   }
