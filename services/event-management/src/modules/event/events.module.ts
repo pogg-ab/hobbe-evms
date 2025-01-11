@@ -30,7 +30,9 @@ import { PromocodeModule } from '../promocode/promocode.module';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { FindEventsByUserQueryHandler } from 'src/application/handlers/events/find-events-by-user.handler';
 import { FindByOrganiserQueryHandler } from 'src/application/handlers/events/find-evens-byorganiser.handler';
-
+import { FindEventsByThisWeekendQueryHandler } from 'src/application/handlers/events/find-events-by-this-weekend.handler';
+import { FindEventsBySpecificDateQueryHandler } from 'src/application/handlers/events/find-events-by-specific-date.handler';
+import { FindEventsByDateRangeQueryQueryHandler } from 'src/application/handlers/events/find-events-by-daterange.handler';
 
 
 @Module({
@@ -71,6 +73,9 @@ import { FindByOrganiserQueryHandler } from 'src/application/handlers/events/fin
     GetEventsByCategoryQueryHandler,
     GetEventsByLocationQueryHandler,
     FindByOrganiserQueryHandler,
+    FindEventsByThisWeekendQueryHandler,
+    FindEventsBySpecificDateQueryHandler,
+    FindEventsByDateRangeQueryQueryHandler,
     SearchEventQueryHandler,
     EventsProfile,
     UserValidationService,

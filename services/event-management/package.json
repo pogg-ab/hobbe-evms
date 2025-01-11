@@ -36,6 +36,7 @@
     "@nestjs/typeorm": "^10.0.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "date-fns": "^4.1.0",
     "event-management": "file:",
     "kafkajs": "^2.2.4",
     "passport": "^0.7.0",

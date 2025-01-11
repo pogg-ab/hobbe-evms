@@ -1,10 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
+import { start } from 'repl';
 import { Events } from 'src/domain/entities/events.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 
 @Injectable()
 export class EventRepositoryEmpl implements IEventRepository {
@@ -40,7 +41,6 @@ export class EventRepositoryEmpl implements IEventRepository {
     page: number;
     limit: number;
   }> {
-    try {
       const offset = (page - 1) * limit; 
 
       // Use QueryBuilder to handle pagination
@@ -48,25 +48,42 @@ export class EventRepositoryEmpl implements IEventRepository {
         .createQueryBuilder('event') // 'event' is the alias for your table/entity
         .skip(offset) // Number of rows to skip
         .take(limit) // Number of rows to fetch
+        .orderBy('event.event_start_date', 'DESC')
         .getManyAndCount(); // Fetch entities and total count
 
       return { events, total, page, limit };
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching Events: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
-  async findOne(id: string): Promise<Events | null> {
-    try {
-      // const event = await this.eventRepository.findOne({
-      //   where: { id: id },
-      //   // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
-      //   relations: ['promocodes','bank_accounts','ticket_heading.tickets','likes'],
-      // }); 
+  async findOneEventOnly(id: string): Promise<Events | null> {
+      const event = await this.eventRepository.findOne({
+        where: { id: id },
+        // relations: ['promocodes','bank_accounts','ticket_heading.tickets','tickets'],
+        // relations: ['promocodes','bank_accounts','ticket_heading.tickets','likes'],
+      }); 
+    
+      if (!event) {
+        throw new HttpException(
+          `Event with ID ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
 
+    
+        const bookedTicketCount = await this.eventRepository
+          .createQueryBuilder('event')
+          .leftJoin('event.ticket_heading', 'ticket_heading')
+          .leftJoin('ticket_heading.tickets', 'ticket')
+          .select('COUNT(ticket.id)', 'count')
+          .where('event.id = :id', { id })
+          .andWhere('ticket.status = :status', { status: 'Booked' })
+          .getRawOne();
+
+          const my_event  = {...event, soldOutTickets: parseInt(bookedTicketCount.count, 10)};
+      
+
+      return my_event;
+  }
+  async findOne(id: string): Promise<Events | null> {
       const event = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.promocodes', 'promocode')
@@ -103,18 +120,14 @@ export class EventRepositoryEmpl implements IEventRepository {
       
 
       return my_event;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching Event with ID ${id}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async findByUser(user: string): Promise<Events[]> {
-    try {
       const events = await this.eventRepository.find({
         where: { user_id: user},
+        order: {
+          event_start_date: 'DESC', // or 'DESC' for descending order
+        },
       });
 
       // Check if no events were found
@@ -125,20 +138,16 @@ export class EventRepositoryEmpl implements IEventRepository {
         );
       }
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with user ${user}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async findByCategory(category: string): Promise<Events[]> {
-    try {
       const events = await this.eventRepository
       .createQueryBuilder('event')
       .where('event.categories @> :category', {
         category: [category],  // Pass category as an array
+        order: {
+          event_start_date: 'DESC', // or 'DESC' for descending order
+        },
       })
       .getMany();
 
@@ -151,19 +160,15 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with category ${category}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    
   }
 
   async findByLocation(location: string): Promise<Events[]> {
-    try {
-      // Use 'find' instead of 'findBy'
       const events = await this.eventRepository.find({
         where: { location: location },
+        order: {
+          event_start_date: 'DESC', // or 'DESC' for descending order
+        },
       });
 
       // Check if no events were found
@@ -175,21 +180,16 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with location ${location}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
 
 
   async findByOrganiser(organiser: string): Promise<Events[]> {
-    try {
-      // Use 'find' instead of 'findBy'
       const events = await this.eventRepository.find({
         where: { user_id: organiser },
+        order: {
+          event_start_date: 'DESC', // or 'DESC' for descending order
+        },
       });
 
       // Check if no events were found
@@ -201,12 +201,25 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return events;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with organiser ${organiser}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+  }
+
+  async findByDateRange(startOfDay: Date, endOfDay:Date): Promise<Events[] | []> {
+      const events = await this.eventRepository.find({
+        where: { event_start_date: Between(startOfDay,endOfDay) },
+        order: {
+          event_start_date: 'DESC', // or 'DESC' for descending order
+        },
+      });
+
+      // Check if no events were found
+      if (events.length === 0) {
+        throw new HttpException(
+          `Events with this given date range not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return events;
   }
 
   async search(
@@ -219,10 +232,9 @@ export class EventRepositoryEmpl implements IEventRepository {
     page: number;
     limit: number;
   }> {
-    try {
+
       const offset = (page - 1) * limit;
       const [events, total] = await this.eventRepository
-
         .createQueryBuilder('event')
         .where('LOWER(event.title) LIKE LOWER(:keyword)', {
           keyword: `%${keyword}%`,
@@ -237,8 +249,10 @@ export class EventRepositoryEmpl implements IEventRepository {
           keyword: `%${keyword}%`,
         })
         
+        
         .skip(offset)
         .take(limit)
+        .orderBy('event.event_start_date', 'DESC')
         .getManyAndCount();
 
       // find({
@@ -257,41 +271,25 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return { events, total: total, page: page, limit: limit };
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching events with keyword ${keyword}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async update(id: string, event: Events, user: any): Promise<Events> {
-    try {
-      const eventToBeUpdate = await this.findOne(id);
-
+    try{
+      const eventToBeUpdate = await this.findOneEventOnly(id);
       const updatedAccount = Object.assign(eventToBeUpdate, event);
       updatedAccount.update_by = user;
       updatedAccount.updated_at = new Date();
-
       return await this.eventRepository.save(updatedAccount);
     } catch (error) {
       throw new HttpException(
-        `Error updating Event: ${error.message}`,
+        `Error Updating Event: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   async delete(id: string): Promise<void> {
-    try {
       const eventToDelete = await this.findOne(id);      
-     
       await this.eventRepository.delete(id);
-    } catch (error) {
-      throw new HttpException(
-        `Error deleting Event: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 }

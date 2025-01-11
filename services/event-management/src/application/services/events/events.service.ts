@@ -11,6 +11,7 @@ import { CustomEventTicketMapper } from 'src/application/mappers/event-tickets.m
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { CommandBus } from '@nestjs/cqrs';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { endOfDay, format, nextSaturday, nextSunday, startOfDay } from 'date-fns';
 
 
 @Injectable()
@@ -139,11 +140,43 @@ export class EventsService {
       UpdateEventsDto,
       Events,
     );
+    console.log(updatedEvent);
+    
     await this.createEventRepository.update(id, updatedEvent, user);
     return updatedEvent;
+  }
+
+
+  async findBySpecificDate(date:Date): Promise<Events[] | []> {
+    const start_of_day = startOfDay(date);    
+    const end_of_day = endOfDay(date);    
+    return await this.createEventRepository.findByDateRange(start_of_day,end_of_day);
+  }
+
+  async findByDateRange(startDate:Date, endDate:Date): Promise<Events[] | []> {
+    const start_of_day = startOfDay(startDate);    
+    const end_of_day = endOfDay(endDate);    
+    return await this.createEventRepository.findByDateRange(start_of_day,end_of_day);
+  }
+
+
+  async findByThisWeek(): Promise<Events[] | []> {
+    const weekend = await this.getWeekend();    
+    return await this.createEventRepository.findByDateRange(weekend.saturday,weekend.sunday);
   }
 
   async delete(id: string): Promise<void> {
     await this.createEventRepository.delete(id);
   }
+
+
+
+   async getWeekend(){
+      const date = new Date()
+      const saturday = startOfDay(nextSaturday(date)); // Gets the next Saturday from the given date
+      const sunday =  endOfDay(nextSunday(saturday)); // Gets the next Sunday from Saturday   
+      
+      return { saturday, sunday };
+    };
+
 }
