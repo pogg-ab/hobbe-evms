@@ -11,6 +11,7 @@ import { OrganizationalAccountModule } from './modules/organizational-account/or
 import { PersonalAccountModule } from './modules/personal-account/personal-account.module';
 import { RolePermissionModule } from './modules/role-permission/role-permission.module';
 import { SubAccountModule } from './modules/sub-account/sub-account.module';
+import { FollowerModule } from './modules/follower/follower.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,6 +32,7 @@ import { SubAccountModule } from './modules/sub-account/sub-account.module';
     EmailModule,
     AdminUserAccountModule,
     SubAccountModule,
+    FollowerModule
   ],
 })
 export class AppModule {}
