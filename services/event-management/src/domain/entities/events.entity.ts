@@ -28,7 +28,7 @@ export class Events {
   @Column()
   thumbnail: string;
 
-  @Column()
+  @Column({nullable:true})
   cover_image: string;
 
   @Column()
