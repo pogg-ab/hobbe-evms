@@ -8,7 +8,10 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -32,6 +35,8 @@ import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto'
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
 
 @ApiTags('Events')
 @Controller('events')
@@ -71,11 +76,24 @@ export class EventsController {
   @Post()
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseInterceptors(
+    FileInterceptor('thumbnail', multerConfig('thumbnail')),  // For 'thumbnail' field, allows 1 file only
+    // FileInterceptor('cover_image', multerConfig('cover_image'))  // For 'cover_image' field, allows 1 file only
+  )
   async createEvent(
     @Body() createEventsDto: CreateEventsDto,
+    @UploadedFile() thumbnail: Express.Multer.File,  // Handle the uploaded 'thumbnail'
+    // @UploadedFile() cover_image: Express.Multer.File,  // Handle the uploaded 'cover_image'
     @CurrentUserId() user: any,
   ): Promise<{ message: string; events: Events }> {
     // createEventsDto.user_id = (user.user.user_id).toString();
+   
+     // If a thumbnail file is uploaded, assign its path to the DTO
+     if (thumbnail) createEventsDto.thumbnail = thumbnail.path;
+
+     // If a cover image file is uploaded, assign its path to the DTO
+    //  if (cover_image) createEventsDto.cover_image = cover_image.path;
+
     const command = new CreateEventCommand(
       createEventsDto,
       user.user.user_id.toString(),

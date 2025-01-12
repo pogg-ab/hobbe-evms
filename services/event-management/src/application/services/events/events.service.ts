@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Events } from 'src/domain/entities/events.entity';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { Mapper } from '@automapper/core';
@@ -11,8 +17,13 @@ import { CustomEventTicketMapper } from 'src/application/mappers/event-tickets.m
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { CommandBus } from '@nestjs/cqrs';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
-import { endOfDay, format, nextSaturday, nextSunday, startOfDay } from 'date-fns';
-
+import {
+  endOfDay,
+  format,
+  nextSaturday,
+  nextSunday,
+  startOfDay,
+} from 'date-fns';
 
 @Injectable()
 export class EventsService {
@@ -20,42 +31,59 @@ export class EventsService {
     @Inject(CREATE_EVENT_REPOSITORY_TOKEN)
     private readonly createEventRepository: IEventRepository,
     @InjectMapper() private readonly mapper: Mapper,
-    public readonly createTicketsDto:CreateTicketsDto,
-    private readonly commandBus:CommandBus,
-    private readonly kafkaProducerService:KafkaProducerService
+    public readonly createTicketsDto: CreateTicketsDto,
+    private readonly commandBus: CommandBus,
+    private readonly kafkaProducerService: KafkaProducerService,
   ) {}
 
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
-    const mappedEvent = this.mapper.map(createEventsDto, CreateEventsDto, Events);
+    const mappedEvent = this.mapper.map(
+      createEventsDto,
+      CreateEventsDto,
+      Events,
+    );
     const event = await this.createEventRepository.create(mappedEvent, user);
 
-    const accounts  = createEventsDto.bank_accounts;
-    accounts.forEach(account => {
-      (account as any).event_id = event.id;// Add event_id property
-    });
-   
-    this.kafkaProducerService.produce({
-      topic: 'bank-account-list-sent',
-      messages:[
-        { value: JSON.stringify(accounts)  },
-      ]
-    });
-    for (let i = 0; i < event.ticket_heading.quantity; i++) {
-         const ticketDto = await new CustomEventTicketMapper().map(event,this.createTicketsDto,'Regular');
-         const command = new CreateTicketsCommand(ticketDto);
-         await this.commandBus.execute(command);
+    const accounts = createEventsDto.bank_accounts;
+    if (accounts) {
+      accounts.forEach((account) => {
+        (account as any).event_id = event.id; // Add event_id property
+      });
+      this.kafkaProducerService.produce({
+        topic: 'bank-account-list-sent',
+        messages: [{ value: JSON.stringify(accounts) }],
+      });
     }
-
-    for (let i = 0; i < event.ticket_heading.vip_quantity; i++) {
-        const ticketDto = await new CustomEventTicketMapper().map(event,this.createTicketsDto,'VIP');
+    if (event.ticket_heading) {
+      for (let i = 0; i < event.ticket_heading.quantity; i++) {
+        const ticketDto = await new CustomEventTicketMapper().map(
+          event,
+          this.createTicketsDto,
+          'Regular',
+        );
         const command = new CreateTicketsCommand(ticketDto);
         await this.commandBus.execute(command);
-    }
+      }
 
-    for (let i = 0; i < event.ticket_heading.vvip_quantity; i++) {
-        const ticketDto = await new CustomEventTicketMapper().map(event,this.createTicketsDto,'VVIP');
+      for (let i = 0; i < event.ticket_heading.vip_quantity; i++) {
+        const ticketDto = await new CustomEventTicketMapper().map(
+          event,
+          this.createTicketsDto,
+          'VIP',
+        );
         const command = new CreateTicketsCommand(ticketDto);
         await this.commandBus.execute(command);
+      }
+
+      for (let i = 0; i < event.ticket_heading.vvip_quantity; i++) {
+        const ticketDto = await new CustomEventTicketMapper().map(
+          event,
+          this.createTicketsDto,
+          'VVIP',
+        );
+        const command = new CreateTicketsCommand(ticketDto);
+        await this.commandBus.execute(command);
+      }
     }
 
     return event;
@@ -108,7 +136,9 @@ export class EventsService {
   async findByOrganiser(organiser: string): Promise<Events[]> {
     const event = await this.createEventRepository.findByOrganiser(organiser);
     if (!event) {
-      throw new NotFoundException(`Event with organiser ${location} not found.`);
+      throw new NotFoundException(
+        `Event with organiser ${location} not found.`,
+      );
     }
     return event;
   }
@@ -141,42 +171,49 @@ export class EventsService {
       Events,
     );
     console.log(updatedEvent);
-    
+
     await this.createEventRepository.update(id, updatedEvent, user);
     return updatedEvent;
   }
 
-
-  async findBySpecificDate(date:Date): Promise<Events[] | []> {
-    const start_of_day = startOfDay(date);    
-    const end_of_day = endOfDay(date);    
-    return await this.createEventRepository.findByDateRange(start_of_day,end_of_day);
+  async findBySpecificDate(date: Date): Promise<Events[] | []> {
+    const start_of_day = startOfDay(date);
+    const end_of_day = endOfDay(date);
+    return await this.createEventRepository.findByDateRange(
+      start_of_day,
+      end_of_day,
+    );
   }
 
-  async findByDateRange(startDate:Date, endDate:Date): Promise<Events[] | []> {
-    const start_of_day = startOfDay(startDate);    
-    const end_of_day = endOfDay(endDate);    
-    return await this.createEventRepository.findByDateRange(start_of_day,end_of_day);
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Events[] | []> {
+    const start_of_day = startOfDay(startDate);
+    const end_of_day = endOfDay(endDate);
+    return await this.createEventRepository.findByDateRange(
+      start_of_day,
+      end_of_day,
+    );
   }
-
 
   async findByThisWeek(): Promise<Events[] | []> {
-    const weekend = await this.getWeekend();    
-    return await this.createEventRepository.findByDateRange(weekend.saturday,weekend.sunday);
+    const weekend = await this.getWeekend();
+    return await this.createEventRepository.findByDateRange(
+      weekend.saturday,
+      weekend.sunday,
+    );
   }
 
   async delete(id: string): Promise<void> {
     await this.createEventRepository.delete(id);
   }
 
+  async getWeekend() {
+    const date = new Date();
+    const saturday = startOfDay(nextSaturday(date)); // Gets the next Saturday from the given date
+    const sunday = endOfDay(nextSunday(saturday)); // Gets the next Sunday from Saturday
 
-
-   async getWeekend(){
-      const date = new Date()
-      const saturday = startOfDay(nextSaturday(date)); // Gets the next Saturday from the given date
-      const sunday =  endOfDay(nextSunday(saturday)); // Gets the next Sunday from Saturday   
-      
-      return { saturday, sunday };
-    };
-
+    return { saturday, sunday };
+  }
 }

@@ -28,10 +28,10 @@ export class EventsProfile extends AutomapperProfile {
           (destination) => destination.thumbnail,
           mapFrom((src) => src.thumbnail),
         ),
-        forMember(
-          (destination) => destination.cover_image,
-          mapFrom((src) => src.cover_image),
-        ),
+        // forMember(
+        //   (destination) => destination.cover_image,
+        //   mapFrom((src) => src.cover_image),
+        // ),
         forMember(
           (destination) => destination.event_type,
           mapFrom((src) => src.event_type),
