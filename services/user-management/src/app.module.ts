@@ -12,10 +12,16 @@ import { PersonalAccountModule } from './modules/personal-account/personal-accou
 import { RolePermissionModule } from './modules/role-permission/role-permission.module';
 import { SubAccountModule } from './modules/sub-account/sub-account.module';
 import { FollowerModule } from './modules/follower/follower.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import * as path from 'path';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: path.join(__dirname, '..', 'public'),
+      serveRoot: '/public',
     }),
     AutomapperModule.forRoot([
       {
@@ -35,4 +41,4 @@ import { FollowerModule } from './modules/follower/follower.module';
     FollowerModule
   ],
 })
-export class AppModule {}
+export class AppModule { }
