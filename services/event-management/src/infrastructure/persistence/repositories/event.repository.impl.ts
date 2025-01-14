@@ -292,4 +292,128 @@ export class EventRepositoryEmpl implements IEventRepository {
       const eventToDelete = await this.findOne(id);      
       await this.eventRepository.delete(id);
   }
+
+
+  // Analitics 
+  // async countMyEvents(user:string):Promise<any>{
+  //   const eventCount = await this.eventRepository.count({
+  //     where: { 'user_id': user },
+  //   });
+  
+  //   // Use a QueryBuilder to count tickets grouped by status
+  //   const ticketStatusCount = await this.eventRepository
+  //     .createQueryBuilder('event')
+  //     .leftJoinAndSelect('event.tickets', 'ticket')
+  //     .select('ticket.status', 'status')
+  //     .addSelect('COUNT(ticket.id)', 'count')
+  //     .where('event.user_id = :userId', { userId: user })
+  //     .groupBy('ticket.status')
+  //     .getRawMany();
+  
+  //   // Prepare the result in the desired format
+  //   const ticketStatusObject = ticketStatusCount.reduce((acc, item) => {
+  //     acc[item.status] = parseInt(item.count, 10);
+  //     return acc;
+  //   }, {});
+  
+  //   return {
+  //     TotalCreatedEvents: eventCount,
+  //     AllEventsTicketsCounter: ticketStatusObject,
+  //   };
+  
+  // }
+  async countMyEvents(user: string): Promise<any> {
+    // Count total events
+    const eventCount = await this.eventRepository.count({
+      where: { user_id: user },
+    });
+  
+    // Count tickets grouped by status
+    const ticketStatusCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.tickets', 'ticket')
+      .select('ticket.status', 'status')
+      .addSelect('COUNT(ticket.id)', 'count')
+      .where('event.user_id = :userId', { userId: user })
+      .groupBy('ticket.status')
+      .getRawMany();
+  
+    // Count total comments for the user
+    const commentCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.comments', 'comment')
+      .select('COUNT(comment.id)', 'count')
+      .where('event.user_id = :userId', { userId: user })
+      .getRawOne();
+  
+    // Count total likes for the user
+    const likeCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.likes', 'like')
+      .select('COUNT(like.id)', 'count')
+      .where('event.user_id = :userId', { userId: user })
+      .getRawOne();
+  
+    // Helper function to process ticket status counts
+    const processTicketStatusData = (data: any[]): Record<string, number> =>
+      data.reduce((acc, item) => {
+        acc[item.status] = parseInt(item.count, 10);
+        return acc;
+      }, {});
+  
+    return {
+      TotalCreatedEvents: eventCount,
+      AllEventsTicketsCount: processTicketStatusData(ticketStatusCount),
+      TotalCommentsCount: parseInt(commentCount.count, 10),
+      TotalLikesCount: parseInt(likeCount.count, 10),
+    };
+  }
+  
+
+
+  async singleEventAnalytics(user:string,event:string):Promise<any>{
+    const events = await this.eventRepository.find({
+      where: {'id':event, 'user_id': user },
+    });
+  
+    // Count tickets grouped by status
+    const ticketStatusCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.tickets', 'ticket')
+      .select('ticket.status', 'status')
+      .addSelect('COUNT(ticket.id)', 'count')
+      .where('event.id = :id', { id: event })
+      .groupBy('ticket.status')
+      .getRawMany();
+  
+    // Count total comments for the user
+    const commentCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.comments', 'comment')
+      .select('COUNT(comment.id)', 'count')
+      .where('event.id = :id', { id: event })
+      .getRawOne();
+  
+    // Count total likes for the user
+    const likeCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.likes', 'like')
+      .select('COUNT(like.id)', 'count')
+      .where('event.id = :id', { id: event })
+      .getRawOne();
+  
+    // Helper function to process ticket status counts
+    const processTicketStatusData = (data: any[]): Record<string, number> =>
+      data.reduce((acc, item) => {
+        acc[item.status] = parseInt(item.count, 10);
+        return acc;
+      }, {});
+  
+    return {
+      TotalCreatedEvents: events,
+      AllEventsTicketsCount: processTicketStatusData(ticketStatusCount),
+      TotalCommentsCount: parseInt(commentCount.count, 10),
+      TotalLikesCount: parseInt(likeCount.count, 10),
+    };
+  }
 }

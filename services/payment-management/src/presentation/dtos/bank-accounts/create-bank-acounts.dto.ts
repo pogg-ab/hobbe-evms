@@ -1,7 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty } from "class-validator";
-import { Events } from "src/domain/entities/events.entity";
-import { IdValueObject } from "src/domain/value-objects/event-id.value-object";
 
 
 export class CreateBankAccountDto{
