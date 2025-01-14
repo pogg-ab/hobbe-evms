@@ -3,7 +3,6 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { BankAccounts } from "src/domain/entities/bank_accounts.entity";
-import { Promocodes } from "src/domain/entities/promocodes.entity";
 import { IBankAccountRepository } from "src/domain/repositories/bank-accouts/bank-account.repository";
 import { CreateBankAccountDto } from "src/presentation/dtos/bank-accounts/create-bank-acounts.dto";
 import { Repository } from "typeorm";

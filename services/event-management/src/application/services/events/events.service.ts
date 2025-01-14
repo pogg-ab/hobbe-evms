@@ -216,4 +216,13 @@ export class EventsService {
 
     return { saturday, sunday };
   }
+
+  async countMyEvent(user:string):Promise<any>{
+    return this.createEventRepository.countMyEvents(user)
+  }
+
+  async singleEventAnalytics(user:string,event:string):Promise<any>{
+    return this.createEventRepository.singleEventAnalytics(user,event);
+  }
 }
+  

@@ -1,6 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty } from "class-validator";
-import { TicketsHeading } from "src/domain/entities/tickets-heading.entity";
 import { IdValueObject } from "src/domain/value-objects/event-id.value-object";
 
 

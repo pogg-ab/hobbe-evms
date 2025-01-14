@@ -2,7 +2,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Events } from 'src/domain/entities/events.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),

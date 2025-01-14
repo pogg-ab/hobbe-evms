@@ -28,7 +28,6 @@ export class Tickets {
       'Paid',
       'Completed',
       'Cancelled',
-      'Cancelled',
       'Refunded',
       'Hold',
       'Booked',
