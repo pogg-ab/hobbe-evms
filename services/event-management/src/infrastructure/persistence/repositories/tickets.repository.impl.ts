@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
@@ -12,7 +13,9 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
     private readonly dataSource: DataSource,
-  ) {}
+    @InjectRepository(ParticipantHasTicket)
+    private participantHasTicketRepository: Repository<ParticipantHasTicket>,
+  ) { }
 
   async create(createTicketsDto: CreateTicketsDto): Promise<void> {
     try {
@@ -182,6 +185,151 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     } catch (error) {
       throw new HttpException(
         `Error updating status for Ticket with ID ${id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findUpcomingTickets(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<ParticipantHasTicket[] | null> {
+    try {
+      const offset = (page - 1) * limit;
+
+      const tickets = await this.participantHasTicketRepository
+        .createQueryBuilder('participant_has_ticket')
+        .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('participant_has_ticket.participant_id = :userId', {
+          userId,
+        })
+        .andWhere('event.event_end_date > NOW()')
+        .skip(offset)
+        .take(limit)
+        .getMany();
+
+      return tickets.length > 0 ? tickets : null;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching upcoming tickets: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async countUpcomingTickets(userId: string): Promise<number> {
+    try {
+      const count = await this.participantHasTicketRepository
+        .createQueryBuilder('participant_has_ticket')
+        .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('participant_has_ticket.participant_id = :userId', {
+          userId,
+        })
+        .andWhere('event.event_end_date > NOW()')
+        .getCount();
+
+      return count;
+    } catch (error) {
+      throw new HttpException(
+        `Error counting upcoming tickets: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findPastTickets(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<ParticipantHasTicket[] | null> {
+    try {
+      const offset = (page - 1) * limit;
+
+      const tickets = await this.participantHasTicketRepository
+        .createQueryBuilder('participant_has_ticket')
+        .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('participant_has_ticket.participant_id = :userId', {
+          userId,
+        })
+        .andWhere('event.event_end_date < NOW()')
+        .skip(offset)
+        .take(limit)
+        .getMany();
+
+      return tickets.length > 0 ? tickets : null;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching past tickets: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async countPastTickets(userId: string): Promise<number> {
+    try {
+      const count = await this.participantHasTicketRepository
+        .createQueryBuilder('participant_has_ticket')
+        .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('participant_has_ticket.participant_id = :userId', {
+          userId,
+        })
+        .andWhere('event.event_end_date < NOW()')
+        .getCount();
+
+      return count;
+    } catch (error) {
+      throw new HttpException(
+        `Error counting past tickets: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findGiftedTickets(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<ParticipantHasTicket[] | null> {
+    try {
+      const offset = (page - 1) * limit;
+
+      const tickets = await this.participantHasTicketRepository
+        .createQueryBuilder('participant_has_ticket')
+        .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('participant_has_ticket.participant_id = :userId', { userId })
+        .andWhere('ticket.status = :status', { status: 'Gifted' })
+        .skip(offset)
+        .take(limit)
+        .getMany();
+
+      return tickets.length > 0 ? tickets : null;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching gifted tickets: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async countGiftedTickets(userId: string): Promise<number> {
+    try {
+      const count = await this.participantHasTicketRepository
+        .createQueryBuilder('participant_has_ticket')
+        .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
+        .where('participant_has_ticket.participant_id = :userId', { userId })
+        .andWhere('ticket.status = :status', { status: 'Gifted' })
+        .getCount();
+
+      return count;
+    } catch (error) {
+      throw new HttpException(
+        `Error counting gifted tickets: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
