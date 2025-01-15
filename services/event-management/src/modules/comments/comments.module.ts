@@ -13,6 +13,7 @@ import { FindOneCommentsQueryHandler } from 'src/application/handlers/comments/f
 import { FindByEventCommentsQueryHandler } from 'src/application/handlers/comments/find-by-event-comments.handler';
 import { UpdateCommentsCommandHandler } from 'src/application/handlers/comments/update.commnets.handler';
 import { RemoveCommentsCommandHandler } from 'src/application/handlers/comments/remove-comments.handler';
+import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 
 @Module({
   
@@ -21,9 +22,12 @@ import { RemoveCommentsCommandHandler } from 'src/application/handlers/comments/
       TypeOrmModule.forFeature([Comments]),
       CqrsModule,
     ],
-    controllers: [CommentsController],
+    controllers: [
+      CommentsController,
+    ],
     providers: [
       CommentsServices,
+      SocketIo,
       CommentsProfile,
       CreateCommentsCommandHandler,
       FindOneCommentsQueryHandler,

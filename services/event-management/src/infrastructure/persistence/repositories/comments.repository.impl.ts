@@ -95,4 +95,21 @@ export class CommentsRepositoryImpl implements ICommentsRepository {
       );
     }
   }
+
+  async eventCommentsCounter(
+    eventId: string,
+  ): Promise<{ totalEventComments: number }> {
+    if (!eventId) throw new Error('event_id is required for event tracking');
+    const commentsCounter = await this.commentsRepository
+      .createQueryBuilder('comment')
+      .where('comment.event_id = :eventId', { eventId })
+      .getCount();
+
+    return { totalEventComments: commentsCounter };
+  }
+
+  async allCommentsCounter(): Promise<{ totalComments: number }> {
+    const allCommentsCounter = await this.commentsRepository.count();
+    return { totalComments: allCommentsCounter };
+  }
 }

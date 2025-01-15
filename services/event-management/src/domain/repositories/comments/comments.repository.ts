@@ -8,4 +8,6 @@ export interface ICommentsRepository {
     update(comment_id:string, comments:Comments):Promise<Comments>
     delete(id:string):Promise<void>
     findAllByEvent(event_id:string,):Promise<Comments[]>
+    allCommentsCounter():Promise<{ totalComments: number }>
+    eventCommentsCounter(event_id:string):Promise<{ totalEventComments: number }>
 }
