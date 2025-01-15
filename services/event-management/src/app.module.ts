@@ -10,6 +10,7 @@ import { EventsModule } from './modules/event/events.module';
 import { SpecialGuestModule } from './modules/special-guest/special-guest.module';
 import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { SocketIoModule } from './modules/socket-io/socket-io.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CommentsModule } from './modules/comments/comments.module';
     EventSponsorModule,
     CommentsModule,
     TicketBookingModule,
+    SocketIoModule,
    
   ],
 })

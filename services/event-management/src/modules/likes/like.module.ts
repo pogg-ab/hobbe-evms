@@ -8,6 +8,7 @@ import { LikeEventService } from 'src/application/services/like/like-event.servi
 import { LikeEventCommandHandler } from 'src/application/handlers/like/like-event-handler';
 import { LIKE_EVENT_TOKEN } from 'src/domain/repositories/like/like-event.repositort.token';
 import { LikeEventRepositoryImpl } from 'src/infrastructure/persistence/repositories/like-event.repository.impl';
+import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 
 @Module({
   
@@ -19,6 +20,7 @@ import { LikeEventRepositoryImpl } from 'src/infrastructure/persistence/reposito
     controllers: [LikeController],
     providers: [
       LikeEventService,
+      SocketIo,
       LikeEventCommandHandler,
       {
         provide: LIKE_EVENT_TOKEN,
