@@ -9,12 +9,18 @@ export class SocketIo{
     @WebSocketServer() server:Server;
 
     @SubscribeMessage('likeCounters')
-    handleLikesCounter(@MessageBody() message:any){
-        this.server.emit('count-likes', message);
+    handleAllEventLikesCounter(@MessageBody() message:any){
+        this.server.emit('count-all-event-likes', message);
+    }
+    handleSigleEventLikesCounter(@MessageBody() message:any){
+        this.server.emit('count-single-event-likes', message);
     }
 
     @SubscribeMessage('commentsCounters')
-    handleCommentsCounter(@MessageBody() message:any){
-        this.server.emit('count-comments', message);
+    handleAllEventsCommentsCounter(@MessageBody() message:any){
+        this.server.emit('count-all-event-comments', message);
+    }
+    handleSingleEventCommentsCounter(@MessageBody() message:any){
+        this.server.emit('count-single-event-comments', message);
     }
 }

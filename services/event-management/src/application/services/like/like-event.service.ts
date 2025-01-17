@@ -21,8 +21,8 @@ export class LikeEventService {
            const like = await this.likeEventsRepository.likeEvent(user_id, event_id);
            const allLikesCounter = this.likeEventsRepository.allLikesCounter();
            const eventLikesCounter = this.likeEventsRepository.eventLikesCounter(event_id);
-           this.socket.handleLikesCounter("All-Time-Likes-Counters : "+(await allLikesCounter).totalLikes);
-           this.socket.handleLikesCounter({'event_id':event_id, counter:(await eventLikesCounter).totalEventLikes});
+           this.socket.handleAllEventLikesCounter("All-Time-Likes-Counters : "+(await allLikesCounter).totalLikes);
+           this.socket.handleSigleEventLikesCounter({'event_id':event_id, counter:(await eventLikesCounter).totalEventLikes});
            return like;
     }
 }

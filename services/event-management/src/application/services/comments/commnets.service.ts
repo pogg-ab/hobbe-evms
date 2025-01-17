@@ -25,10 +25,10 @@ export class CommentsServices {
     const eventCommentsCounter = this.commentsRepository.eventCommentsCounter(
       comments.event_id.toString(),
     );
-    this.socket.handleCommentsCounter(
-      'All-Time-Comments-Counters : ' + (await allCommentsCounter).totalComments,
+    this.socket.handleAllEventsCommentsCounter(
+      'All-Event-Comments-Counters : ' + (await allCommentsCounter).totalComments,
     );
-    this.socket.handleCommentsCounter({
+    this.socket.handleSingleEventCommentsCounter({
       event_id: comments.event_id.toString(),
       counter: (await eventCommentsCounter).totalEventComments,
     });
