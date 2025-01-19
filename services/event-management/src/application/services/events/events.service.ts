@@ -266,6 +266,4 @@ export class EventsService {
     });
   }
 
-
-
 }
