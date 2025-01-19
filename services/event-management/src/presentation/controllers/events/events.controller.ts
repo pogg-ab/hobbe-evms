@@ -37,6 +37,7 @@ import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
+import { GetEventRemainingTimeQuery } from 'src/application/queries/events/get-event-remaining-time.query';
 
 @ApiTags('Events')
 @Controller('events')
@@ -218,6 +219,25 @@ export class EventsController {
   ): Promise<Events[]> {
     return this.queryBus.execute(new FindEventsByOrganiserQuery(organiser));
   }
+
+  @ApiOperation({ description: 'Get Event Remaining Time ' })
+  @ApiResponse({
+    description: 'Remaining time until event in format D: HH:MM:SS',
+    type: String,
+  })
+  @HttpCode(200)
+  @Get('/remaining-time/:event_id')
+  async getRemainingTime(@Param('event_id') event_id: string): Promise<{ remainingTime: string }> {
+    const event: Events = await this.queryBus.execute(new GetEventsByIdQuery(event_id));
+
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    return await this.queryBus.execute(new GetEventRemainingTimeQuery(event_id));
+
+  }
+
 
 
 }

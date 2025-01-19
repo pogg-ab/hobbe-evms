@@ -15,6 +15,7 @@ import { SpecialGuestController } from 'src/presentation/controllers/special-gue
 
 import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
 import { SPECIAL_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/special-guest/special-guest.repository.token';
+import { FindSpecialGuestsByEventIdQueryHandler } from 'src/application/handlers/special-guest/find-special-guests-by-event-id.handler';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SPECIAL_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/special-
     SpecialGuestProfile,
     SpecialGuestCommandHandler,
     GetAllSpecialGuestsQueryHandler,
+    FindSpecialGuestsByEventIdQueryHandler,
     SpecialGuestFindByIdQueryHandler,
     UpdatedSpecialGuestCommandHandler,
     DeleteSpecialGuestCommandHandler,
@@ -38,4 +40,4 @@ import { SPECIAL_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/special-
   ],
   exports: [SPECIAL_GUEST_REPOSITORY_TOKEN],
 })
-export class SpecialGuestModule {}
+export class SpecialGuestModule { }

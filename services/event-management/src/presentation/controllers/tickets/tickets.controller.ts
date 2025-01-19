@@ -68,11 +68,11 @@ export class TicketsController {
     @Query('limit') limit = 10,
   ): Promise<{
     ticketsList: Tickets[] | null;
+    groupedTickets: any
     total: number;
     page: number;
     limit: number;
   }> {
-    console.log(user)
     return this.queryBus.execute(new GetUserTicketsQuery(page, limit, user.user.user_id.toString(), 'upcoming'));
   }
 
@@ -87,6 +87,7 @@ export class TicketsController {
     @Query('limit') limit = 10,
   ): Promise<{
     ticketsList: Tickets[] | null;
+    groupedTickets: any
     total: number;
     page: number;
     limit: number;
@@ -105,6 +106,7 @@ export class TicketsController {
     @Query('limit') limit = 10,
   ): Promise<{
     ticketsList: Tickets[] | null;
+    groupedTickets: any
     total: number;
     page: number;
     limit: number;

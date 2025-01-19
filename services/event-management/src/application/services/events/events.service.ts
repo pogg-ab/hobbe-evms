@@ -24,6 +24,7 @@ import {
   nextSunday,
   startOfDay,
 } from 'date-fns';
+import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 
 @Injectable()
 export class EventsService {
@@ -34,7 +35,8 @@ export class EventsService {
     public readonly createTicketsDto: CreateTicketsDto,
     private readonly commandBus: CommandBus,
     private readonly kafkaProducerService: KafkaProducerService,
-  ) {}
+    private readonly socket: SocketIo
+  ) { }
 
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
     const mappedEvent = this.mapper.map(
@@ -217,12 +219,53 @@ export class EventsService {
     return { saturday, sunday };
   }
 
-  async countMyEvent(user:string):Promise<any>{
+  async countMyEvent(user: string): Promise<any> {
     return this.createEventRepository.countMyEvents(user)
   }
 
-  async singleEventAnalytics(user:string,event:string):Promise<any>{
-    return this.createEventRepository.singleEventAnalytics(user,event);
+  async singleEventAnalytics(user: string, event: string): Promise<any> {
+    return this.createEventRepository.singleEventAnalytics(user, event);
   }
+
+
+  async calculateEventRemainingTime(event: Events): Promise<string> {
+    const event_id = event.id.toString();
+    const targetDate = new Date(event.event_start_date);
+    const endDate = new Date(event.event_end_date);
+    const currentDate = new Date();
+
+    if (currentDate >= endDate) {
+      this.socket.handleEventRemainingTime({ event_id, remainingTime: 'Event Ended' });
+      return 'Event Ended';
+    }
+
+    if (currentDate >= targetDate) {
+      this.socket.handleEventRemainingTime({ event_id, remainingTime: 'Event Started' });
+      return 'Event Started';
+    }
+
+    return new Promise((resolve) => {
+      const countdownInterval = setInterval(() => {
+        const remainingTimeMs = targetDate.getTime() - new Date().getTime();
+
+        if (remainingTimeMs <= 0) {
+          clearInterval(countdownInterval);
+          this.socket.handleEventRemainingTime({ event_id, remainingTime: 'Event Started' });
+          resolve('Event Started');
+        } else {
+          const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((remainingTimeMs % (1000 * 60)) / 1000);
+
+          const remainingTime = `${days}D: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+          this.socket.handleEventRemainingTime({ event_id, remainingTime });
+        }
+      }, 1000);
+    });
+  }
+
+
+
 }
-  
