@@ -27,6 +27,6 @@ export class SocketIo {
     @SubscribeMessage('eventRemainingTime')
     async handleEventRemainingTime(@MessageBody() message: any) {
         const { event_id, remainingTime } = message;
-        this.server.emit('event-remaining-time', { event_id, remainingTime });
+        this.server.emit(`event-remaining-time_${event_id}`, { event_id, remainingTime });
     }
 }
