@@ -59,4 +59,8 @@ export interface ITicketsRepository {
     limit: number,
   ): Promise<ParticipantHasTicket[] | null>;
   countGiftedTickets(userId: string): Promise<number>;
+  countAllTicketsForEvent(
+    manager: EntityManager,
+    eventId: string,
+  ): Promise<number>;
 }

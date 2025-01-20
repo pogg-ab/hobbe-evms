@@ -337,4 +337,22 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       );
     }
   }
+
+  async countAllTicketsForEvent(
+    manager: EntityManager,
+    eventId: string,
+  ): Promise<number> {
+    try {
+      const count = await manager
+        .getRepository(Tickets)
+        .count({ where: { event_id: Equal(eventId) } });
+
+      return count;
+    } catch (error) {
+      throw new HttpException(
+        `Error counting tickets for Event ID ${eventId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
