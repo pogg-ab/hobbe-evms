@@ -59,7 +59,7 @@ export class TicketBookingService {
     private readonly bookingHasPaymentRepository: IBookingHasPaymentRepository,
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
-  ) {}
+  ) { }
 
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
@@ -281,6 +281,7 @@ export class TicketBookingService {
           queryRunner.manager,
           selectedTickets[i].id,
           status,
+          user
         );
 
         await this.participantHasTicketRepository.create(

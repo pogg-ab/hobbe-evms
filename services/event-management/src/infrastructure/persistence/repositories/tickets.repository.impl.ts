@@ -164,6 +164,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     manager: EntityManager,
     id: IdValueObject,
     status: string,
+    user: any
   ): Promise<Tickets | null> {
     try {
       const ticket = await manager.findOne(Tickets, {
@@ -178,6 +179,8 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       }
 
       ticket.status = status;
+      ticket.updated_by = user;
+      ticket.updated_at = new Date();
 
       await this.ticketsListRepository.save(ticket);
 
