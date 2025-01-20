@@ -16,6 +16,14 @@ export class SocketIo{
         this.server.emit('count-single-event-likes', message);
     }
 
+    @SubscribeMessage('favoriteCounters')
+    handleAllEventFavoritesCounter(@MessageBody() message:any){
+        this.server.emit('count-all-event-favorites', message);
+    }
+    handleSigleEventFavoritesCounter(@MessageBody() message:any){
+        this.server.emit('count-single-event-favorites', message);
+    }
+
     @SubscribeMessage('commentsCounters')
     handleAllEventsCommentsCounter(@MessageBody() message:any){
         this.server.emit('count-all-event-comments', message);
