@@ -37,6 +37,7 @@ export interface ITicketsRepository {
     manager: EntityManager,
     id: IdValueObject,
     status: string,
+    user: any
   ): Promise<Tickets | null>;
   findUpcomingTickets(
     userId: string,
