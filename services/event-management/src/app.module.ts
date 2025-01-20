@@ -11,6 +11,7 @@ import { SpecialGuestModule } from './modules/special-guest/special-guest.module
 import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { SocketIoModule } from './modules/socket-io/socket-io.module';
+import { FavoriteModule } from './modules/favorite/favorite.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { SocketIoModule } from './modules/socket-io/socket-io.module';
     CqrsModule,
     EventsModule,
     LikeModule,
+    FavoriteModule,
     SpecialGuestModule,
     EventSponsorModule,
     CommentsModule,
