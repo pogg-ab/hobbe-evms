@@ -5,7 +5,7 @@ import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { DataSource, EntityManager, Equal, Repository } from 'typeorm';
+import { DataSource, EntityManager, Equal, Not, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketsRepositoryEmpl implements ITicketsRepository {
@@ -345,7 +345,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     try {
       const count = await manager
         .getRepository(Tickets)
-        .count({ where: { event_id: Equal(eventId) } });
+        .count({ where: { event_id: Equal(eventId), status: Not('New'), } });
 
       return count;
     } catch (error) {
