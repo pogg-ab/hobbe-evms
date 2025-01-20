@@ -18,12 +18,20 @@ export class SpecialGuestProfile extends AutomapperProfile {
         CreateSpecialGuestDto,
         SpecialGuest,
         forMember(
-          (destination) => destination.special_guest_id,
-          mapFrom((src) => new IdValueObject(src.guest_user_id)),
+          (destination) => destination.guest_user_id,
+          mapFrom((src) => src.guest_user_id),
         ),
         forMember(
           (destination) => destination.event_id,
           mapFrom((source) => source.event_id),
+        ),
+        forMember(
+          (destination) => destination.invited_at,
+          mapFrom(() => new Date().toISOString()),
+        ),
+        forMember(
+          (destination) => destination.status,
+          mapFrom(() => 'pending'),
         ),
       );
     };

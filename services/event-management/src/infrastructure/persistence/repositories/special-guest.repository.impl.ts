@@ -13,9 +13,11 @@ export class SpecialGuestRepositoryImpl implements ISpecialGuestRepository {
   ) { }
 
   async create(
-    createSpecialGuestDto: CreateSpecialGuestDto,
+    createSpecialGuestDto: CreateSpecialGuestDto, user: any
   ): Promise<SpecialGuest> {
-    return this.specialGuestRepository.save(createSpecialGuestDto);
+    const newSpecialGuest = this.specialGuestRepository.create(createSpecialGuestDto)
+    newSpecialGuest.created_by = user
+    return this.specialGuestRepository.save(newSpecialGuest);
   }
 
   async findAll(): Promise<SpecialGuest[]> {
