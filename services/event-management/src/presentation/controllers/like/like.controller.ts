@@ -12,7 +12,7 @@ import { RolesGuard } from "src/presentation/guards/roles.guard";
 
 
 @ApiTags("Likes")
-@Controller("Like")
+@Controller("like")
 export class LikeController{
     constructor(
         private readonly commandBus: CommandBus,

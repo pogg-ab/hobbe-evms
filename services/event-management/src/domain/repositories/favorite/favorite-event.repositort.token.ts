@@ -1,0 +1,3 @@
+
+
+export const FAVORITE_EVENT_TOKEN = 'FAVORITE_EVENT_TOKEN';
