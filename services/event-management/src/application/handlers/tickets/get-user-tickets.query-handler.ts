@@ -9,7 +9,7 @@ export class GetUserTicketsQueryHandler implements IQueryHandler<GetUserTicketsQ
         private readonly ticketsService: TicketsService,
     ) { }
 
-    async execute(query: GetUserTicketsQuery): Promise<{ tickets: ParticipantHasTicket[] | null, total: number; page: number; limit: number }> {
+    async execute(query: GetUserTicketsQuery): Promise<{ groupedTickets: any | null, total: number; page: number; limit: number }> {
         const { page, limit, userId, ticketCategory } = query;
         return this.ticketsService.findByCategory(page, limit, userId, ticketCategory);
     }
