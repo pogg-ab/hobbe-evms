@@ -14,6 +14,7 @@ import { SubAccountModule } from './modules/sub-account/sub-account.module';
 import { FollowerModule } from './modules/follower/follower.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import * as path from 'path';
+import { UserModule } from './modules/user/user.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,7 +39,8 @@ import * as path from 'path';
     EmailModule,
     AdminUserAccountModule,
     SubAccountModule,
-    FollowerModule
+    FollowerModule,
+    UserModule
   ],
 })
 export class AppModule { }
