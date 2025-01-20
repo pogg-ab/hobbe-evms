@@ -8,6 +8,7 @@ import {
     Param,
     Post,
     Put,
+    UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -15,6 +16,8 @@ import { FindAllUsersQuery } from 'src/application/queries/user/find-all-users.q
 import { FindUserByIdQuery } from 'src/application/queries/user/find-user-by-id.query';
 import { User } from 'src/domain/entities/user.entity';
 import { UserResponseDto } from '../dtos/user-response.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { Any } from 'typeorm';
 
 @ApiTags('Users')
 @Controller('users')
@@ -26,22 +29,24 @@ export class UserController {
 
 
     @Get(':id')
+    @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: 'Get user details by ID' })
     @ApiResponse({
         status: 200,
         description: 'User found',
-        type: UserResponseDto,
+        type: [Any || null],
     })
     async findUserById(@Param('user_id') user_id: string): Promise<User> {
         return this.queryBus.execute(new FindUserByIdQuery(user_id));
     }
 
     @Get()
+    @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: 'Get all users' })
     @ApiResponse({
         status: 200,
         description: 'List of all users',
-        type: [UserResponseDto],
+        type: [Any || null],
     })
     async findAllUsers(): Promise<any | null> {
         return this.queryBus.execute(new FindAllUsersQuery());
