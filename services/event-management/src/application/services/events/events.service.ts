@@ -1,30 +1,18 @@
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { Events } from 'src/domain/entities/events.entity';
-import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { IEventRepository } from 'src/domain/repositories/events/event-repository';
-import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
-import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
+import { endOfDay, nextSaturday, nextSunday, startOfDay } from 'date-fns';
 import { CreateTicketsCommand } from 'src/application/commands/ticket/create-tickets.command';
 import { CustomEventTicketMapper } from 'src/application/mappers/event-tickets.mapper';
-import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { CommandBus } from '@nestjs/cqrs';
+import { Events } from 'src/domain/entities/events.entity';
+import { IEventRepository } from 'src/domain/repositories/events/event-repository';
+import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
-import {
-  endOfDay,
-  format,
-  nextSaturday,
-  nextSunday,
-  startOfDay,
-} from 'date-fns';
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
+import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
+import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 
 @Injectable()
 export class EventsService {
@@ -35,10 +23,8 @@ export class EventsService {
     public readonly createTicketsDto: CreateTicketsDto,
     private readonly commandBus: CommandBus,
     private readonly kafkaProducerService: KafkaProducerService,
-    private readonly socket: SocketIo
-  ) { }
-
-
+    private readonly socket: SocketIo,
+  ) {}
 
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
     const mappedEvent = this.mapper.map(
@@ -222,13 +208,12 @@ export class EventsService {
   }
 
   async countMyEvent(user: string): Promise<any> {
-    return this.createEventRepository.countMyEvents(user)
+    return this.createEventRepository.countMyEvents(user);
   }
 
   async singleEventAnalytics(user: string, event: string): Promise<any> {
     return this.createEventRepository.singleEventAnalytics(user, event);
   }
-
 
   async calculateEventRemainingTime(event: Events): Promise<string> {
     const event_id = event.id.toString();
@@ -237,12 +222,18 @@ export class EventsService {
     const currentDate = new Date();
 
     if (currentDate >= endDate) {
-      this.socket.handleEventRemainingTime({ event_id, remainingTime: 'Event Ended' });
+      this.socket.handleEventRemainingTime({
+        event_id,
+        remainingTime: 'Event Ended',
+      });
       return 'Event Ended';
     }
 
     if (currentDate >= targetDate) {
-      this.socket.handleEventRemainingTime({ event_id, remainingTime: 'Event Started' });
+      this.socket.handleEventRemainingTime({
+        event_id,
+        remainingTime: 'Event Started',
+      });
       return 'Event Started';
     }
 
@@ -252,12 +243,19 @@ export class EventsService {
 
         if (remainingTimeMs <= 0) {
           clearInterval(countdownInterval);
-          this.socket.handleEventRemainingTime({ event_id, remainingTime: 'Event Started' });
+          this.socket.handleEventRemainingTime({
+            event_id,
+            remainingTime: 'Event Started',
+          });
           resolve('Event Started');
         } else {
           const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
-          const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+          const hours = Math.floor(
+            (remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+          );
+          const minutes = Math.floor(
+            (remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60),
+          );
           const seconds = Math.floor((remainingTimeMs % (1000 * 60)) / 1000);
 
           const remainingTime = `${days}D: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -267,17 +265,4 @@ export class EventsService {
       }, 1000);
     });
   }
-
-
-
-    async update(id: string, updateEventsDto: UpdateEventsDto): Promise<Events> {
-        const event = await this.findOne(id);
-        const updatedEvent = this.mapper.map(updateEventsDto, UpdateEventsDto, Events);
-        await this.createEventRepository.update(id, updatedEvent);
-        return updatedEvent;
-    }
-
-    async delete(id: string): Promise<void> {
-        await this.createEventRepository.delete(id);
-    }
 }
