@@ -25,4 +25,8 @@ export class FavoriteEventService {
            this.socket.handleSigleEventFavoritesCounter({'event_id':event_id, counter:(await eventFavoritesCounter).totalEventFavorites});
            return favorite;
     }
+
+    async getFavoriteEvents(user: string) {
+        return this.favoriteEventsRepository.getFavoriteEvents(user);
+      }
 }
