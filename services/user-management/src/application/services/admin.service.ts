@@ -4,6 +4,7 @@ import { InjectMapper } from '@automapper/nestjs';
 import {
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { Permission } from 'src/domain/entities/permission.entity';
 import { RolePermission } from 'src/domain/entities/role-permission.entity';
 import { Role } from 'src/domain/entities/role.entity';
 import { IRoleRepository } from 'src/domain/repositories/role.repository';
+import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
 import { CreatePermissionDto } from 'src/presentation/dtos/create-permission.dto';
 import { CreateRoleDto } from 'src/presentation/dtos/create-role.dto';
 import { UpdatePermissionDto } from 'src/presentation/dtos/update-permission.dto';
@@ -21,7 +23,7 @@ import { In, Repository } from 'typeorm';
 @Injectable()
 export class AdminService {
   constructor(
-    @InjectRepository(Role)
+    @Inject(ROLE_REPOSITORY_TOKEN)
     private roleRepository: IRoleRepository,
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,

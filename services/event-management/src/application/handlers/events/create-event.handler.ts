@@ -5,9 +5,10 @@ import { EventsService } from "../../services/events/events.service";
 
 @CommandHandler(CreateEventCommand)
 export class CreateEventCommandHandler implements ICommandHandler<CreateEventCommand>{
-    constructor(private readonly eventService: EventsService) {}
+    constructor(
+        private readonly eventService: EventsService) {}
    async execute(command: CreateEventCommand): Promise<Events> {
-       const { createEventsDto } = command;
-       return this.eventService.create(createEventsDto);
+       const { createEventsDto ,user} = command;
+       return this.eventService.create(createEventsDto,user);
     }
 }

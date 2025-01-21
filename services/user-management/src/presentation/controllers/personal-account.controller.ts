@@ -5,10 +5,14 @@ import {
   Delete,
   Get,
   HttpCode,
+  NotFoundException,
   Param,
   Post,
   Put,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -29,14 +33,18 @@ import { UpdatePersonalAccountDto } from '../dtos/update-personal-account.dto';
 import { VerifyEmailDto } from '../dtos/verify-email.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
-
+import { File } from 'multer';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
+import * as path from 'path';
+import { Response } from 'express';
 @ApiTags('Personal Account')
 @Controller('personal-account')
 export class PersonalAccountController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new personal account' })
@@ -47,9 +55,14 @@ export class PersonalAccountController {
     description: 'Account created successfully',
     type: PersonalAccount,
   })
+  @UseInterceptors(FileInterceptor('profile_image', multerConfig('profile_image')))
   async create(
     @Body() createPersonalAccountDto: CreatePersonalAccountDto,
+    @UploadedFile() profile_image: File,
   ): Promise<{ message: string; account: PersonalAccount }> {
+    if (profile_image) {
+      createPersonalAccountDto.profile_image = profile_image.path;
+    }
     const command = new CreatePersonalAccountCommand(createPersonalAccountDto);
     const createdAccount = await this.commandBus.execute(command);
 
@@ -57,6 +70,25 @@ export class PersonalAccountController {
       message: 'Account created successfully',
       account: createdAccount,
     };
+  }
+
+  @Get(':id/profile-image')
+  @UseGuards(JwtAuthGuard)
+  async getProfileImage(
+    @Param('id') id: PersonalAccountID,
+    @Res() res: Response,
+  ): Promise<any> {
+    const account: PersonalAccount | null = await this.queryBus.execute(
+      new FindPersonalAccountByIdQuery(id),
+    );
+
+    if (!account || !account.profile_image) {
+      throw new NotFoundException('Profile image not found.');
+    }
+
+    const filePath = path.join(__dirname, '..', '..', '..', account.profile_image);
+
+    res.sendFile(filePath);
   }
 
   @Get()

@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return null;
     }
     const userRoles = await this.userRoleRepository.find({
-      where: { user: { user_id: payload.sub } },
+      where: { user_id: payload.sub },
       relations: ['role'],
     });
     const roles = userRoles.map((userRole) => userRole.role.name);

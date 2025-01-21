@@ -137,4 +137,19 @@ export class OrganizationalAccountRepositoryImpl
       );
     }
   }
+  async findByPhoneNumber(
+    company_phone_number: string,
+  ): Promise<OrganizationalAccount | null> {
+    try {
+      const account = await this.organizationalAccountRepository.findOne({
+        where: { company_phone_number },
+      });
+      return account || null;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching OrganizationalAccount by phone number ${company_phone_number}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

@@ -65,6 +65,25 @@ export class User {
   @Column({ default: true })
   is_active: boolean;
 
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  password_reset_token: string;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+  })
+  password_reset_token_expiry: Date;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+  })
+  password_reset_requested_at: Date;
+
   @CreateDateColumn()
   created_date: Date;
 

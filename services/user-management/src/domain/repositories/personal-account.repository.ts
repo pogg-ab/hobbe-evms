@@ -12,4 +12,5 @@ export interface IPersonalAccountRepository {
   delete(id: PersonalAccountID): Promise<void>;
   sendEmailVerificationDb(user_name: string): Promise<any>;
   findByEmail(email: string): Promise<PersonalAccount | null>;
+  findByPhoneNumber(phone_number: string): Promise<PersonalAccount | null>;
 }

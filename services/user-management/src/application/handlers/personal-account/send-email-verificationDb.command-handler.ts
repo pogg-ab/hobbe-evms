@@ -4,7 +4,7 @@ import { SendEmailVerificationDbCommand } from 'src/application/commands/persona
 import { PersonalAccountService } from 'src/application/services/personal-account.service';
 
 @CommandHandler(SendEmailVerificationDbCommand)
-export class SendEmailVerificationDbCommandHandler
+export class SendEmailVerificationWithDBCommandHandler
   implements ICommandHandler<SendEmailVerificationDbCommand>
 {
   constructor(

@@ -4,24 +4,38 @@ import { ClientKafka } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from 'src/application/services/auth.service';
+import { AdminUserAuth } from 'src/domain/entities/admin-user-auth.entity';
+import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
+import { Auth } from 'src/domain/entities/auth.entity';
 import { Email } from 'src/domain/entities/email.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { EMAIL_REPOSITORY_TOKEN } from 'src/domain/repositories/email.repository.token';
+import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { kafkaConfig } from 'src/infrastructure/kafka/kafka.config';
 import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
+import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { EmailModule } from '../email/email.module';
 import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Email, UserRole]),
+    TypeOrmModule.forFeature([
+      User,
+      AdminUser,
+      Email,
+      UserRole,
+      AdminUserRole,
+      Auth,
+      AdminUserAuth,
+    ]),
     PassportModule,
     EmailModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '60s' },
+      signOptions: { expiresIn: '1d' },
     }),
   ],
   providers: [
@@ -30,6 +44,10 @@ import { JwtStrategy } from './jwt.strategy';
     {
       provide: EMAIL_REPOSITORY_TOKEN,
       useClass: EmailRepositoryImpl,
+    },
+    {
+      provide: USER_REPOSITORY_TOKEN,
+      useClass: UserRepositoryImpl,
     },
     {
       provide: 'KAFKA_CONSUMER',

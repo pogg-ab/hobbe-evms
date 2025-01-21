@@ -2,13 +2,15 @@
 
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
-export class IdValueObject  {
+export class IdValueObject {
   private readonly value: string;
 
   constructor(value?: string) {
     if (value) {
       if (!this.isValid(value)) {
-        throw new Error('Invalid ID format. Expected a UUID string. Received: ' + value);
+        throw new Error(
+          'Invalid ID format. Expected a UUID string. Received: ' + value,
+        );
       }
       this.value = value;
     } else {

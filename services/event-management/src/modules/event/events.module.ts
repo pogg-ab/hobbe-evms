@@ -19,9 +19,33 @@ import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
 import { EventsController } from 'src/presentation/controllers/events/events.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { GetEventsByCategoryQueryHandler } from 'src/application/handlers/events/get-events-by-category.handler';
+import { GetEventsByLocationQueryHandler } from 'src/application/handlers/events/get-evets-by-location.handler';
+import { SearchEventQueryHandler } from 'src/application/handlers/events/search-events.handler';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { CategoriesModule } from '../categories/categories.module';
+import { TicketsModule } from '../ticketes/tickets.module';
+import { TicketsHeadingModule } from '../ticketes/tickets-heading.module';
+import { PromocodeModule } from '../promocode/promocode.module';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { FindEventsByUserQueryHandler } from 'src/application/handlers/events/find-events-by-user.handler';
+import { FindByOrganiserQueryHandler } from 'src/application/handlers/events/find-evens-byorganiser.handler';
+import { FindEventsByThisWeekendQueryHandler } from 'src/application/handlers/events/find-events-by-this-weekend.handler';
+import { FindEventsBySpecificDateQueryHandler } from 'src/application/handlers/events/find-events-by-specific-date.handler';
+import { FindEventsByDateRangeQueryQueryHandler } from 'src/application/handlers/events/find-events-by-daterange.handler';
+import { AnalyticsController } from 'src/presentation/controllers/analytics/analytics.controller';
+import { CountMyEventCommandHandler } from 'src/application/handlers/analytics/count-my-events.handler';
+import { SingleEventAnalyticsCommandHandler } from 'src/application/handlers/analytics/single-event-analytics.handler';
+import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
+import { GetEventRemainingTimeQueryHandler } from 'src/application/handlers/events/get-event-remaining-time.query-handler';
+
 
 @Module({
   imports: [
+    TicketsHeadingModule,
+    TicketsModule,
+    PromocodeModule,
+    CategoriesModule,
     AutomapperModule,
     PassportModule,
     JwtModule.register({
@@ -38,17 +62,35 @@ import { JwtStrategy } from './jwt.strategy';
     TypeOrmModule.forFeature([Events]),
     CqrsModule,
   ],
-  controllers: [EventsController],
+  controllers: [
+    EventsController,
+    AnalyticsController,
+
+  ],
   providers: [
     EventsService,
+    CreateTicketsDto,
     CreateEventCommandHandler,
+    KafkaProducerService,
     UpdateEventsCommandHandler,
     DeleteEventCommandHandler,
     GetAllEventsQueryHandler,
     GetEventsByIdQueryHandler,
+    GetEventRemainingTimeQueryHandler,
+    FindEventsByUserQueryHandler,
+    GetEventsByCategoryQueryHandler,
+    GetEventsByLocationQueryHandler,
+    FindByOrganiserQueryHandler,
+    FindEventsByThisWeekendQueryHandler,
+    FindEventsBySpecificDateQueryHandler,
+    FindEventsByDateRangeQueryQueryHandler,
+    CountMyEventCommandHandler,
+    SingleEventAnalyticsCommandHandler,
+    SearchEventQueryHandler,
     EventsProfile,
     UserValidationService,
     JwtStrategy,
+    SocketIo,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
       useClass: EventRepositoryEmpl,
@@ -56,7 +98,7 @@ import { JwtStrategy } from './jwt.strategy';
   ],
 })
 export class EventsModule {
-  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) {}
+  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) { }
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');
