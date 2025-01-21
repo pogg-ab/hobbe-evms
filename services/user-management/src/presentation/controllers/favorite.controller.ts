@@ -11,31 +11,25 @@ import { Favorite } from 'src/domain/entities/favorite.entity';
 @ApiTags('Favorites')
 @Controller('favorites')
 export class FavoritesController {
-  constructor(private readonly commandBus: CommandBus, private readonly queryBus: QueryBus) { }
+  constructor(private readonly commandBus: CommandBus, private readonly queryBus: QueryBus) {}
 
- 
   @ApiOperation({ description: 'Add a user to favorites' })
-  @ApiResponse({
-    type: CreateFavoriteDto,
-  })
+  @ApiResponse({ type: CreateFavoriteDto })
   @HttpCode(200)
   @Post()
   async addFavorite(
     @Body() createFavoriteDto: CreateFavoriteDto,
   ): Promise<{ message: string; favorite: Favorite }> {
-     const favorite = await this.commandBus.execute(new AddFavoriteCommand(createFavoriteDto));
-    return {  message: 'User has been added to favorites.', favorite: favorite };
+    const favorite = await this.commandBus.execute(new AddFavoriteCommand(createFavoriteDto));
+    return { message: 'User has been added to favorites.', favorite: favorite };
   }
-
 
   @ApiOperation({ description: 'Remove a user from favorites' })
   @HttpCode(200)
   @Delete()
-  async removeFavorite(
-    @Body() createFavoriteDto: CreateFavoriteDto): Promise<void> {
+  async removeFavorite(@Body() createFavoriteDto: CreateFavoriteDto): Promise<void> {
     await this.commandBus.execute(new RemoveFavoriteCommand(createFavoriteDto));
   }
-
 
   @ApiOperation({ description: 'Get all favorite users for a given user' })
   @HttpCode(200)
@@ -43,7 +37,6 @@ export class FavoritesController {
   async getFavorites(@Param('userId') userId: string): Promise<CreateFavoriteDto[]> {
     return await this.queryBus.execute(new GetFavoritesQuery(userId));
   }
-
 
   @ApiOperation({ description: 'Get all users who favorited the given user' })
   @HttpCode(200)
