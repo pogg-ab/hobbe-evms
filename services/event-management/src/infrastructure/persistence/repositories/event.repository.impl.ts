@@ -87,7 +87,7 @@ export class EventRepositoryEmpl implements IEventRepository {
       const event = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.promocodes', 'promocode')
-      .leftJoinAndSelect('event.bank_accounts', 'bank_account')
+      // .leftJoinAndSelect('event.bank_accounts', 'bank_account')
       .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
       .leftJoinAndSelect('event.bookings', 'bookings')
       .leftJoin('ticket_heading.tickets', 'ticket') // Join tickets
@@ -202,6 +202,7 @@ export class EventRepositoryEmpl implements IEventRepository {
 
       return events;
   }
+
 
   async findByDateRange(startOfDay: Date, endOfDay:Date): Promise<Events[] | []> {
       const events = await this.eventRepository.find({

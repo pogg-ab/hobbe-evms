@@ -37,6 +37,7 @@ import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
+import { FindEventsByUsersFavoriteQuery } from 'src/application/queries/favorite/find-events-by-users-favorite.query';
 
 @ApiTags('Events')
 @Controller('events')
@@ -218,6 +219,8 @@ export class EventsController {
   ): Promise<Events[]> {
     return this.queryBus.execute(new FindEventsByOrganiserQuery(organiser));
   }
+
+  
 
     
 }
