@@ -1,5 +1,7 @@
+import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
+import { ParticipantHasTicketRepositoryImpl } from 'src/infrastructure/persistence/repositories/participant-has-ticket.repository.impl';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { EntityManager } from 'typeorm';
 
@@ -35,5 +37,26 @@ export interface ITicketsRepository {
     manager: EntityManager,
     id: IdValueObject,
     status: string,
+    user: any
   ): Promise<Tickets | null>;
+  findUpcomingTickets(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<ParticipantHasTicket[] | null>;
+  countUpcomingTickets(userId: string): Promise<number>;
+
+  findPastTickets(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<ParticipantHasTicket[] | null>;
+  countPastTickets(userId: string): Promise<number>;
+
+  findGiftedTickets(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<ParticipantHasTicket[] | null>;
+  countGiftedTickets(userId: string): Promise<number>;
 }

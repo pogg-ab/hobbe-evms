@@ -36,6 +36,8 @@ import { FindEventsByDateRangeQueryQueryHandler } from 'src/application/handlers
 import { AnalyticsController } from 'src/presentation/controllers/analytics/analytics.controller';
 import { CountMyEventCommandHandler } from 'src/application/handlers/analytics/count-my-events.handler';
 import { SingleEventAnalyticsCommandHandler } from 'src/application/handlers/analytics/single-event-analytics.handler';
+import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
+import { GetEventRemainingTimeQueryHandler } from 'src/application/handlers/events/get-event-remaining-time.query-handler';
 
 
 @Module({
@@ -74,6 +76,7 @@ import { SingleEventAnalyticsCommandHandler } from 'src/application/handlers/ana
     DeleteEventCommandHandler,
     GetAllEventsQueryHandler,
     GetEventsByIdQueryHandler,
+    GetEventRemainingTimeQueryHandler,
     FindEventsByUserQueryHandler,
     GetEventsByCategoryQueryHandler,
     GetEventsByLocationQueryHandler,
@@ -87,6 +90,7 @@ import { SingleEventAnalyticsCommandHandler } from 'src/application/handlers/ana
     EventsProfile,
     UserValidationService,
     JwtStrategy,
+    SocketIo,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
       useClass: EventRepositoryEmpl,
@@ -94,7 +98,7 @@ import { SingleEventAnalyticsCommandHandler } from 'src/application/handlers/ana
   ],
 })
 export class EventsModule {
-  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) {}
+  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) { }
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');

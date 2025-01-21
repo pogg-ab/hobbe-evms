@@ -21,6 +21,7 @@ async function bootstrap() {
 
   app.connectMicroservice<MicroserviceOptions>(kafkaProducerConfig);
   await app.startAllMicroservices();
+  app.enableCors();
 
   await app.listen(4001);
 }

@@ -18,6 +18,7 @@ import { GetAllSpecialGuests } from 'src/application/queries/special-guest/find-
 import { SpecialGuestFindById } from 'src/application/queries/special-guest/find-special-guest-by-id.query';
 import { FindSpecialGuestsByEventIdQuery } from 'src/application/queries/special-guest/find-special-guests-by-event-id.query';
 import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
+import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { CreateSpecialGuestDto } from 'src/presentation/dtos/special-guest/create-special-guest.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
@@ -29,7 +30,7 @@ export class SpecialGuestController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @ApiBody({ type: CreateSpecialGuestDto })
   @ApiOperation({ description: 'Create a new Special Guest' })
@@ -39,8 +40,9 @@ export class SpecialGuestController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   async create(
     @Body() createSpecialGuestDto: CreateSpecialGuestDto,
+    @CurrentUserId() user: any,
   ): Promise<SpecialGuest> {
-    const command = new SpecialGuestCommand(createSpecialGuestDto);
+    const command = new SpecialGuestCommand(createSpecialGuestDto, user.user.user_id.toString());
     return await this.commandBus.execute(command);
   }
 

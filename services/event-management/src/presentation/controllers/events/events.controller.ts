@@ -38,6 +38,7 @@ import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
 import { FindEventsByUsersFavoriteQuery } from 'src/application/queries/favorite/find-events-by-users-favorite.query';
+import { GetEventRemainingTimeQuery } from 'src/application/queries/events/get-event-remaining-time.query';
 
 @ApiTags('Events')
 @Controller('events')
@@ -45,7 +46,7 @@ export class EventsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   /*
      Get All Events
@@ -88,11 +89,11 @@ export class EventsController {
     @CurrentUserId() user: any,
   ): Promise<{ message: string; events: Events }> {
     // createEventsDto.user_id = (user.user.user_id).toString();
-   
-     // If a thumbnail file is uploaded, assign its path to the DTO
-     if (thumbnail) createEventsDto.thumbnail = thumbnail.path;
 
-     // If a cover image file is uploaded, assign its path to the DTO
+    // If a thumbnail file is uploaded, assign its path to the DTO
+    if (thumbnail) createEventsDto.thumbnail = thumbnail.path;
+
+    // If a cover image file is uploaded, assign its path to the DTO
     //  if (cover_image) createEventsDto.cover_image = cover_image.path;
 
     const command = new CreateEventCommand(
@@ -115,30 +116,30 @@ export class EventsController {
   }
 
   @ApiOperation({ description: 'Get This Weekend Events' })
-    @HttpCode(200)
-    @Get('/this-weekend-events')
-    async findByThisWeekend(
-    ): Promise<Events[] | []> {
-      return this.queryBus.execute(new FindEventsByThisWeekendQuery());
-    }
-    @ApiOperation({ description: 'Get Events By Specific Date' })
-    @HttpCode(200)
-    @Get('/date/:date')
-    async findBySpecificDate(
-      @Param('date') date:Date
-    ): Promise<Events[] | []> {
-      return this.queryBus.execute(new FindEventsBySpecificDate(date));
-    }
+  @HttpCode(200)
+  @Get('/this-weekend-events')
+  async findByThisWeekend(
+  ): Promise<Events[] | []> {
+    return this.queryBus.execute(new FindEventsByThisWeekendQuery());
+  }
+  @ApiOperation({ description: 'Get Events By Specific Date' })
+  @HttpCode(200)
+  @Get('/date/:date')
+  async findBySpecificDate(
+    @Param('date') date: Date
+  ): Promise<Events[] | []> {
+    return this.queryBus.execute(new FindEventsBySpecificDate(date));
+  }
 
-    @ApiOperation({ description: 'Get Events By  Daterange' })
-    @HttpCode(200)
-    @Post('date-range')
-    async findByDateRange(
-      @Body() body: { startDate: Date; endDate: Date }
-    ): Promise<Events[] | []> {
-      const { startDate, endDate } = body;
-      return this.queryBus.execute(new FindEventsByDateRangeQuery(startDate, endDate));
-    }
+  @ApiOperation({ description: 'Get Events By  Daterange' })
+  @HttpCode(200)
+  @Post('date-range')
+  async findByDateRange(
+    @Body() body: { startDate: Date; endDate: Date }
+  ): Promise<Events[] | []> {
+    const { startDate, endDate } = body;
+    return this.queryBus.execute(new FindEventsByDateRangeQuery(startDate, endDate));
+  }
 
   @ApiOperation({ description: 'Get Event By ID' })
   @HttpCode(200)
@@ -220,7 +221,22 @@ export class EventsController {
     return this.queryBus.execute(new FindEventsByOrganiserQuery(organiser));
   }
 
-  
+  @ApiOperation({ description: 'Get Event Remaining Time ' })
+  @ApiResponse({
+    description: 'Remaining time until event in format D: HH:MM:SS',
+    type: String,
+  })
+  @HttpCode(200)
+  @Get('/remaining-time/:event_id')
+  async getRemainingTime(@Param('event_id') event_id: string): Promise<{ remainingTime: string }> {
+    const event: Events = await this.queryBus.execute(new GetEventsByIdQuery(event_id));
 
-    
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    return await this.queryBus.execute(new GetEventRemainingTimeQuery(event_id));
+
+  }
+
 }

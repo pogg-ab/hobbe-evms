@@ -6,6 +6,8 @@ import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repo
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { TICKETS_LIST_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticketslist.repository.token';
+import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
+import { group } from 'console';
 
 @Injectable()
 export class TicketsService {
@@ -13,7 +15,7 @@ export class TicketsService {
     @Inject(TICKETS_LIST_REPOSITORY_TOKEN)
     private readonly createTicketsRepository: ITicketsRepository,
     @InjectMapper() private readonly mapper: Mapper,
-  ) {}
+  ) { }
 
   async create(createTicketsDto: CreateTicketsDto): Promise<void> {
     const tickets = this.mapper.map(
@@ -41,24 +43,24 @@ export class TicketsService {
   }
 
   async findAllByTicketsHeading(
-    ticket_heading_id :string,
-    tickets_type?:string,
-    status?:string
-   
+    ticket_heading_id: string,
+    tickets_type?: string,
+    status?: string
+
   ): Promise<{
     tickets: Tickets[] | null;
- 
+
   }> {
-    return this.createTicketsRepository.findAllByTicketsHeading(ticket_heading_id,tickets_type,status);
+    return this.createTicketsRepository.findAllByTicketsHeading(ticket_heading_id, tickets_type, status);
   }
 
 
   async findAllByTicketsEvents(
-    event_id :string,
-   
+    event_id: string,
+
   ): Promise<{
     tickets: Tickets[] | null;
- 
+
   }> {
     return this.createTicketsRepository.findAllByTicketsHeading(event_id);
   }
@@ -70,7 +72,67 @@ export class TicketsService {
     }
     return ticket;
   }
-  
+
+  async findByCategory(
+    page: number,
+    limit: number,
+    userId: string,
+    category: 'upcoming' | 'past' | 'gifted',
+  ): Promise<{
+    groupedTickets: any | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    let tickets: ParticipantHasTicket[] = [];
+    let total: number = 0;
+
+    const groupTickets = (tickets: ParticipantHasTicket[]) => {
+      return (Array.isArray(tickets) ? tickets : []).reduce((acc, ticket) => {
+        const eventObject = ticket.ticket_id.event_id;
+        const event = JSON.stringify(eventObject);
+        const eventId = JSON.parse(event).id;
+
+        if (!acc[eventId]) {
+          acc[eventId] = {
+            event: eventObject,
+            tickets: [],
+          };
+        }
+
+        acc[eventId].tickets.push({
+          ticket_id: ticket.ticket_id.id,
+          ticket_no: ticket.ticket_id.ticket_no,
+          type: ticket.ticket_id.type,
+          status: ticket.ticket_id.status,
+          price: ticket.ticket_id.price,
+          hasPromcode: ticket.ticket_id.hasPromcode,
+          participant_id: ticket.participant_id,
+          qr_code: ticket.ticket_id.qr_code,
+          created_at: ticket.created_at,
+          updated_at: ticket.updated_at,
+        });
+
+        return acc;
+      }, {});
+    };
+
+    if (category === 'upcoming') {
+      tickets = await this.createTicketsRepository.findUpcomingTickets(userId, page, limit);
+      total = await this.createTicketsRepository.countUpcomingTickets(userId);
+    } else if (category === 'past') {
+      tickets = await this.createTicketsRepository.findPastTickets(userId, page, limit);
+      total = await this.createTicketsRepository.countPastTickets(userId);
+    } else if (category === 'gifted') {
+      tickets = await this.createTicketsRepository.findGiftedTickets(userId, page, limit);
+      total = await this.createTicketsRepository.countGiftedTickets(userId);
+    }
+
+    const groupedTickets = groupTickets(tickets);
+
+    return { groupedTickets, total, page, limit };
+  }
+
 
   //        async findByCategory(category:string):Promise<Events[]>{
   //         const event  = await this.createEventRepository.findByCategory(category);

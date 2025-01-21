@@ -5,12 +5,11 @@ import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
 
 @CommandHandler(SpecialGuestCommand)
 export class SpecialGuestCommandHandler
-  implements ICommandHandler<SpecialGuestCommand>
-{
-  constructor(private readonly specialGuestService: SpecialGuestService) {}
+  implements ICommandHandler<SpecialGuestCommand> {
+  constructor(private readonly specialGuestService: SpecialGuestService) { }
 
   async execute(command: SpecialGuestCommand): Promise<SpecialGuest> {
-    const { createSpecialGuestDto } = command;
-    return this.specialGuestService.create(createSpecialGuestDto);
+    const { createSpecialGuestDto, user } = command;
+    return this.specialGuestService.create(createSpecialGuestDto, user);
   }
 }

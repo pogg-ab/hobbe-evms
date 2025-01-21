@@ -10,12 +10,14 @@ export class SpecialGuestRepositoryImpl implements ISpecialGuestRepository {
   constructor(
     @InjectRepository(SpecialGuest)
     private readonly specialGuestRepository: Repository<SpecialGuest>,
-  ) {}
+  ) { }
 
   async create(
-    createSpecialGuestDto: CreateSpecialGuestDto,
+    createSpecialGuestDto: CreateSpecialGuestDto, user: any
   ): Promise<SpecialGuest> {
-    return this.specialGuestRepository.save(createSpecialGuestDto);
+    const newSpecialGuest = this.specialGuestRepository.create(createSpecialGuestDto)
+    newSpecialGuest.created_by = user
+    return this.specialGuestRepository.save(newSpecialGuest);
   }
 
   async findAll(): Promise<SpecialGuest[]> {
@@ -36,31 +38,40 @@ export class SpecialGuestRepositoryImpl implements ISpecialGuestRepository {
       }
       return specialGuest;
     } catch (error) {
-      throw new HttpException(
-        `Error fetching Special Guest with ID ${id}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      if (error instanceof HttpException) {
+        throw error;
+      } else {
+        throw new HttpException(
+          `Error fetching Special Guest with ID ${id}: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
   }
 
   async findByEventId(eventId: string): Promise<SpecialGuest[]> {
     try {
-      const specialGuests = await this.specialGuestRepository.find({
-        where: { event_id: eventId },
-      });
+      const specialGuests = await this.specialGuestRepository
+        .createQueryBuilder('specialGuest')
+        .where('specialGuest.event_id = :eventId', { eventId: eventId.toString() })
+        .getMany();
 
-      if (!specialGuests.length) {
+      if (specialGuests.length === 0) {
         throw new HttpException(
-          `No Special Guests found for Event ID ${eventId}`,
+          `No Special Guests found for this Event`,
           HttpStatus.NOT_FOUND,
         );
       }
       return specialGuests;
     } catch (error) {
-      throw new HttpException(
-        `Error fetching Special Guests for Event ID ${eventId}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      if (error instanceof HttpException) {
+        throw error;
+      } else {
+        throw new HttpException(
+          `Error fetching Special Guests for Event ID ${eventId}: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
   }
 

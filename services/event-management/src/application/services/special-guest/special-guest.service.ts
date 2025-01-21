@@ -1,6 +1,6 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
 import { ISpecialGuestRepository } from 'src/domain/repositories/special-guest/special-guest.repository';
 import { SPECIAL_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/special-guest/special-guest.repository.token';
@@ -12,17 +12,26 @@ export class SpecialGuestService {
     @Inject(SPECIAL_GUEST_REPOSITORY_TOKEN)
     private readonly specialGuestRepository: ISpecialGuestRepository,
     @InjectMapper() private readonly mapper: Mapper,
-  ) {}
+  ) { }
 
   async create(
-    createSpecialGuestDto: CreateSpecialGuestDto,
+    createSpecialGuestDto: CreateSpecialGuestDto, user: any
   ): Promise<SpecialGuest> {
+    const { event_id, guest_user_id } = createSpecialGuestDto;
+
+    const specialGuests = await this.specialGuestRepository.findByEventId(event_id.toString());
+    const isAlreadyConnected = specialGuests.some(guest => guest.guest_user_id === guest_user_id);
+
+    if (isAlreadyConnected) {
+      throw new ConflictException('This guest is already connected to the event.');
+    }
+
     const specialGuest = this.mapper.map(
       createSpecialGuestDto,
       CreateSpecialGuestDto,
       SpecialGuest,
     );
-    return this.specialGuestRepository.create(specialGuest);
+    return this.specialGuestRepository.create(specialGuest, user);
   }
 
   async findAll(): Promise<SpecialGuest[]> {

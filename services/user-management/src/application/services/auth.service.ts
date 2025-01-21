@@ -36,7 +36,7 @@ export class AuthService {
     private readonly adminUserRoleRepository: Repository<AdminUserRole>,
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userWithAccountRepository: IUserRepository,
-  ) {}
+  ) { }
 
   async validateUser(user_name: string, password: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
@@ -281,7 +281,7 @@ export class AuthService {
         <p>Dear ${recipient},</p>
         <p>We have received a request to reset your password for your Hobbe EVMS account. If you did not make this request, please ignore this email.</p>
         <p>To reset your password, please click the button below:</p>
-        <p><a href="http://yourapp.com/reset-password?token=${token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Your Password</a></p>
+        <p><a href="hobbe_evms_app://reset-password?token=${token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Your Password</a></p>
         <p>The reset link will expire at <strong>${expiryTime}</strong>. If you do not reset your password by this time, the link will no longer be valid.</p>
         <p>If you have any trouble, feel free to contact our support team for assistance.</p>
         <br>

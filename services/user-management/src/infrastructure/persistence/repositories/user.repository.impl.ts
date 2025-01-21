@@ -8,7 +8,7 @@ export class UserRepositoryImpl implements IUserRepository {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {}
+  ) { }
 
   async create(user: User): Promise<User> {
     try {
@@ -46,6 +46,64 @@ export class UserRepositoryImpl implements IUserRepository {
     } catch (error) {
       throw new HttpException(
         `Error finding User by ID: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findByIdWithAccountInfo(userId: string): Promise<any | null> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { user_id: userId },
+        relations: ['personal_account', 'organizational_account'],
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      const userAccountInfo = {
+        user_id: user.user_id,
+        user_name: user.user_name,
+        account_type: user.account_type,
+        account_info:
+          user.account_type === 'personal'
+            ? user.personal_account
+            : user.organizational_account,
+      };
+
+      return userAccountInfo;
+    } catch (error) {
+      throw new HttpException(
+        `Error finding User by ID: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findAllUsers(): Promise<any | null> {
+    try {
+      const user = await this.userRepository.find({
+        relations: ['personal_account', 'organizational_account'],
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      const userAccountInfo = user.map(user => ({
+        user_id: user.user_id,
+        user_name: user.user_name,
+        account_type: user.account_type,
+        account_info:
+          user.account_type === 'personal'
+            ? user.personal_account
+            : user.organizational_account,
+      }));
+      return userAccountInfo;
+    } catch (error) {
+      throw new HttpException(
+        `Error finding Users: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

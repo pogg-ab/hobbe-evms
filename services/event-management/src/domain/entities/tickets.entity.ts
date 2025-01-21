@@ -91,5 +91,17 @@ export class Tickets {
 
   @ManyToOne(() => Promocodes, (promocode) => promocode.id)
   @JoinColumn({ name: 'promocode_id' })
-  promocode_id: Promocodes;      
+  promocode_id: Promocodes;
+
+  @Column({ nullable: true })
+  created_by: string;
+
+  @Column({ nullable: true })
+  updated_by: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  created_at: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  updated_at: Date;
 }
