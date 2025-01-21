@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -15,9 +16,10 @@ import { PersonalAccountID } from '../value-objects/personal-account-id.value-ob
 import { UserID } from '../value-objects/user-id.value-object';
 import { OrganizationalAccount } from './organizational-account.entity';
 import { PersonalAccount } from './personal-account.entity';
+import { Favorite } from './favorite.entity';
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn('uuid',)
   user_id: UserID;
 
   @Column({ unique: true })
@@ -71,4 +73,10 @@ export class User {
 
   @UpdateDateColumn()
   updated_date: Date;
+
+  @OneToMany(() => Favorite, (favorite) => favorite.user)
+  favorites: Favorite[];
+
+  @OneToMany(() => Favorite, (favorite) => favorite.favoriteUser)
+  favoritedBy: Favorite[];
 }
