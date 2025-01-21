@@ -38,6 +38,8 @@ export class EventsService {
     private readonly socket: SocketIo
   ) { }
 
+
+
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
     const mappedEvent = this.mapper.map(
       createEventsDto,
@@ -266,4 +268,16 @@ export class EventsService {
     });
   }
 
+
+
+    async update(id: string, updateEventsDto: UpdateEventsDto): Promise<Events> {
+        const event = await this.findOne(id);
+        const updatedEvent = this.mapper.map(updateEventsDto, UpdateEventsDto, Events);
+        await this.createEventRepository.update(id, updatedEvent);
+        return updatedEvent;
+    }
+
+    async delete(id: string): Promise<void> {
+        await this.createEventRepository.delete(id);
+    }
 }
