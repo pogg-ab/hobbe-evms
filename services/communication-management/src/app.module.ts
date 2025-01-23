@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ChatModule } from './modules/firebase/chat/chat.module';
 
 @Module({
-  imports: [ChatModule],
+  imports: [],
   controllers: [AppController],
   providers: [AppService],
 })
