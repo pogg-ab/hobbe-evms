@@ -34,7 +34,6 @@ import { FavoriteModule } from './modules/favorite/favorite.module';
     CommentsModule,
     TicketBookingModule,
     SocketIoModule,
-   
   ],
 })
 export class AppModule {}
