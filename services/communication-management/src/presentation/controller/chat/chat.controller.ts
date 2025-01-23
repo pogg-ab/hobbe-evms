@@ -6,11 +6,17 @@ import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateChatDto } from 'src/presentation/dto/chat/create-chat.dto';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { CreateChatCommand } from 'src/application/commands/chat/create-chat.command';
 
 @ApiTags('Chat')
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly commandBus:CommandBus,
+    private readonly queryBus:QueryBus,
+    private readonly chatService: ChatService,
+  ) {}
 
   @ApiBody({ type: CreateChatDto })
   @ApiOperation({ description: 'Create a new Chat' })
@@ -20,15 +26,14 @@ export class ChatController {
   })
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Post(':room/send')
+  @Post('send')
   async sendMessage(
-    @Param('room') room: string,
-    @Body() message:{text:string} ,
+    @Body() createChatDto:CreateChatDto ,
     @CurrentUserId() user: any,
-  ) {
-    const messageMetaData = { sender: user.user.user_id.toString(),  message };
-    await this.chatService.sendMessage(room, messageMetaData);
-    return { success: true };
+  ):Promise<{message:string}> {
+    
+    await this.commandBus.execute(new CreateChatCommand(user.user.user_id.toString(),createChatDto));
+    return  {message:"Sent message successfully !"}
   }
 
   @Get(':room/messages')

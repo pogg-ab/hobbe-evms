@@ -1,15 +1,27 @@
-import { Inject, Module } from '@nestjs/common';
-import { ClientKafka, ClientsModule } from '@nestjs/microservices';
-import { ChatService } from 'src/application/services/chat/chat.service';
-import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
-import { ChatController } from 'src/presentation/controller/chat/chat.controller';
-import { JwtModule } from '@nestjs/jwt';
-import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
-import { UserValidationService } from 'src/application/services/chat/user-validation.service';
-import { JwtStrategy } from './jwt.strategy';
+import { AutomapperModule } from "@automapper/nestjs";
+import { Inject, Module } from "@nestjs/common";
+import { CqrsModule } from "@nestjs/cqrs";
+import { JwtModule } from "@nestjs/jwt";
+import { ClientKafka, ClientsModule } from "@nestjs/microservices";
+import { PassportModule } from "@nestjs/passport";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { CreateChatCommandHandler } from "src/application/handlers/chat/create-chat.handler";
+import { ChatProfile } from "src/application/mappers/create-chat.profile";
+import { ChatService } from "src/application/services/chat/chat.service";
+import { UserValidationService } from "src/application/services/chat/user-validation.service";
+import { Chat } from "src/domain/entities/chat.entity";
+import { kafkaProducerConfig } from "src/infrastructure/kafka/kafka.config";
+import { KafkaProducerService } from "src/infrastructure/kafka/kafka.producer.servicce";
+import { ChatController } from "src/presentation/controller/chat/chat.controller";
+import { JwtStrategy } from "./jwt.strategy";
+import { CHAT_REPOSITORY_TOKEN } from "src/domain/repositories/chat/chat.repository.token";
+import { ChatRepositoryImpl } from "src/infrastructure/persistance/repository/chat.repository.impl";
+
 
 @Module({
   imports: [
+    AutomapperModule,
+    PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '60s' },
@@ -21,15 +33,28 @@ import { JwtStrategy } from './jwt.strategy';
         options: kafkaProducerConfig.options,
       },
     ]),
+    TypeOrmModule.forFeature([Chat]),
+    CqrsModule,
   ],
-  providers: [KafkaProducerService,
+  controllers: [
+   ChatController
+
+  ],
+  providers: [
+    ChatService,
+    CreateChatCommandHandler,
+    KafkaProducerService,
+    ChatProfile,
     UserValidationService,
     JwtStrategy,
-    ChatService],
-  controllers: [ChatController],
+    {
+      provide: CHAT_REPOSITORY_TOKEN,
+      useClass: ChatRepositoryImpl,
+    },
+  ],
 })
 export class ChatModule {
-  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) {}
+  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) { }
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');
