@@ -2,11 +2,17 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsUUID } from 'class-validator';
 
 export class CreateFavoriteDto {
-  @ApiProperty({ description: 'ID of the user who is favoriting another user', example: 'd7f6b8c5-36b4-4ef7-a9ec-f9a9a6c7c4ec' })
-  @IsUUID()
-  userId: string;
+    @ApiProperty({
+        description: 'The user ID of the user who is marking another user as a favorite (UUID format)',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    })
+    @IsUUID()
+    favoriting_user_id: string;
 
-  @ApiProperty({ description: 'ID of the user being favorited', example: 'b5e21a34-3c9d-49b3-a06d-7321caa6c14f' })
-  @IsUUID()
-  favoriteUserId: string;
+    @ApiProperty({
+        description: 'The user ID of the user being marked as a favorite (UUID format)',
+        example: '678e4567-e89b-12d3-a456-426614174001',
+    })
+    @IsUUID()
+    favorited_user_id: string;
 }

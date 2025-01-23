@@ -1,8 +1,10 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  ManyToOne,
   Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { FavoriteID } from '../value-objects/favorite-id.value-object';
@@ -12,12 +14,14 @@ export class Favorite {
   @PrimaryGeneratedColumn('uuid')
   favorite_id: FavoriteID;
 
-  @ManyToOne(() => User, (user) => user.favorites, { eager: true })
-  user: User;
+  @ManyToOne(() => User, { cascade: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'favoriting_user_id' })
+  favoriting_user: User;
 
-  @ManyToOne(() => User, (user) => user.favoritedBy, { eager: true })
-  favoriteUser: User;
+  @ManyToOne(() => User, { cascade: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'favorited_user_id' })
+  favorited_user: User;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  @CreateDateColumn()
+  created_date: Date;
 }

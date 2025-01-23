@@ -1,15 +1,14 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { GetFavoritesQuery } from 'src/application/queries/favorite/get-favorites.query';
-import { FavoriteService } from 'src/application/services/favorite.service';
-import { CreateFavoriteDto } from 'src/presentation/dtos/create-favorite.dto';
+import { FindUserFavoritesQuery } from 'src/application/queries/favorite/get-favorites.query';
+import { FavoriteService } from 'src/application/services/favorite.service';  // Assuming the service exists
+import { Favorite } from 'src/domain/entities/favorite.entity';
 
-@QueryHandler(GetFavoritesQuery)
-export class GetFavoritesQueryHandler
-  implements IQueryHandler<GetFavoritesQuery>
-{
+@QueryHandler(FindUserFavoritesQuery)
+export class FindUserFavoritesQueryHandler
+  implements IQueryHandler<FindUserFavoritesQuery> {
   constructor(private readonly favoriteService: FavoriteService) {}
 
-  async execute(query: GetFavoritesQuery): Promise<CreateFavoriteDto[]> {
-    return this.favoriteService.getFavorites(query.userId);
+  async execute(query: FindUserFavoritesQuery): Promise<Favorite[]> {
+    return this.favoriteService.findUserFavorites(query.userId);  
   }
 }
