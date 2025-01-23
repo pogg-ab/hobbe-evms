@@ -1,0 +1,1 @@
+export const SMS_REPOSITORY_TOKEN = 'SMS_REPOSITORY';

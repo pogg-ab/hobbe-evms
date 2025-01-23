@@ -8,13 +8,14 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { SMSID } from '../value-objects/sms-id.value-object';
 import { User } from './user.entity';
 
 @Entity()
 @Index('idx_sms_user_id', ['user_id'])
 export class SMS {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id: SMSID;
 
   @Column({ type: 'varchar', length: 15 })
   recipient: string;
