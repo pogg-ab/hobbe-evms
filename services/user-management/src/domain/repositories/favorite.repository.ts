@@ -1,9 +1,10 @@
-import { CreateFavoriteDto } from 'src/presentation/dtos/create-favorite.dto';
 import { Favorite } from '../entities/favorite.entity';
+import { FavoriteID } from '../value-objects/favorite-id.value-object';
 
 export interface IFavoriteRepository {
-  addFavorite(favorite: Favorite): Promise<Favorite>;
-  removeFavorite(favorite: Favorite): Promise<void>;
-  findFavoritesByUserId(userId: string): Promise<Favorite[]>;
-  findUsersWhoFavorited(userId: string): Promise<Favorite[]>;
+    create(favorite: Favorite): Promise<Favorite>;
+    findAllByUserId(userId: string): Promise<Favorite[]>;
+    delete(id: string): Promise<void>;
+    findByFavoritingAndFavorited(favoritingUserId: string, favoritedUserId: string): Promise<Favorite | null>;
+    findAllFavoritedByUserId(userId: string): Promise<Favorite[]>; 
 }

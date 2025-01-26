@@ -1,65 +1,93 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Favorite } from 'src/domain/entities/favorite.entity';
-import { User } from 'src/domain/entities/user.entity';
 import { IFavoriteRepository } from 'src/domain/repositories/favorite.repository';
+import { Repository } from 'typeorm';
 
 @Injectable()
-export class FavoriteRepository implements IFavoriteRepository {
+export class FavoriteRepositoryImpl implements IFavoriteRepository {
   constructor(
     @InjectRepository(Favorite)
     private readonly favoriteRepository: Repository<Favorite>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-  ) {}
+  ) { }
 
-  // Add a favorite to the database
-  async addFavorite(favorite: Favorite): Promise<Favorite> {
-    const { user, favoriteUser } = favorite;
-
-    const existingUser = await this.userRepository.findOne({
-      where: { user_id: user.user_id },
-    });
-
-    const existingFavoriteUser = await this.userRepository.findOne({
-      where: { user_id: favoriteUser.user_id },
-    });
-
-    if (!existingUser || !existingFavoriteUser) {
-      throw new Error('Invalid user or favorite user ID.');
+  async create(favorite: Favorite): Promise<Favorite> {
+    try {
+      const newFavorite = this.favoriteRepository.create(favorite);
+      return await this.favoriteRepository.save(newFavorite);
+    } catch (error) {
+      throw new HttpException(
+        `Error creating Favorite: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-
-    const newFavorite = this.favoriteRepository.create({
-      user: existingUser,
-      favoriteUser: existingFavoriteUser,
-      createdAt: new Date(),
-    });
-
-    return this.favoriteRepository.save(newFavorite);
   }
 
-  // Remove a favorite from the database
-  async removeFavorite(favorite: Favorite): Promise<void> {
-    await this.favoriteRepository.delete({
-      user: { user_id: favorite.user.user_id },
-      favoriteUser: { user_id: favorite.favoriteUser.user_id },
-    });
+  async findAllByUserId(userId: string): Promise<Favorite[]> {
+    try {
+      return await this.favoriteRepository.find({
+        where: [
+          { favoriting_user: { user_id: userId } },
+          { favorited_user: { user_id: userId } },
+        ],
+      });
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Favorites for user with ID ${userId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  async delete(id: string): Promise<void> {
+    try {
+      const favoriteToDelete = await this.favoriteRepository.findOne({
+        where: { favorite_id: id },
+      });
+      if (!favoriteToDelete) {
+        throw new HttpException(
+          `Favorite with ID ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await this.favoriteRepository.delete(id);
+    } catch (error) {
+      throw new HttpException(
+        `Error deleting Favorite: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
-  // Get the list of favorites for a user
-  async findFavoritesByUserId(userId: string): Promise<Favorite[]> {
-    return this.favoriteRepository.find({
-      where: { user: { user_id: userId } },
-      relations: ['favoriteUser'],
-    });
+  async findByFavoritingAndFavorited(
+    favoritingUserId: string,
+    favoritedUserId: string,
+  ): Promise<Favorite | null> {
+    try {
+      return await this.favoriteRepository.findOne({
+        where: [
+          { favoriting_user: { user_id: favoritingUserId }, favorited_user: { user_id: favoritedUserId } },
+          { favoriting_user: { user_id: favoritedUserId }, favorited_user: { user_id: favoritingUserId } },
+        ],
+      });
+    } catch (error) {
+      throw new HttpException(
+        `Error finding Favorite for favoritingUserId ${favoritingUserId} and favoritedUserId ${favoritedUserId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
-  // Get users who favorited a specific user
-  async findUsersWhoFavorited(userId: string): Promise<Favorite[]> {
-    return this.favoriteRepository.find({
-      where: { favoriteUser: { user_id: userId } },
-      relations: ['user'],
-    });
+  async findAllFavoritedByUserId(userId: string): Promise<Favorite[]> {
+    try {
+      return await this.favoriteRepository.find({
+        where: { favorited_user: { user_id: userId } },
+      });
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching all users who favorited user with ID ${userId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

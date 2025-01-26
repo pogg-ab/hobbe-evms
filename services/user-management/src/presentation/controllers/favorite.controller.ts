@@ -1,47 +1,85 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AddFavoriteCommand } from 'src/application/commands/favorite/add-favorite.command';
-import { RemoveFavoriteCommand } from 'src/application/commands/favorite/remove-favorite.command';
-import { GetFavoritedByQuery } from 'src/application/queries/favorite/get-favorited-by.query';
-import { GetFavoritesQuery } from 'src/application/queries/favorite/get-favorites.query';
-import { CreateFavoriteDto } from '../dtos/create-favorite.dto';
 import { Favorite } from 'src/domain/entities/favorite.entity';
+import { CreateFavoriteDto } from '../dtos/create-favorite.dto';
+import { CreateFavoriteCommand } from 'src/application/commands/favorite/add-favorite.command';
+import { RemoveFavoriteCommand } from 'src/application/commands/favorite/remove-favorite.command';
+import { FindUserFavoritesQuery } from 'src/application/queries/favorite/get-favorites.query';
+import { FindFavoritedByQuery } from 'src/application/queries/favorite/get-favorited-by.query';
 
 @ApiTags('Favorites')
 @Controller('favorites')
-export class FavoritesController {
-  constructor(private readonly commandBus: CommandBus, private readonly queryBus: QueryBus) {}
+export class FavoriteController {
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
-  @ApiOperation({ description: 'Add a user to favorites' })
-  @ApiResponse({ type: CreateFavoriteDto })
-  @HttpCode(200)
   @Post()
-  async addFavorite(
+  @ApiOperation({ summary: 'Mark a user as favorite' })
+  @ApiBody({ type: CreateFavoriteDto })
+  @HttpCode(201)
+  @ApiResponse({
+    status: 201,
+    description: 'Favorite relationship created successfully',
+    type: Favorite,
+  })
+  async createFavorite(
     @Body() createFavoriteDto: CreateFavoriteDto,
   ): Promise<{ message: string; favorite: Favorite }> {
-    const favorite = await this.commandBus.execute(new AddFavoriteCommand(createFavoriteDto));
-    return { message: 'User has been added to favorites.', favorite: favorite };
+    const command = new CreateFavoriteCommand(createFavoriteDto);
+    const favorite = await this.commandBus.execute(command);
+
+    return {
+      message: 'Favorite relationship created successfully',
+      favorite,
+    };
   }
 
-  @ApiOperation({ description: 'Remove a user from favorites' })
-  @HttpCode(200)
-  @Delete()
-  async removeFavorite(@Body() createFavoriteDto: CreateFavoriteDto): Promise<void> {
-    await this.commandBus.execute(new RemoveFavoriteCommand(createFavoriteDto));
+  @Delete(':favoritingUserId/:favoritedUserId')
+  @ApiOperation({ summary: 'Remove a favorite relationship' })
+  @ApiResponse({
+    status: 200,
+    description: 'Favorite relationship removed successfully',
+  })
+  async removeFavorite(
+    @Param('favoritingUserId') favoritingUserId: string,
+    @Param('favoritedUserId') favoritedUserId: string,
+  ): Promise<{ message: string }> {
+    const command = new RemoveFavoriteCommand(favoritingUserId, favoritedUserId);
+    await this.commandBus.execute(command);
+
+    return { message: 'Favorite relationship removed successfully' };
   }
 
-  @ApiOperation({ description: 'Get all favorite users for a given user' })
-  @HttpCode(200)
   @Get(':userId')
-  async getFavorites(@Param('userId') userId: string): Promise<CreateFavoriteDto[]> {
-    return await this.queryBus.execute(new GetFavoritesQuery(userId));
+  @ApiOperation({ summary: 'Get all favorite users for a given user' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all users favorited by the given user',
+    type: [Favorite],
+  })
+  async findUserFavorites(@Param('userId') userId: string): Promise<Favorite[]> {
+    return this.queryBus.execute(new FindUserFavoritesQuery(userId));
   }
 
-  @ApiOperation({ description: 'Get all users who favorited the given user' })
-  @HttpCode(200)
   @Get('favorited-by/:userId')
-  async getFavoritedBy(@Param('userId') userId: string): Promise<CreateFavoriteDto[]> {
-    return await this.queryBus.execute(new GetFavoritedByQuery(userId));
+  @ApiOperation({ summary: 'Get all users who favorited a given user' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all users who marked the given user as a favorite',
+    type: [Favorite],
+  })
+  async findFavoritedBy(@Param('userId') userId: string): Promise<Favorite[]> {
+    return this.queryBus.execute(new FindFavoritedByQuery(userId));
   }
 }
