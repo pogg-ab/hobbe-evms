@@ -21,8 +21,12 @@ export class FavoriteEventService {
            const favorite = await this.favoriteEventsRepository.favoriteEvent(user_id, event_id);
            const allFavoritesCounter = this.favoriteEventsRepository.allFavoritesCounter();
            const eventFavoritesCounter = this.favoriteEventsRepository.eventFavoritesCounter(event_id);
-           this.socket.handleAllEventLikesCounter("All-Time-Likes-Counters : "+(await allFavoritesCounter).totalFavorites);
-           this.socket.handleSigleEventLikesCounter({'event_id':event_id, counter:(await eventFavoritesCounter).totalEventFavorites});
+           this.socket.handleAllEventFavoritesCounter("All-Time-Favorites-Counters : "+(await allFavoritesCounter).totalFavorites);
+           this.socket.handleSigleEventFavoritesCounter({'event_id':event_id, counter:(await eventFavoritesCounter).totalEventFavorites});
            return favorite;
     }
+
+    async getFavoriteEvents(user: string) {
+        return this.favoriteEventsRepository.getFavoriteEvents(user);
+      }
 }

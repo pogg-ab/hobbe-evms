@@ -1,10 +1,9 @@
-// src/domain/entities/user.entity.ts
-
 import {
   Column,
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -17,7 +16,7 @@ import { OrganizationalAccount } from './organizational-account.entity';
 import { PersonalAccount } from './personal-account.entity';
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn('uuid',)
   user_id: UserID;
 
   @Column({ unique: true })

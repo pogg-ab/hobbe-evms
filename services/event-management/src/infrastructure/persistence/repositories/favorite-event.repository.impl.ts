@@ -101,4 +101,11 @@ export class FavoriteEventRepositoryImpl implements IFavoriteEventsRepository {
     const allFavoritesCounter = await this.favoriteEventRepository.count();
     return { totalFavorites: allFavoritesCounter };
   }
+
+  async getFavoriteEvents(user:string):Promise<Favorite[]>{
+    return this.favoriteEventRepository.find({
+      where: { user_id:user },
+      relations: ['event_id'],
+    });
+  }
 }

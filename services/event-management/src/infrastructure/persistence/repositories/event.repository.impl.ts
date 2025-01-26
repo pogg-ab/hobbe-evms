@@ -203,13 +203,14 @@ export class EventRepositoryEmpl implements IEventRepository {
     return events;
   }
 
-  async findByDateRange(startOfDay: Date, endOfDay: Date): Promise<Events[] | []> {
-    const events = await this.eventRepository.find({
-      where: { event_start_date: Between(startOfDay, endOfDay) },
-      order: {
-        event_start_date: 'DESC', // or 'DESC' for descending order
-      },
-    });
+
+  async findByDateRange(startOfDay: Date, endOfDay:Date): Promise<Events[] | []> {
+      const events = await this.eventRepository.find({
+        where: { event_start_date: Between(startOfDay,endOfDay) },
+        order: {
+          event_start_date: 'DESC', // or 'DESC' for descending order
+        },
+      });
 
     // Check if no events were found
     if (events.length === 0) {
