@@ -13,12 +13,17 @@ export class EmailService {
     private readonly emailRepository: IEmailRepository,
 
     @InjectMapper() private readonly mapper: Mapper,
-  ) {}
+  ) { }
 
-  async sendEmail(createEmailDto: CreateEmailDto): Promise<void> {
-    const email = this.mapper.map(createEmailDto, CreateEmailDto, Email);
-
-    await this.emailRepository.save(email);
+  async sendEmail(createEmailDto: CreateEmailDto): Promise<{ success: boolean; message: string }> {
+    try {
+      const email = this.mapper.map(createEmailDto, CreateEmailDto, Email);
+      await this.emailRepository.save(email);
+      return { success: true, message: 'Email sent successfully' };
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      return { success: false, message: 'Failed to send email' };
+    }
   }
 
   async getAllEmails(): Promise<Email[]> {

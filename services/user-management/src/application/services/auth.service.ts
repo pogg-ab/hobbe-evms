@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -16,16 +16,26 @@ import { AccessToken } from 'src/domain/value-objects/access-token.value-object'
 import { RefreshToken } from 'src/domain/value-objects/refresh-token.value-object';
 import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
 import { Repository } from 'typeorm';
+import { EmailService } from './email.service';
+import { SMSSenderService } from './sms-sender.service';
+import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
+import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(PersonalAccount)
+    private readonly personalAccountRepository: Repository<PersonalAccount>,
+    @InjectRepository(OrganizationalAccount)
+    private readonly organizationalAccountRepository: Repository<OrganizationalAccount>,
     @InjectRepository(Auth)
     private readonly authRepository: Repository<Auth>,
     private jwtService: JwtService,
     private readonly emailRepository: EmailRepositoryImpl,
+    private readonly smsSenderService: SMSSenderService,
+    private readonly emailService: EmailService,
     @InjectRepository(UserRole)
     private readonly userRoleRepository: Repository<UserRole>,
     @InjectRepository(AdminUser)
@@ -456,6 +466,27 @@ export class AuthService {
       );
     }
   }
+  private async getPhoneNumberByAccount(user: User): Promise<string> {
+    let phoneNumberToUse: string;
+
+    const organizationalAccount = await this.organizationalAccountRepository.findOne({
+      where: { organizational_account_id: user.organizational_account },
+    });
+
+    const personalAccount = await this.personalAccountRepository.findOne({
+      where: { personal_account_id: user.personal_account },
+    });
+
+    if (organizationalAccount) {
+      phoneNumberToUse = organizationalAccount.company_phone_number || '';
+    } else if (personalAccount) {
+      phoneNumberToUse = personalAccount.phone_number || '';
+    } else {
+      throw new Error('No valid account found for this user.');
+    }
+
+    return phoneNumberToUse;
+  }
 
   async resendOTP(user_name: string) {
     try {
@@ -472,8 +503,31 @@ export class AuthService {
       user.otp_expiry = otpExpiry;
       await this.userRepository.save(user);
 
-      const email = this.createOtpEmail(user.user_name, otp);
-      await this.emailRepository.save(email);
+
+      const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
+      const phoneNumber = await this.getPhoneNumberByAccount(user);
+
+      const smsResponse = await this.smsSenderService.sendSMS(
+        phoneNumber,
+        smsMessage,
+        user,
+        'OTP',
+        null,
+      );
+
+      if ('error' in smsResponse) {
+        const email = this.createOtpEmail(user.user_name, otp);
+        const emailResponse = await this.emailService.sendEmail(email);
+
+        if (!emailResponse) {
+          throw new InternalServerErrorException(
+            `Failed to send OTP via SMS and email. ${smsResponse.error ? `SMS failed: ${smsResponse.error}` : ''} ${emailResponse ? '' : 'Email sending failed.'}`
+          );
+        }
+
+      }
+
+
 
       return { message: 'OTP resent successfully.' };
     } catch (error) {

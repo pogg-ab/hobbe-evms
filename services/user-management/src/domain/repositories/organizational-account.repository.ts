@@ -1,8 +1,9 @@
+import { EntityManager } from 'typeorm';
 import { OrganizationalAccount } from '../entities/organizational-account.entity';
 import { OrganizationalAccountID } from '../value-objects/organizational-account-id.value-object';
 
 export interface IOrganizationalAccountRepository {
-  create(
+  create(manager: EntityManager,
     organizationalAccount: OrganizationalAccount,
   ): Promise<OrganizationalAccount>;
   find(): Promise<OrganizationalAccount[]>;

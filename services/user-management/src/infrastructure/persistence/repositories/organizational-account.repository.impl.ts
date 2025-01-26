@@ -3,26 +3,23 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { IOrganizationalAccountRepository } from 'src/domain/repositories/organizational-account.repository';
 import { OrganizationalAccountID } from 'src/domain/value-objects/organizational-account-id.value-object';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class OrganizationalAccountRepositoryImpl
-  implements IOrganizationalAccountRepository
-{
+  implements IOrganizationalAccountRepository {
   constructor(
     @InjectRepository(OrganizationalAccount)
     private readonly organizationalAccountRepository: Repository<OrganizationalAccount>,
-  ) {}
+  ) { }
 
-  async create(
+  async create(manager: EntityManager,
     organizationalAccount: OrganizationalAccount,
   ): Promise<OrganizationalAccount> {
     try {
       const newOrganizationalAccount =
         this.organizationalAccountRepository.create(organizationalAccount);
-      return await this.organizationalAccountRepository.save(
-        newOrganizationalAccount,
-      );
+      return await manager.save(newOrganizationalAccount);
     } catch (error) {
       throw new HttpException(
         `Error creating Organizational Account: ${error.message}`,

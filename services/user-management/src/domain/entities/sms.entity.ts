@@ -12,7 +12,6 @@ import { SMSID } from '../value-objects/sms-id.value-object';
 import { User } from './user.entity';
 
 @Entity()
-@Index('idx_sms_user_id', ['user_id'])
 export class SMS {
   @PrimaryGeneratedColumn('uuid')
   id: SMSID;
@@ -44,9 +43,6 @@ export class SMS {
   @ManyToOne(() => User, { cascade: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
-
-  @Column()
-  user_id: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   message_type: 'TEXT' | 'MMS' | 'OTP' | null;

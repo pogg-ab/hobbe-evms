@@ -19,6 +19,14 @@ import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { EmailModule } from '../email/email.module';
 import { JwtStrategy } from './jwt.strategy';
+import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
+import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
+import { SMS_REPOSITORY_TOKEN } from 'src/domain/repositories/sms.repository.token';
+import { SMSRepositoryImpl } from 'src/infrastructure/persistence/repositories/sms.repository.impl';
+import { SMSSenderService } from 'src/application/services/sms-sender.service';
+import { EmailService } from 'src/application/services/email.service';
+import { SMSProvider } from 'src/infrastructure/sms/sms.provider';
+import { SMS } from 'src/domain/entities/sms.entity';
 
 @Module({
   imports: [
@@ -30,6 +38,9 @@ import { JwtStrategy } from './jwt.strategy';
       AdminUserRole,
       Auth,
       AdminUserAuth,
+      PersonalAccount,
+      OrganizationalAccount,
+      SMS
     ]),
     PassportModule,
     EmailModule,
@@ -41,6 +52,9 @@ import { JwtStrategy } from './jwt.strategy';
   providers: [
     AuthService,
     JwtStrategy,
+    SMSSenderService,
+    EmailService,
+    SMSProvider,
     {
       provide: EMAIL_REPOSITORY_TOKEN,
       useClass: EmailRepositoryImpl,
@@ -48,6 +62,10 @@ import { JwtStrategy } from './jwt.strategy';
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,
+    },
+    {
+      provide: SMS_REPOSITORY_TOKEN,
+      useClass: SMSRepositoryImpl,
     },
     {
       provide: 'KAFKA_CONSUMER',
@@ -65,4 +83,4 @@ import { JwtStrategy } from './jwt.strategy';
   ],
   controllers: [AuthController],
 })
-export class AuthModule {}
+export class AuthModule { }

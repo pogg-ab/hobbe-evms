@@ -32,17 +32,26 @@ import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/
 import { PersonalAccountController } from 'src/presentation/controllers/personal-account.controller';
 import { PersonalAccountService } from '../../application/services/personal-account.service';
 import { EmailModule } from '../email/email.module';
+import { SMSSenderService } from 'src/application/services/sms-sender.service';
+import { SMS } from 'src/domain/entities/sms.entity';
+import { SMS_REPOSITORY_TOKEN } from 'src/domain/repositories/sms.repository.token';
+import { SMSRepositoryImpl } from 'src/infrastructure/persistence/repositories/sms.repository.impl';
+import { SMSProvider } from 'src/infrastructure/sms/sms.provider';
+import { EmailService } from 'src/application/services/email.service';
 
 @Module({
   imports: [
     AutomapperModule,
     EmailModule,
-    TypeOrmModule.forFeature([PersonalAccount, User, Email, Role, UserRole]),
+    TypeOrmModule.forFeature([PersonalAccount, User, Email, Role, UserRole, SMS]),
     CqrsModule,
   ],
   controllers: [PersonalAccountController],
   providers: [
     PersonalAccountService,
+    SMSSenderService,
+    EmailService,
+    SMSProvider,
     CreatePersonalAccountCommandHandler,
     FindAllPersonalAccountsQueryHandler,
     FindPersonalAccountByIdQueryHandler,
@@ -74,6 +83,10 @@ import { EmailModule } from '../email/email.module';
       provide: ROLE_REPOSITORY_TOKEN,
       useClass: RoleRepositoryImpl,
     },
+    {
+      provide: SMS_REPOSITORY_TOKEN,
+      useClass: SMSRepositoryImpl,
+    },
   ],
 })
-export class PersonalAccountModule {}
+export class PersonalAccountModule { }
