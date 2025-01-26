@@ -5,7 +5,7 @@ import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { DataSource, EntityManager, Equal, Not, Repository } from 'typeorm';
+import { DataSource, EntityManager, Equal, Repository } from 'typeorm';
 
 @Injectable()
 export class TicketsRepositoryEmpl implements ITicketsRepository {
@@ -333,24 +333,6 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     } catch (error) {
       throw new HttpException(
         `Error counting gifted tickets: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async countAllTicketsForEvent(
-    manager: EntityManager,
-    eventId: string,
-  ): Promise<number> {
-    try {
-      const count = await manager
-        .getRepository(Tickets)
-        .count({ where: { event_id: Equal(eventId), status: Not('New'), } });
-
-      return count;
-    } catch (error) {
-      throw new HttpException(
-        `Error counting tickets for Event ID ${eventId}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

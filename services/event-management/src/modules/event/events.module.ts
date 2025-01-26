@@ -38,10 +38,6 @@ import { CountMyEventCommandHandler } from 'src/application/handlers/analytics/c
 import { SingleEventAnalyticsCommandHandler } from 'src/application/handlers/analytics/single-event-analytics.handler';
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { GetEventRemainingTimeQueryHandler } from 'src/application/handlers/events/get-event-remaining-time.query-handler';
-import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
-import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets.repository.impl';
-import { Tickets } from 'src/domain/entities/tickets.entity';
-import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 
 
 @Module({
@@ -63,7 +59,7 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
         options: kafkaProducerConfig.options,
       },
     ]),
-    TypeOrmModule.forFeature([Events, Tickets, ParticipantHasTicket]),
+    TypeOrmModule.forFeature([Events]),
     CqrsModule,
   ],
   controllers: [
@@ -98,10 +94,6 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
       useClass: EventRepositoryEmpl,
-    },
-    {
-      provide: CREATE_TICKET_REPOSITORY_TOKEN,
-      useClass: TicketsRepositoryEmpl,
     },
   ],
 })
