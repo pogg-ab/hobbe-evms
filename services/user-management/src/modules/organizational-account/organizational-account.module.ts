@@ -28,6 +28,12 @@ import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/
 import { OrganizationalAccountService } from '../../application/services/organizational-account.service';
 import { OrganizationalAccountController } from '../../presentation/controllers/organizational-account.controller';
 import { EmailModule } from '../email/email.module';
+import { SMS } from 'src/domain/entities/sms.entity';
+import { SMSSenderService } from 'src/application/services/sms-sender.service';
+import { EmailService } from 'src/application/services/email.service';
+import { SMS_REPOSITORY_TOKEN } from 'src/domain/repositories/sms.repository.token';
+import { SMSRepositoryImpl } from 'src/infrastructure/persistence/repositories/sms.repository.impl';
+import { SMSProvider } from 'src/infrastructure/sms/sms.provider';
 
 @Module({
   imports: [
@@ -41,11 +47,15 @@ import { EmailModule } from '../email/email.module';
       KYC,
       User,
       Email,
+      SMS
     ]),
   ],
   controllers: [OrganizationalAccountController],
   providers: [
     OrganizationalAccountService,
+    SMSSenderService,
+    EmailService,
+    SMSProvider,
     CreateOrganizationalAccountCommandHandler,
     FindAllOrganizationalAccountsQueryHandler,
     FindOrganizationalAccountByIdQueryHandler,
@@ -75,6 +85,10 @@ import { EmailModule } from '../email/email.module';
       provide: EMAIL_REPOSITORY_TOKEN,
       useClass: EmailRepositoryImpl,
     },
+    {
+      provide: SMS_REPOSITORY_TOKEN,
+      useClass: SMSRepositoryImpl,
+    },
   ],
 })
-export class OrganizationalAccountModule {}
+export class OrganizationalAccountModule { }

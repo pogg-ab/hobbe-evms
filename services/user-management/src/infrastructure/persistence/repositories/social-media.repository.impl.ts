@@ -2,19 +2,19 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SocialMedia } from 'src/domain/entities/social-media.entity';
 import { ISocialMediaRepository } from 'src/domain/repositories/social-media.repository';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class SocialMediaRepositoryImpl implements ISocialMediaRepository {
   constructor(
     @InjectRepository(SocialMedia)
     private readonly socialMediaRepository: Repository<SocialMedia>,
-  ) {}
+  ) { }
 
-  async create(socialMedia: SocialMedia): Promise<SocialMedia> {
+  async create(manager: EntityManager, socialMedia: SocialMedia): Promise<SocialMedia> {
     try {
       const newSocialMedia = this.socialMediaRepository.create(socialMedia);
-      return await this.socialMediaRepository.save(newSocialMedia);
+      return await manager.save(newSocialMedia);
     } catch (error) {
       throw new HttpException(
         `Error creating Social Media: ${error.message}`,

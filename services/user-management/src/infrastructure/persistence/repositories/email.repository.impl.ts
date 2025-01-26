@@ -11,7 +11,7 @@ export class EmailRepositoryImpl implements IEmailRepository {
     private readonly emailSenderService: EmailSenderService,
     @InjectRepository(Email)
     private readonly emailRepository: Repository<Email>,
-  ) {}
+  ) { }
 
   async save(email: Email): Promise<void> {
     try {

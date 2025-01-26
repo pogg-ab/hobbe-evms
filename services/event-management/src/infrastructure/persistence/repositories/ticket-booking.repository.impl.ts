@@ -17,7 +17,7 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
     @InjectRepository(BookingHasPayment)
     private bookingHasPaymentRepository: Repository<BookingHasPayment>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async create(
     manager: EntityManager,
@@ -186,4 +186,6 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
       );
     }
   }
+
+
 }
