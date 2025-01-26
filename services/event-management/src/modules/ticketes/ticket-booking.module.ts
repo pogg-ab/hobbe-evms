@@ -42,6 +42,7 @@ import { TicketBookingRepositoryImpl } from 'src/infrastructure/persistence/repo
 import { TicketGiftsRepositoryImpl } from 'src/infrastructure/persistence/repositories/ticket-gifts.repository.impl';
 import { TicketsHeadingRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets-heading.repository.impl';
 import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets.repository.impl';
+import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { TicketBookingController } from 'src/presentation/controllers/ticket-booking/ticket-booking.controller';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 
@@ -76,6 +77,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     DeleteTicketBookingCommandHandler,
     TicketBookingProfile,
     TicketBookingService,
+    SocketIo,
     {
       provide: CREATE_TICKET_BOOKING_REPOSITORY_TOKEN,
       useClass: TicketBookingRepositoryImpl,
@@ -118,4 +120,4 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     },
   ],
 })
-export class TicketBookingModule {}
+export class TicketBookingModule { }

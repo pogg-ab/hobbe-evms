@@ -37,4 +37,10 @@ export class SocketIo {
         const { event_id, remainingTime } = message;
         this.server.emit(`event-remaining-time_${event_id}`, { event_id, remainingTime });
     }
+
+    @SubscribeMessage('liveTicketPurchaseCounter')
+    async handleLiveTicketPurchaseCounter(@MessageBody() message: any) {
+        const { event_id, totalTickets } = message;
+        this.server.emit(`live-ticket-purchase-count_${event_id}`, { event_id, totalTickets });
+    }
 }

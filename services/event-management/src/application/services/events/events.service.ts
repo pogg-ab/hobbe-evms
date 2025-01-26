@@ -8,23 +8,30 @@ import { CustomEventTicketMapper } from 'src/application/mappers/event-tickets.m
 import { Events } from 'src/domain/entities/events.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
+import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
+import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class EventsService {
   constructor(
     @Inject(CREATE_EVENT_REPOSITORY_TOKEN)
     private readonly createEventRepository: IEventRepository,
+    @Inject(CREATE_TICKET_REPOSITORY_TOKEN)
+    private readonly ticketRepository: ITicketsRepository,
     @InjectMapper() private readonly mapper: Mapper,
     public readonly createTicketsDto: CreateTicketsDto,
     private readonly commandBus: CommandBus,
     private readonly kafkaProducerService: KafkaProducerService,
     private readonly socket: SocketIo,
-  ) {}
+    private dataSource: DataSource,
+
+  ) { }
 
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
     const mappedEvent = this.mapper.map(
@@ -92,11 +99,36 @@ export class EventsService {
   }
 
   async findOne(id: string): Promise<Events | null> {
-    const event = await this.createEventRepository.findOne(id);
-    if (!event) {
-      throw new NotFoundException(`Event with id ${id} not found.`);
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    try {
+      await queryRunner.startTransaction();
+
+      const event = await this.createEventRepository.findOne(id);
+      if (!event) {
+        throw new NotFoundException(`Event with id ${id} not found.`);
+      }
+
+      const allTicketsCounter = await this.ticketRepository.countAllTicketsForEvent(queryRunner.manager, id);
+
+      await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, id);
+
+      await queryRunner.commitTransaction();
+
+      return event;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-    return event;
+  }
+
+  private async notifyLiveTicketPurchaseCounter(allTicketsCounter: any, eventId: string): Promise<void> {
+    this.socket.handleLiveTicketPurchaseCounter({
+      event_id: eventId,
+      totalTickets: allTicketsCounter,
+    });
   }
 
   async findByUser(user: string): Promise<Events[]> {
