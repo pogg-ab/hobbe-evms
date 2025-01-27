@@ -13,7 +13,7 @@ export class CreateAdminUserAccountCommandHandler
 
   async execute(
     command: CreateAdminUserAccountCommand,
-  ): Promise<AdminUserAccount> {
+  ): Promise<AdminUserAccount | { success: boolean; message: string }> {
     const { createAdminUserAccountDto } = command;
     return this.adminUserAccountService.create(createAdminUserAccountDto);
   }

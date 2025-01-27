@@ -1,9 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Email } from 'src/domain/entities/email.entity';
-import { IEmailRepository } from 'src/domain/repositories/email.repository';
+import { IEmailRepository } from 'src/domain/repositories/email/email.repository';
+import { EmailSenderService } from 'src/infrastructure/email/email-sender.service';
 import { Repository } from 'typeorm';
-import { EmailSenderService } from '../../email/email-sender.service';
 
 @Injectable()
 export class EmailRepositoryImpl implements IEmailRepository {
@@ -11,7 +11,7 @@ export class EmailRepositoryImpl implements IEmailRepository {
     private readonly emailSenderService: EmailSenderService,
     @InjectRepository(Email)
     private readonly emailRepository: Repository<Email>,
-  ) { }
+  ) {}
 
   async save(email: Email): Promise<void> {
     try {

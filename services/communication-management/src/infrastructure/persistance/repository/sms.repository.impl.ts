@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SMS } from 'src/domain/entities/sms.entity';
-import { ISMSRepository } from 'src/domain/repositories/sms.repository';
+import { ISMSRepository } from 'src/domain/repositories/sms/sms.repository';
 import { SMSID } from 'src/domain/value-objects/sms-id.value-object';
 import { Repository } from 'typeorm';
 

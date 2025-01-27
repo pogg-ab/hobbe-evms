@@ -4,11 +4,11 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SendEmailHandler } from 'src/application/handlers/email/send-email.command-handler';
 import { EmailProfile } from 'src/application/mappers/email.profile';
-import { EmailService } from 'src/application/services/email.service';
+import { EmailService } from 'src/application/services/email/email.service';
 import { Email } from 'src/domain/entities/email.entity';
-import { EMAIL_REPOSITORY_TOKEN } from 'src/domain/repositories/email.repository.token';
+import { EMAIL_REPOSITORY_TOKEN } from 'src/domain/repositories/email/email.repository.token';
+import { EmailRepositoryImpl } from 'src/infrastructure/persistance/repository/email.repository.impl';
 import { EmailSenderService } from '../../infrastructure/email/email-sender.service';
-import { EmailRepositoryImpl } from '../../infrastructure/persistence/repositories/email.repository.impl';
 
 @Module({
   imports: [AutomapperModule, CqrsModule, TypeOrmModule.forFeature([Email])],

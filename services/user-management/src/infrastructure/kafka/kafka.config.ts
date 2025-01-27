@@ -11,5 +11,8 @@ export const kafkaConfig: KafkaOptions = {
     consumer: {
       groupId: 'auth-consumer-group',
     } as ConsumerConfig,
+    producer: {
+      allowAutoTopicCreation: false,
+    },
   },
 };

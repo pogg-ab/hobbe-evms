@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -7,20 +13,16 @@ import { AdminUserAuth } from 'src/domain/entities/admin-user-auth.entity';
 import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
 import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { Auth } from 'src/domain/entities/auth.entity';
-import { Email } from 'src/domain/entities/email.entity';
+import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
+import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { AccessToken } from 'src/domain/value-objects/access-token.value-object';
 import { RefreshToken } from 'src/domain/value-objects/refresh-token.value-object';
-import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
+import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
 import { Repository } from 'typeorm';
-import { EmailService } from './email.service';
-import { SMSSenderService } from './sms-sender.service';
-import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
-import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -33,9 +35,6 @@ export class AuthService {
     @InjectRepository(Auth)
     private readonly authRepository: Repository<Auth>,
     private jwtService: JwtService,
-    private readonly emailRepository: EmailRepositoryImpl,
-    private readonly smsSenderService: SMSSenderService,
-    private readonly emailService: EmailService,
     @InjectRepository(UserRole)
     private readonly userRoleRepository: Repository<UserRole>,
     @InjectRepository(AdminUser)
@@ -46,7 +45,8 @@ export class AuthService {
     private readonly adminUserRoleRepository: Repository<AdminUserRole>,
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userWithAccountRepository: IUserRepository,
-  ) { }
+    private readonly messageProducerService: MessageProducerService,
+  ) {}
 
   async validateUser(user_name: string, password: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
@@ -206,8 +206,24 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
-    const email = this.createPasswordResetEmail(user.user_name, resetToken);
-    await this.emailRepository.save(email);
+    const emailPayload = this.createPasswordResetEmail(
+      user.user_name,
+      resetToken,
+    );
+
+    try {
+      await this.messageProducerService.sendEmailToKafka(emailPayload);
+      return {
+        success: true,
+        message: 'Password reset token sent to your email.',
+      };
+    } catch (error) {
+      console.error('Error sending email:', error);
+      return {
+        success: false,
+        message: 'Failed to send password reset email.',
+      };
+    }
 
     return { message: 'Password reset token sent to your email.' };
   }
@@ -277,32 +293,30 @@ export class AuthService {
     return await bcrypt.hash(password, salt);
   }
 
-  private createPasswordResetEmail(recipient: string, token: string): Email {
-    const email = new Email();
-    email.recipient = recipient;
-    email.subject = 'Password Reset Request';
-    const resetTokenExpiry = new Date();
-    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
+  private createPasswordResetEmail(recipient: string, token: string): any {
+    const email = {
+      recipient: recipient,
+      subject: 'Password Reset Request',
+      body: `
+        <html>
+          <body>
+            <p>Dear ${recipient},</p>
+            <p>We have received a request to reset your password for your Hobbe EVMS account. If you did not make this request, please ignore this email.</p>
+            <p>To reset your password, please click the button below:</p>
+            <p><a href="hobbe_evms_app://reset-password?token=${token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Your Password</a></p>
+            <p>The reset link will expire at <strong>${new Date(new Date().getTime() + 60 * 60 * 1000).toUTCString()}</strong>. If you do not reset your password by this time, the link will no longer be valid.</p>
+            <p>If you have any trouble, feel free to contact our support team for assistance.</p>
+            <br>
+            <p>Best regards,</p>
+            <p><strong>Hobbe EVMS Team</strong></p>
+          </body>
+        </html>
+      `,
+      created_at: new Date(),
+      updated_at: new Date(),
+      sent_at: null,
+    };
 
-    const expiryTime = resetTokenExpiry.toUTCString();
-    email.body = `
-    <html>
-      <body>
-        <p>Dear ${recipient},</p>
-        <p>We have received a request to reset your password for your Hobbe EVMS account. If you did not make this request, please ignore this email.</p>
-        <p>To reset your password, please click the button below:</p>
-        <p><a href="hobbe_evms_app://reset-password?token=${token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Your Password</a></p>
-        <p>The reset link will expire at <strong>${expiryTime}</strong>. If you do not reset your password by this time, the link will no longer be valid.</p>
-        <p>If you have any trouble, feel free to contact our support team for assistance.</p>
-        <br>
-        <p>Best regards,</p>
-        <p><strong>Hobbe EVMS Team</strong></p>
-      </body>
-    </html>
-  `;
-    email.created_at = new Date();
-    email.updated_at = new Date();
-    email.sent_at = null;
     return email;
   }
 
@@ -469,9 +483,10 @@ export class AuthService {
   private async getPhoneNumberByAccount(user: User): Promise<string> {
     let phoneNumberToUse: string;
 
-    const organizationalAccount = await this.organizationalAccountRepository.findOne({
-      where: { organizational_account_id: user.organizational_account },
-    });
+    const organizationalAccount =
+      await this.organizationalAccountRepository.findOne({
+        where: { organizational_account_id: user.organizational_account },
+      });
 
     const personalAccount = await this.personalAccountRepository.findOne({
       where: { personal_account_id: user.personal_account },
@@ -503,31 +518,45 @@ export class AuthService {
       user.otp_expiry = otpExpiry;
       await this.userRepository.save(user);
 
-
       const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
       const phoneNumber = await this.getPhoneNumberByAccount(user);
 
-      const smsResponse = await this.smsSenderService.sendSMS(
+      const smsPayload = {
         phoneNumber,
-        smsMessage,
+        message: smsMessage,
         user,
-        'OTP',
-        null,
-      );
+        type: 'OTP',
+      };
+
+      const smsResponse =
+        await this.messageProducerService.sendSmsToKafka(smsPayload);
+
+      // const smsResponse = await this.smsSenderService.sendSMS(
+      //   phoneNumber,
+      //   smsMessage,
+      //   user,
+      //   'OTP',
+      //   null,
+      // );
 
       if ('error' in smsResponse) {
         const email = this.createOtpEmail(user.user_name, otp);
-        const emailResponse = await this.emailService.sendEmail(email);
+        const emailPayload = {
+          to: user.user_name,
+          subject: 'Your OTP for Hobbe EVMS',
+          body: email.body,
+          user,
+        };
+        const emailResponse =
+          await this.messageProducerService.sendEmailToKafka(emailPayload);
+        // const emailResponse = await this.emailService.sendEmail(email);
 
         if (!emailResponse) {
           throw new InternalServerErrorException(
-            `Failed to send OTP via SMS and email. ${smsResponse.error ? `SMS failed: ${smsResponse.error}` : ''} ${emailResponse ? '' : 'Email sending failed.'}`
+            `Failed to send OTP via SMS and email. ${smsResponse.error ? `SMS failed: ${smsResponse.error}` : ''} ${emailResponse ? '' : 'Email sending failed.'}`,
           );
         }
-
       }
-
-
 
       return { message: 'OTP resent successfully.' };
     } catch (error) {
@@ -542,14 +571,16 @@ export class AuthService {
     return crypto.randomInt(100000, 999999).toString();
   }
 
-  private createOtpEmail(recipient: string, otp: string): Email {
-    const email = new Email();
-    email.recipient = recipient;
-    email.subject = 'Your OTP Code from Hobbe EVMS';
-    email.body = otp;
-    email.created_at = new Date();
-    email.updated_at = new Date();
-    email.sent_at = null;
+  private createOtpEmail(recipient: string, otp: string): any {
+    const email = {
+      recipient: recipient,
+      subject: 'Your OTP Code from Hobbe EVMS',
+      body: otp,
+      created_at: new Date(),
+      updated_at: new Date(),
+      sent_at: null,
+    };
+
     return email;
   }
 

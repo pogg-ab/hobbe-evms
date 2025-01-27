@@ -1,16 +1,18 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { MicroserviceOptions } from '@nestjs/microservices';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as dotenv from 'dotenv';
+import { AppModule } from './app.module';
 import { kafkaProducerConfig } from './infrastructure/kafka/kafka.config';
+dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = new DocumentBuilder()
-    .setTitle('Communication Microservice API Documentation')
-    .setDescription('API documentation for paymeny microservice')
+    .setTitle('Communication Management API')
+    .setDescription('API for managing communication')
     .setVersion('1.0')
-    .addTag('Communications')  
+    .addTag('Communications')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -19,7 +21,7 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>(kafkaProducerConfig);
   await app.startAllMicroservices();
   app.enableCors();
-  
+
   await app.listen(4003);
 }
 bootstrap();

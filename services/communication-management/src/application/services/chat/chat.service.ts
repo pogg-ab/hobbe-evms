@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { firebaseDatabase } from '../../../infrastructure/firebase/firebase.config';
-import { CHAT_REPOSITORY_TOKEN } from 'src/domain/repositories/chat/chat.repository.token';
-import { IChatRepository } from 'src/domain/repositories/chat/chat.repository';
-import { InjectMapper } from '@automapper/nestjs';
 import { Mapper } from '@automapper/core';
-import { CreateChatDto } from 'src/presentation/dto/chat/create-chat.dto';
+import { InjectMapper } from '@automapper/nestjs';
+import { Inject, Injectable } from '@nestjs/common';
 import { Chat } from 'src/domain/entities/chat.entity';
+import { IChatRepository } from 'src/domain/repositories/chat/chat.repository';
+import { CHAT_REPOSITORY_TOKEN } from 'src/domain/repositories/chat/chat.repository.token';
+import { CreateChatDto } from 'src/presentation/dto/chat/create-chat.dto';
+import { firebaseDatabase } from '../../../infrastructure/firebase/firebase.config';
 
 @Injectable()
 export class ChatService {
@@ -13,7 +13,7 @@ export class ChatService {
     @Inject(CHAT_REPOSITORY_TOKEN)
     private readonly createChatRepository: IChatRepository,
     @InjectMapper() private readonly mapper: Mapper,
-  ){}
+  ) {}
   private chatRef = firebaseDatabase.ref('chats'); // Realtime DB "chats" node
 
   async sendMessage(chatRoom: string, message: any): Promise<void> {
@@ -26,20 +26,16 @@ export class ChatService {
     return messages ? Object.values(messages) : [];
   }
 
-  async createMessage(sender_id:string,createChatDto: CreateChatDto): Promise<any> {
-
- const mappedChat = this.mapper.map(
-      createChatDto,
-      CreateChatDto,
-      Chat,
-    );
+  async createMessage(
+    sender_id: string,
+    createChatDto: CreateChatDto,
+  ): Promise<any> {
+    const mappedChat = this.mapper.map(createChatDto, CreateChatDto, Chat);
     mappedChat.sender_id = sender_id;
 
     const message = await this.createChatRepository.create(mappedChat);
-    if(message){
+    if (message) {
       await this.chatRef.child(message.room).push(message);
-      
     }
   }
-
 }

@@ -1,6 +1,5 @@
-import { SMS } from '../entities/sms.entity';
-import { SMSID } from '../value-objects/sms-id.value-object';
-
+import { SMS } from 'src/domain/entities/sms.entity';
+import { SMSID } from 'src/domain/value-objects/sms-id.value-object';
 export interface ISMSRepository {
   create(sms: SMS): Promise<SMS>;
   findAll(): Promise<SMS[]>;
