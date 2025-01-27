@@ -2,14 +2,10 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { SMSID } from '../value-objects/sms-id.value-object';
-import { User } from './user.entity';
 
 @Entity()
 export class SMS {
@@ -21,6 +17,12 @@ export class SMS {
 
   @Column('text')
   message: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  message_type: 'TEXT' | 'MMS' | 'OTP' | null;
+
+  @Column({ type: 'int', nullable: true })
+  priority: number | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   status: 'SENT' | 'FAILED' | 'PENDING' | null;
@@ -39,14 +41,4 @@ export class SMS {
 
   @Column({ nullable: true })
   updated_by: string;
-
-  @ManyToOne(() => User, { cascade: true, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user: User;
-
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  message_type: 'TEXT' | 'MMS' | 'OTP' | null;
-
-  @Column({ type: 'int', nullable: true })
-  priority: number | null;
 }

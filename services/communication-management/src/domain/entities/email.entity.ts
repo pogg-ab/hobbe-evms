@@ -5,11 +5,12 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { EmailID } from '../value-objects/email-id.value-object';
 
 @Entity()
 export class Email {
   @PrimaryGeneratedColumn('uuid')
-  email_id: string;
+  email_id: EmailID;
 
   @Column()
   recipient: string;

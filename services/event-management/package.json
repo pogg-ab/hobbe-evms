@@ -42,6 +42,7 @@
     "event-management": "file:",
     "kafkajs": "^2.2.4",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "path": "^0.12.7",

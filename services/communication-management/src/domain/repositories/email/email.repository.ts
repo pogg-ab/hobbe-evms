@@ -1,4 +1,4 @@
-import { Email } from '../entities/email.entity';
+import { Email } from 'src/domain/entities/email.entity';
 
 export interface IEmailRepository {
   save(email: Email): Promise<void>;
