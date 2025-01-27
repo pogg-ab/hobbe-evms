@@ -1,9 +1,16 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
-
+import { Type } from 'class-transformer';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsObject,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { User } from 'src/domain/entities/user.entity';
 export class CreateEmailDto {
   @IsEmail()
   @IsNotEmpty()
-  recipient: string;
+  to: string;
 
   @IsString()
   @IsNotEmpty()
@@ -12,4 +19,9 @@ export class CreateEmailDto {
   @IsString()
   @IsNotEmpty()
   body: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => User)
+  user: User;
 }

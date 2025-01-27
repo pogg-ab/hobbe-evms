@@ -1,10 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { SMS } from 'src/domain/entities/sms.entity';
-import { User } from 'src/domain/entities/user.entity';
-import { ISMSRepository } from 'src/domain/repositories/sms.repository';
-import { SMS_REPOSITORY_TOKEN } from 'src/domain/repositories/sms.repository.token';
-import { SMSID } from 'src/domain/value-objects/sms-id.value-object';
-import { UserID } from 'src/domain/value-objects/user-id.value-object';
+import { ISMSRepository } from 'src/domain/repositories/sms/sms.repository';
+import { SMS_REPOSITORY_TOKEN } from 'src/domain/repositories/sms/sms.repository.token';
 import { SMSProvider } from 'src/infrastructure/sms/sms.provider';
 
 @Injectable()
@@ -13,12 +10,11 @@ export class SMSSenderService {
     @Inject(SMS_REPOSITORY_TOKEN)
     private readonly smsRepository: ISMSRepository,
     private readonly smsProvider: SMSProvider,
-  ) { }
+  ) {}
 
   async sendSMS(
     recipient: string,
     message: string,
-    user: User,
     messageType: 'TEXT' | 'MMS' | 'OTP',
     priority: number | null,
   ): Promise<SMS | { status: string; error: string }> {
@@ -30,7 +26,6 @@ export class SMSSenderService {
     sms.delivery_report_at = null;
     sms.created_at = new Date();
     sms.updated_at = new Date();
-    sms.user = user;
     sms.message_type = messageType;
     sms.priority = priority;
 
@@ -61,5 +56,4 @@ export class SMSSenderService {
       };
     }
   }
-
 }

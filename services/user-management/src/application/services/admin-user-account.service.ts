@@ -12,7 +12,6 @@ import * as crypto from 'crypto';
 import { AdminUserAccount } from 'src/domain/entities/admin-user-account.entity';
 import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
 import { AdminUser } from 'src/domain/entities/admin-user.entity';
-import { Email } from 'src/domain/entities/email.entity';
 import { Role } from 'src/domain/entities/role.entity';
 import { IAdminUserAccountRepository } from 'src/domain/repositories/admin-user-account.repository';
 import { ADMIN_USER_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/admin-user-account.repository.token';
@@ -23,7 +22,7 @@ import { ADMIN_USER_REPOSITORY_TOKEN } from 'src/domain/repositories/admin-user.
 import { IRoleRepository } from 'src/domain/repositories/role.repository';
 import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
 import { AdminUserAccountID } from 'src/domain/value-objects/admin-user-account-id.value-object';
-import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
+import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
 import { CreateAdminUserAccountDto } from 'src/presentation/dtos/create-admin-user-account.dto';
 import { UpdateAdminUserAccountDto } from 'src/presentation/dtos/update-admin-user-account.dto';
 
@@ -36,10 +35,10 @@ export class AdminUserAccountService {
     private readonly adminUserRepository: IAdminUserRepository,
     @Inject(ROLE_REPOSITORY_TOKEN)
     private readonly roleRepository: IRoleRepository,
-    private readonly emailRepository: EmailRepositoryImpl,
     @Inject(ADMIN_USER_ROLE_REPOSITORY_TOKEN)
     private readonly adminUserRoleRepository: IAdminUserRoleRepository,
     @InjectMapper() private readonly mapper: Mapper,
+    private readonly messageProducerService: MessageProducerService,
   ) {}
   generateRandomPassword(): string {
     const length = 6;
@@ -57,7 +56,7 @@ export class AdminUserAccountService {
 
   async create(
     createAdminUserAccountDto: CreateAdminUserAccountDto,
-  ): Promise<AdminUserAccount> {
+  ): Promise<AdminUserAccount | { success: boolean; message: string }> {
     const newAccount = this.mapper.map(
       createAdminUserAccountDto,
       CreateAdminUserAccountDto,
@@ -86,11 +85,20 @@ export class AdminUserAccountService {
     adminUserRole.role = role;
     await this.adminUserRoleRepository.create(adminUserRole);
 
-    const emailContent = this.createPasswordEmail(
+    const emailPayload = this.createPasswordEmail(
       createAdminUserAccountDto.emailAddress,
       generatedPassword,
     );
-    await this.emailRepository.save(emailContent);
+    try {
+      await this.messageProducerService.sendEmailToKafka(emailPayload);
+    } catch (emailError) {
+      console.error('Error sending email:', emailError);
+      return {
+        success: false,
+        message: 'Failed to send password email.',
+      };
+    }
+    // await this.emailRepository.save(emailContent);
 
     return savedAccount;
   }
@@ -103,14 +111,16 @@ export class AdminUserAccountService {
   private createPasswordEmail(
     recipient: string,
     generatedPassword: string,
-  ): Email {
-    const email = new Email();
-    email.recipient = recipient;
-    email.subject = 'Your Generated User Account Password from Hobbe EVMS';
-    email.body = generatedPassword;
-    email.created_at = new Date();
-    email.updated_at = new Date();
-    email.sent_at = null;
+  ): any {
+    const email = {
+      recipient: recipient,
+      subject: 'Your Generated User Account Password from Hobbe EVMS',
+      body: generatedPassword,
+      created_at: new Date(),
+      updated_at: new Date(),
+      sent_at: null,
+    };
+
     return email;
   }
 

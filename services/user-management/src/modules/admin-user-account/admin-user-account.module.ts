@@ -1,6 +1,7 @@
 import { AutomapperModule } from '@automapper/nestjs';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { ClientsModule } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateAdminUserAccountCommandHandler } from 'src/application/handlers/admin-user-account/create-admin-user-account.command-handler';
 import { FindAdminUserAccountByIdQueryHandler } from 'src/application/handlers/admin-user-account/find-admin-user-account-by-id.query-handler';
@@ -12,32 +13,35 @@ import { RoleProfile } from 'src/application/mappers/role.profile';
 import { AdminUserAccount } from 'src/domain/entities/admin-user-account.entity';
 import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
 import { AdminUser } from 'src/domain/entities/admin-user.entity';
-import { Email } from 'src/domain/entities/email.entity';
 import { Role } from 'src/domain/entities/role.entity';
 import { ADMIN_USER_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/admin-user-account.repository.token';
 import { ADMIN_USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/admin-user-role.repository.token';
 import { ADMIN_USER_REPOSITORY_TOKEN } from 'src/domain/repositories/admin-user.repository.token';
-import { EMAIL_REPOSITORY_TOKEN } from 'src/domain/repositories/email.repository.token';
 import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
+import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.producer.config';
+import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
 import { AdminUserAccountRepositoryImpl } from 'src/infrastructure/persistence/repositories/admin-user-account.repository.impl';
 import { AdminUserRoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/admin-user-role.repository.impl';
 import { AdminUserRepositoryImpl } from 'src/infrastructure/persistence/repositories/admin-user.repository.impl';
-import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
 import { RoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/role.repository.impl';
 import { AdminUserAccountController } from 'src/presentation/controllers/admin-user-account.controller';
 import { AdminUserAccountService } from '../../application/services/admin-user-account.service';
-import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     AutomapperModule,
-    EmailModule,
     TypeOrmModule.forFeature([
       AdminUserAccount,
       AdminUser,
-      Email,
       Role,
       AdminUserRole,
+    ]),
+    ClientsModule.register([
+      {
+        name: 'KAFKA_PRODUCER',
+        transport: kafkaProducerConfig.transport,
+        options: kafkaProducerConfig.options,
+      },
     ]),
     CqrsModule,
   ],
@@ -51,6 +55,7 @@ import { EmailModule } from '../email/email.module';
     UpdateAdminUserAccountCommandHandler,
     RemoveAdminUserAccountCommandHandler,
     RoleProfile,
+    MessageProducerService,
     {
       provide: ADMIN_USER_ACCOUNT_REPOSITORY_TOKEN,
       useClass: AdminUserAccountRepositoryImpl,
@@ -58,10 +63,6 @@ import { EmailModule } from '../email/email.module';
     {
       provide: ADMIN_USER_REPOSITORY_TOKEN,
       useClass: AdminUserRepositoryImpl,
-    },
-    {
-      provide: EMAIL_REPOSITORY_TOKEN,
-      useClass: EmailRepositoryImpl,
     },
     {
       provide: ADMIN_USER_ROLE_REPOSITORY_TOKEN,

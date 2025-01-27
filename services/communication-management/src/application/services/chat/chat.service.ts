@@ -5,6 +5,7 @@ import { Chat } from 'src/domain/entities/chat.entity';
 import { IChatRepository } from 'src/domain/repositories/chat/chat.repository';
 import { CHAT_REPOSITORY_TOKEN } from 'src/domain/repositories/chat/chat.repository.token';
 import { CreateChatDto } from 'src/presentation/dto/chat/create-chat.dto';
+import { firebaseDatabase } from '../../../infrastructure/firebase/firebase.config';
 
 @Injectable()
 export class ChatService {
@@ -13,8 +14,7 @@ export class ChatService {
     private readonly createChatRepository: IChatRepository,
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
-  // private chatRef = firebaseDatabase.ref('chats'); // Realtime DB "chats" node
-  private chatRef = null; // Realtime DB "chats" node
+  private chatRef = firebaseDatabase.ref('chats'); // Realtime DB "chats" node
 
   async sendMessage(chatRoom: string, message: any): Promise<void> {
     await this.chatRef.child(chatRoom).push(message);

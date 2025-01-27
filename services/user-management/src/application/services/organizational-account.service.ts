@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { Email } from 'src/domain/entities/email.entity';
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { Owner } from 'src/domain/entities/owner.entity';
@@ -27,14 +26,13 @@ import { SOCIAL_MEDIA_REPOSITORY_TOKEN } from 'src/domain/repositories/social-me
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { OrganizationalAccountID } from 'src/domain/value-objects/organizational-account-id.value-object';
+import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
 import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verification.dto';
 import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
 import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
 import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
-import { CreateOrganizationalAccountDto } from '../../presentation/dtos/create-organizational-account.dto';
 import { DataSource } from 'typeorm';
-import { EmailService } from './email.service';
-import { SMSSenderService } from './sms-sender.service';
+import { CreateOrganizationalAccountDto } from '../../presentation/dtos/create-organizational-account.dto';
 
 @Injectable()
 export class OrganizationalAccountService {
@@ -54,12 +52,11 @@ export class OrganizationalAccountService {
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
 
-    private readonly emailService: EmailService,
-    private readonly smsSenderService: SMSSenderService,
     private dataSource: DataSource,
 
     @InjectMapper() private readonly mapper: Mapper,
-  ) { }
+    private readonly messageProducerService: MessageProducerService,
+  ) {}
   async create(createOrganizationalAccountDto: CreateOrganizationalAccountDto) {
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -84,19 +81,26 @@ export class OrganizationalAccountService {
         CreateOrganizationalAccountDto,
         Owner,
       );
-      const savedOwner = await this.ownerRepository.create(queryRunner.manager, owner);
+      const savedOwner = await this.ownerRepository.create(
+        queryRunner.manager,
+        owner,
+      );
 
       const kyc = this.mapper.map(
         createOrganizationalAccountDto,
         CreateOrganizationalAccountDto,
         KYC,
       );
-      const savedKYC = await this.kycRepository.create(queryRunner.manager, kyc);
+      const savedKYC = await this.kycRepository.create(
+        queryRunner.manager,
+        kyc,
+      );
 
       organizationalAccount.owner = savedOwner.owner_id;
       organizationalAccount.kyc = savedKYC.kyc_id;
 
-      const savedAccount = await this.organizationalAccountRepository.create(queryRunner.manager,
+      const savedAccount = await this.organizationalAccountRepository.create(
+        queryRunner.manager,
         organizationalAccount,
       );
 
@@ -117,38 +121,57 @@ export class OrganizationalAccountService {
         SocialMedia,
       );
 
-      socialMedia.organizational_account = savedAccount.organizational_account_id;
+      socialMedia.organizational_account =
+        savedAccount.organizational_account_id;
 
       await this.socialMediaRepository.create(queryRunner.manager, socialMedia);
 
       await queryRunner.commitTransaction();
 
-
-
       const otp = this.generateOtp();
 
       const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
-      const smsResponse = await this.smsSenderService.sendSMS(
-        createOrganizationalAccountDto.companyPhoneNumber,
-        smsMessage,
-        user,
-        'OTP',
-        null,
-      );
+
+      const smsPayload = {
+        phoneNumber: createOrganizationalAccountDto.companyPhoneNumber,
+        message: smsMessage,
+        user: user,
+        type: 'OTP',
+        priority: null,
+      };
+
+      const smsResponse =
+        await this.messageProducerService.sendSmsToKafka(smsPayload);
+      // const smsResponse = await this.smsSenderService.sendSMS(
+      //   createOrganizationalAccountDto.companyPhoneNumber,
+      //   smsMessage,
+      //   user,
+      //   'OTP',
+      //   null,
+      // );
 
       if ('error' in smsResponse) {
-        const email = this.createOtpEmail(createOrganizationalAccountDto.companyEmail, otp);
-        const emailResponse = await this.emailService.sendEmail(email);
+        const email = this.createOtpEmail(
+          createOrganizationalAccountDto.companyEmail,
+          otp,
+        );
+        const emailPayload = {
+          to: user.user_name,
+          subject: 'Your OTP for Hobbe EVMS',
+          body: email.body,
+          user,
+        };
+        const emailResponse =
+          await this.messageProducerService.sendEmailToKafka(emailPayload);
+        // const emailResponse = await this.emailService.sendEmail(email);
 
         if (!emailResponse) {
           await queryRunner.rollbackTransaction();
           throw new InternalServerErrorException(
-            `Failed to send OTP via SMS and email. ${smsResponse.error ? `SMS failed: ${smsResponse.error}` : ''} ${emailResponse ? '' : 'Email sending failed.'}`
+            `Failed to send OTP via SMS and email. ${smsResponse.error ? `SMS failed: ${smsResponse.error}` : ''} ${emailResponse ? '' : 'Email sending failed.'}`,
           );
         }
-
       }
-
 
       return savedAccount;
     } catch (error) {
@@ -157,7 +180,9 @@ export class OrganizationalAccountService {
       } else if (error instanceof HttpException) {
         throw new HttpException(error.message, error.getStatus());
       }
-      throw new InternalServerErrorException('An unexpected error occurred while creating the account.');
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while creating the account.',
+      );
     }
   }
 
@@ -170,14 +195,16 @@ export class OrganizationalAccountService {
     return crypto.randomInt(100000, 999999).toString();
   }
 
-  private createOtpEmail(recipient: string, otp: string): Email {
-    const email = new Email();
-    email.recipient = recipient;
-    email.subject = 'Your OTP Code from Hobbe EVMS';
-    email.body = otp;
-    email.created_at = new Date();
-    email.updated_at = new Date();
-    email.sent_at = null;
+  private createOtpEmail(recipient: string, otp: string): any {
+    const email = {
+      recipient: recipient,
+      subject: 'Your OTP Code from Hobbe EVMS',
+      body: otp,
+      created_at: new Date(),
+      updated_at: new Date(),
+      sent_at: null,
+    };
+
     return email;
   }
 
@@ -233,7 +260,8 @@ export class OrganizationalAccountService {
         sendEmailVerificationDto.email_address,
         otp,
       );
-      await this.emailService.sendEmail(email);
+      await this.messageProducerService.sendEmailToKafka(email);
+      // await this.emailService.sendEmail(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {
@@ -254,7 +282,9 @@ export class OrganizationalAccountService {
         sendEmailVerificationDto.email_address,
         otp,
       );
-      await this.emailService.sendEmail(email);
+      await this.messageProducerService.sendEmailToKafka(email);
+
+      // await this.emailService.sendEmail(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {

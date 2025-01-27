@@ -8,7 +8,6 @@ import * as path from 'path';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { AdminUserAccountModule } from './modules/admin-user-account/admin-user-account.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { EmailModule } from './modules/email/email.module';
 import { FavoritesModule } from './modules/favorite/favorite.module';
 import { FollowerModule } from './modules/follower/follower.module';
 import { OrganizationalAccountModule } from './modules/organizational-account/organizational-account.module';
@@ -37,7 +36,6 @@ import { UserModule } from './modules/user/user.module';
     AuthModule,
     RolePermissionModule,
     OrganizationalAccountModule,
-    EmailModule,
     AdminUserAccountModule,
     SubAccountModule,
     FollowerModule,
