@@ -16,6 +16,7 @@ import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.t
 import { kafkaConfig } from 'src/infrastructure/kafka/kafka.config';
 import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.producer.config';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { JwtStrategy } from './jwt.strategy';
@@ -48,6 +49,7 @@ import { JwtStrategy } from './jwt.strategy';
     AuthService,
     JwtStrategy,
     MessageProducerService,
+    NotificationConfigService,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,

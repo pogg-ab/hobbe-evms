@@ -20,6 +20,7 @@ import { SOCIAL_MEDIA_REPOSITORY_TOKEN } from 'src/domain/repositories/social-me
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.producer.config';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
 import { KYCRepositoryImpl } from 'src/infrastructure/persistence/repositories/kyc.repository.impl';
 import { OrganizationalAccountRepositoryImpl } from 'src/infrastructure/persistence/repositories/organizational-account.repository.impl';
 import { OwnerRepositoryImpl } from 'src/infrastructure/persistence/repositories/owner.repository.impl';
@@ -56,6 +57,7 @@ import { OrganizationalAccountController } from '../../presentation/controllers/
     RemoveOrganizationalAccountCommandHandler,
     OrganizationalAccountProfile,
     MessageProducerService,
+    NotificationConfigService,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,

@@ -13,5 +13,6 @@ export interface IPushNotificationRepository {
   updateStatus(
     id: PushNotificationID,
     status: 'SENT' | 'FAILED' | 'PENDING' | null,
+    updatedBy: string,
   ): Promise<void>;
 }

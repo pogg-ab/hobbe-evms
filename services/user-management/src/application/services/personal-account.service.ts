@@ -26,14 +26,17 @@ import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.re
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { PersonalAccountID } from 'src/domain/value-objects/personal-account-id.value-object';
+import { UserID } from 'src/domain/value-objects/user-id.value-object';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
+import { CreatePushNotificationDto } from 'src/presentation/dtos/create-push-notification.dto';
+import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verification.dto';
 import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
 import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
 import { DataSource } from 'typeorm';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto';
 import { UpdatePersonalAccountDto } from '../../presentation/dtos/update-personal-account.dto';
-import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 
 @Injectable()
 export class PersonalAccountService {
@@ -49,7 +52,8 @@ export class PersonalAccountService {
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
     private readonly messageProducerService: MessageProducerService,
-  ) { }
+    private readonly notificationConfigService: NotificationConfigService,
+  ) {}
   async create(
     createPersonalAccountDto: CreatePersonalAccountDto,
   ): Promise<PersonalAccount> {
@@ -111,48 +115,28 @@ export class PersonalAccountService {
       await this.userRoleRepository.create(queryRunner.manager, userRole);
 
       await queryRunner.commitTransaction();
+      if (this.notificationConfigService.useSmsNotification) {
+        const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
 
-      const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
+        const smsPayload = {
+          recipient: createPersonalAccountDto.phoneNumber,
+          message: smsMessage,
+          messageType: MessageType.OTP,
+        };
 
-      const smsPayload = {
-        recipient: createPersonalAccountDto.phoneNumber,
-        message: smsMessage,
-        messageType: MessageType.OTP,
-      };
-
-      const smsResponse =
         await this.messageProducerService.sendSmsToKafka(smsPayload);
-
-      // const smsResponse = await this.smsSenderService.sendSMS(
-      //   createPersonalAccountDto.phoneNumber,
-      //   smsMessage,
-      //   newUser,
-      //   'OTP',
-      //   null,
-      // );
-
-      if ('error' in smsResponse) {
-        const email = this.createOtpEmail(
+      } else {
+        const email = this.createOtpEmailforActivation(
           createPersonalAccountDto.emailAddress,
           otp,
         );
-        const emailPayload = {
-          to: user.user_name,
-          subject: 'Your OTP for Hobbe EVMS',
-          body: email.body,
-          user,
-        };
-        const emailResponse =
-          await this.messageProducerService.sendEmailToKafka(emailPayload);
-        // const emailResponse = await this.emailService.sendEmail(email);
 
-        if (!emailResponse) {
-          await queryRunner.rollbackTransaction();
-          throw new InternalServerErrorException(
-            `Failed to send OTP via SMS and email. ${smsResponse.error ? `SMS failed: ${smsResponse.error}` : ''} ${emailResponse ? '' : 'Email sending failed.'}`,
-          );
-        }
+        await this.messageProducerService.sendEmailToKafka(email);
       }
+      const notification = this.createAccountPushNotification(newUser.user_id);
+      await this.messageProducerService.sendPushNotificationToKafka(
+        notification,
+      );
 
       return savedAccount;
     } catch (error) {
@@ -191,6 +175,35 @@ export class PersonalAccountService {
     };
 
     return email;
+  }
+
+  private createOtpEmailforActivation(recipient: string, otp: string): any {
+    const email = {
+      recipient: recipient,
+      subject: 'Account Activation',
+      body: otp,
+      created_at: new Date(),
+      updated_at: new Date(),
+      sent_at: null,
+    };
+
+    return email;
+  }
+
+  private createAccountPushNotification(
+    recipientId: UserID,
+  ): CreatePushNotificationDto {
+    const notification: CreatePushNotificationDto = {
+      recipient: recipientId.toString(),
+      title: 'Account Created',
+      message: 'Your account has been successfully created. Welcome!',
+      message_type: 'INFO',
+      platform: 'IOS',
+      status: 'PENDING',
+      priority: null,
+    };
+
+    return notification;
   }
 
   private async getRoleByName(roleName: string): Promise<Role> {
@@ -273,7 +286,6 @@ export class PersonalAccountService {
       );
 
       await this.messageProducerService.sendEmailToKafka(email);
-      // await this.emailService.sendEmail(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {
@@ -296,8 +308,6 @@ export class PersonalAccountService {
       );
 
       await this.messageProducerService.sendEmailToKafka(email);
-
-      // await this.emailService.sendEmail(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {

@@ -26,6 +26,7 @@ import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.t
 import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
 import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.producer.config';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
 import { RoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/role.repository.impl';
 import { UserRoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/user-role.repository.impl';
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
@@ -60,6 +61,7 @@ import { PersonalAccountService } from '../../application/services/personal-acco
     UserProfile,
     RoleProfile,
     MessageProducerService,
+    NotificationConfigService,
     {
       provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
       useClass: PersonalAccountRepositoryImpl,
