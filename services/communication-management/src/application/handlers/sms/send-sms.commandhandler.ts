@@ -5,16 +5,21 @@ import { SMSSenderService } from 'src/application/services/sms/sms-sender.servic
 @Injectable()
 @CommandHandler(SendSmsCommand)
 export class SendSmsHandler implements ICommandHandler<SendSmsCommand> {
-    constructor(private readonly smsService: SMSSenderService) { }
+  constructor(private readonly smsService: SMSSenderService) {}
 
-    async execute(command: SendSmsCommand): Promise<void> {
-        const { createSmsDto } = command;
+  async execute(command: SendSmsCommand): Promise<void> {
+    const { createSmsDto } = command;
 
-        try {
-            await this.smsService.sendSMS(createSmsDto.recipient, createSmsDto.message, createSmsDto.messageType, createSmsDto.priority);
-        } catch (error) {
-            console.error('Error occurred while sending SMS:', error);
-            throw error;
-        }
+    try {
+      await this.smsService.sendSMS(
+        createSmsDto.recipient,
+        createSmsDto.message,
+        createSmsDto.messageType,
+        createSmsDto.priority,
+      );
+    } catch (error) {
+      console.error('Error occurred while sending SMS:', error);
+      throw error;
     }
+  }
 }

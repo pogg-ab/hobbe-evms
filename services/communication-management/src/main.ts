@@ -3,7 +3,7 @@ import { MicroserviceOptions } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
-import { kafkaConsumerConfig } from './infrastructure/kafka/kafka-consumer.config';
+import { kafkaConsumerConfig } from './infrastructure/kafka/kafka.consumer.config';
 dotenv.config();
 
 async function bootstrap() {

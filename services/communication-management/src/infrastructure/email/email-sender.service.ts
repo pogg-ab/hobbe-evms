@@ -30,7 +30,7 @@ export class EmailSenderService {
       subject: email.subject,
       html: this.generateEmailBody(email),
     };
-  
+
     try {
       const info = await this.transporter.sendMail(mailOptions);
       console.log(`Email sent: ${info.response}`);
@@ -39,36 +39,49 @@ export class EmailSenderService {
       throw new Error(`Failed to send email: ${error.message}`);
     }
   }
-  
+
   private generateEmailBody(email: Email): string {
     let emailTitle = '';
     let emailMessage = '';
     let footerMessage = '';
     let actionContent = '';
-  
+
     switch (email.subject) {
+      case 'Account Activation':
+        emailTitle = 'Activate Your Account on Hobbe EVMS';
+        emailMessage =
+          'Welcome to Hobbe EVMS! To complete your registration, please activate your account by using the activation code below. This will allow you to access all the features of your account.';
+        actionContent = `<div class="otp-code">${email.body}</div>`;
+        footerMessage =
+          'This activation code will expire in 10 minutes. If you did not request an account activation, please ignore this email or contact support immediately.';
+        break;
+
       case 'Your OTP Code from Hobbe EVMS':
         emailTitle = 'Your OTP Code from Hobbe EVMS';
-        emailMessage = 'Thank you for using Hobbe EVMS. We have received a request to verify your action. Please use the OTP below to complete the process.';
+        emailMessage =
+          'Thank you for using Hobbe EVMS. We have received a request to verify your action. Please use the OTP below to complete the process.';
         actionContent = `<div class="otp-code">${email.body}</div>`;
-        footerMessage = 'This code will expire in 10 minutes. If you did not request this OTP, please ignore this email or contact support immediately.';
+        footerMessage =
+          'This code will expire in 10 minutes. If you did not request this OTP, please ignore this email or contact support immediately.';
         break;
-      
+
       case 'Password Reset Request':
         emailTitle = 'Your Password Reset Request from Hobbe EVMS';
         emailMessage = '';
         actionContent = `<div class="message">${email.body}</div>`;
         footerMessage = '';
         break;
-  
+
       default:
         emailTitle = 'Your Generated User Account Password from Hobbe EVMS';
-        emailMessage = 'Your new account password has been generated successfully. Please use the password below to access your account. We recommend that you change this password as soon as possible for your security.';
+        emailMessage =
+          'Your new account password has been generated successfully. Please use the password below to access your account. We recommend that you change this password as soon as possible for your security.';
         actionContent = `<div class="message">${email.body}</div>`;
-        footerMessage = 'For your security, please change the generated password once you log in. If you did not request this generated password, please ignore this email or contact support immediately.';
+        footerMessage =
+          'For your security, please change the generated password once you log in. If you did not request this generated password, please ignore this email or contact support immediately.';
         break;
     }
-  
+
     return `
       <html>
         <head>

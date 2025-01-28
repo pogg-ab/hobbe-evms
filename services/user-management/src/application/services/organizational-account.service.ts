@@ -27,13 +27,14 @@ import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { OrganizationalAccountID } from 'src/domain/value-objects/organizational-account-id.value-object';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
+import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verification.dto';
 import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
 import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
 import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
 import { DataSource } from 'typeorm';
 import { CreateOrganizationalAccountDto } from '../../presentation/dtos/create-organizational-account.dto';
-import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 
 @Injectable()
 export class OrganizationalAccountService {
@@ -57,7 +58,8 @@ export class OrganizationalAccountService {
 
     @InjectMapper() private readonly mapper: Mapper,
     private readonly messageProducerService: MessageProducerService,
-  ) { }
+    private readonly notificationConfigService: NotificationConfigService,
+  ) {}
   async create(createOrganizationalAccountDto: CreateOrganizationalAccountDto) {
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -131,45 +133,23 @@ export class OrganizationalAccountService {
 
       const otp = this.generateOtp();
 
-      const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
+      if (this.notificationConfigService.useSmsNotification) {
+        const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
 
-      const smsPayload = {
-        recipient: createOrganizationalAccountDto.companyPhoneNumber,
-        message: smsMessage,
-        messageType: MessageType.OTP,
-      };
+        const smsPayload = {
+          recipient: createOrganizationalAccountDto.companyPhoneNumber,
+          message: smsMessage,
+          messageType: MessageType.OTP,
+        };
 
-      const smsResponse =
         await this.messageProducerService.sendSmsToKafka(smsPayload);
-      // const smsResponse = await this.smsSenderService.sendSMS(
-      //   createOrganizationalAccountDto.companyPhoneNumber,
-      //   smsMessage,
-      //   user,
-      //   'OTP',
-      //   null,
-      // );
-
-      if ('error' in smsResponse) {
+      } else {
         const email = this.createOtpEmail(
           createOrganizationalAccountDto.companyEmail,
           otp,
         );
-        const emailPayload = {
-          to: user.user_name,
-          subject: 'Your OTP for Hobbe EVMS',
-          body: email.body,
-          user,
-        };
-        const emailResponse =
-          await this.messageProducerService.sendEmailToKafka(emailPayload);
-        // const emailResponse = await this.emailService.sendEmail(email);
 
-        if (!emailResponse) {
-          await queryRunner.rollbackTransaction();
-          throw new InternalServerErrorException(
-            `Failed to send OTP via SMS and email. ${smsResponse.error ? `SMS failed: ${smsResponse.error}` : ''} ${emailResponse ? '' : 'Email sending failed.'}`,
-          );
-        }
+        await this.messageProducerService.sendEmailToKafka(email);
       }
 
       return savedAccount;
@@ -260,7 +240,6 @@ export class OrganizationalAccountService {
         otp,
       );
       await this.messageProducerService.sendEmailToKafka(email);
-      // await this.emailService.sendEmail(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {
@@ -282,8 +261,6 @@ export class OrganizationalAccountService {
         otp,
       );
       await this.messageProducerService.sendEmailToKafka(email);
-
-      // await this.emailService.sendEmail(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {

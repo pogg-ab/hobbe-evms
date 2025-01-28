@@ -8,12 +8,11 @@ import { CreateEmailDto } from 'src/presentation/dto/email/create-email.dto';
 export class EmailController {
   private readonly logger = new Logger(EmailController.name);
 
-  constructor(private readonly commandBus: CommandBus) { }
+  constructor(private readonly commandBus: CommandBus) {}
 
   @MessagePattern('send-email')
   async handleKafkaPayload(@Payload() payload: CreateEmailDto) {
     this.logger.log('Received Kafka message to send email.');
-
     try {
       await this.commandBus.execute(new SendEmailCommand(payload));
       this.logger.log('Email sent successfully.');

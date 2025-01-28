@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 
-
 @Injectable()
 export class SMSProvider {
   private readonly identifierId: string;
@@ -22,16 +21,14 @@ export class SMSProvider {
     try {
       const { recipient, message } = sms;
 
-      const params = {
-        from: this.identifierId,
-        sender: this.senderName,
-        to: recipient,
-        message: message,
-      };
+      const requestUrl = `${this.apiUrl}?from=${this.identifierId}&to=${
+        recipient
+      }&message=${message}
+      )}`;
       const headers = {
         Authorization: `Bearer ${this.apiToken}`,
       };
-      const response = await axios.post(this.apiUrl, params, { headers });
+      const response = await axios.get(requestUrl, { headers });
       if (response.data.acknowledge === 'success') {
         console.log(`SMS sent to ${recipient}: ${message}`);
         console.log(`Message ID: ${response.data.response.message_id}`);
@@ -49,6 +46,5 @@ export class SMSProvider {
       console.error('Error sending SMS:', error);
       return { status: 'FAILED' };
     }
-
   }
 }
