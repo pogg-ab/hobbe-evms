@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ClientKafka } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SendSmsHandler } from 'src/application/handlers/sms/send-sms.commandhandler';
+import { SendSmsHandler } from 'src/application/handlers/sms/send-sms.command-handler';
 import { SMSSenderService } from 'src/application/services/sms/sms-sender.service';
 import { SMS } from 'src/domain/entities/sms.entity';
 import { SMS_REPOSITORY_TOKEN } from 'src/domain/repositories/sms/sms.repository.token';
