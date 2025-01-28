@@ -33,6 +33,7 @@ import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
 import { DataSource } from 'typeorm';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto';
 import { UpdatePersonalAccountDto } from '../../presentation/dtos/update-personal-account.dto';
+import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 
 @Injectable()
 export class PersonalAccountService {
@@ -48,7 +49,7 @@ export class PersonalAccountService {
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
     private readonly messageProducerService: MessageProducerService,
-  ) {}
+  ) { }
   async create(
     createPersonalAccountDto: CreatePersonalAccountDto,
   ): Promise<PersonalAccount> {
@@ -112,12 +113,11 @@ export class PersonalAccountService {
       await queryRunner.commitTransaction();
 
       const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
+
       const smsPayload = {
-        phoneNumber: createPersonalAccountDto.phoneNumber,
+        recipient: createPersonalAccountDto.phoneNumber,
         message: smsMessage,
-        user: newUser,
-        type: 'OTP',
-        priority: null,
+        messageType: MessageType.OTP,
       };
 
       const smsResponse =

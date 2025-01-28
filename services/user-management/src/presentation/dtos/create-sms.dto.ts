@@ -1,30 +1,31 @@
 import {
   IsInt,
   IsNotEmpty,
-  IsObject,
   IsOptional,
   IsPhoneNumber,
   IsString,
+  IsEnum,
   Min,
 } from 'class-validator';
-import { User } from 'src/domain/entities/user.entity';
+
+export enum MessageType {
+  TEXT = 'TEXT',
+  MMS = 'MMS',
+  OTP = 'OTP',
+}
 
 export class CreateSmsDto {
   @IsNotEmpty()
   @IsPhoneNumber(null)
-  phoneNumber: string;
+  recipient: string;
 
   @IsNotEmpty()
   @IsString()
   message: string;
 
   @IsNotEmpty()
-  @IsObject()
-  user: User;
-
-  @IsNotEmpty()
-  @IsString()
-  type: string;
+  @IsEnum(MessageType)
+  messageType: MessageType;
 
   @IsOptional()
   @IsInt()

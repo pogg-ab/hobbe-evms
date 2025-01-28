@@ -10,8 +10,7 @@ import { CreateSmsDto } from 'src/presentation/dtos/create-sms.dto';
 
 @Injectable()
 export class MessageProducerService
-  implements OnModuleInit, OnApplicationShutdown
-{
+  implements OnModuleInit, OnApplicationShutdown {
   private readonly kafka = new Kafka({
     brokers: [process.env.KAFKA_BROKER],
   });
@@ -37,7 +36,7 @@ export class MessageProducerService
 
     try {
       await this.producer.send({
-        topic: 'send-email-kafka',
+        topic: 'send-email',
         messages: [payload],
       });
       this.logger.log('Email data successfully sent to Kafka topic.');
@@ -60,7 +59,7 @@ export class MessageProducerService
 
     try {
       await this.producer.send({
-        topic: 'send-sms-kafka',
+        topic: 'send-sms',
         messages: [{ value: JSON.stringify(payload) }],
       });
       this.logger.log('SMS data successfully sent to Kafka topic.');
