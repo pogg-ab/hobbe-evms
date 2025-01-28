@@ -6,6 +6,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from './infrastructure/persistance/database.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { EmailModule } from './modules/email/email.module';
+import { PushNotificationModule } from './modules/push-notification/push-notification.module';
 import { SmsModule } from './modules/sms/sms.module';
 
 @Module({
@@ -23,7 +24,8 @@ import { SmsModule } from './modules/sms/sms.module';
     CqrsModule,
     ChatModule,
     EmailModule,
-    SmsModule
+    SmsModule,
+    PushNotificationModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}

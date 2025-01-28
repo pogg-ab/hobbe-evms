@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
 import { CreateEmailDto } from 'src/presentation/dtos/create-email.dto';
+import { CreatePushNotificationDto } from 'src/presentation/dtos/create-push-notification.dto';
 import { CreateSmsDto } from 'src/presentation/dtos/create-sms.dto';
 
 @Injectable()
 export class MessageProducerService
-  implements OnModuleInit, OnApplicationShutdown {
+  implements OnModuleInit, OnApplicationShutdown
+{
   private readonly kafka = new Kafka({
     brokers: [process.env.KAFKA_BROKER],
   });
@@ -70,6 +72,37 @@ export class MessageProducerService
     } catch (error) {
       this.logger.error('Error sending SMS to Kafka topic:', error);
       return { success: false, message: 'Failed to send SMS to Kafka topic' };
+    }
+  }
+
+  async sendPushNotificationToKafka(
+    createPushNotificationDto: CreatePushNotificationDto,
+  ): Promise<{ success: boolean; message: string }> {
+    const payload = {
+      value: JSON.stringify(createPushNotificationDto),
+    };
+
+    try {
+      await this.producer.send({
+        topic: 'send-push-notification',
+        messages: [payload],
+      });
+      this.logger.log(
+        'Push notification data successfully sent to Kafka topic.',
+      );
+      return {
+        success: true,
+        message: 'Push notification data successfully sent to Kafka topic',
+      };
+    } catch (error) {
+      this.logger.error(
+        'Error sending push notification to Kafka topic:',
+        error,
+      );
+      return {
+        success: false,
+        message: 'Failed to send push notification to Kafka topic',
+      };
     }
   }
 

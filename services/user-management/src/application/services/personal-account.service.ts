@@ -26,8 +26,10 @@ import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.re
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { PersonalAccountID } from 'src/domain/value-objects/personal-account-id.value-object';
+import { UserID } from 'src/domain/value-objects/user-id.value-object';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
 import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
+import { CreatePushNotificationDto } from 'src/presentation/dtos/create-push-notification.dto';
 import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verification.dto';
 import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
@@ -131,6 +133,10 @@ export class PersonalAccountService {
 
         await this.messageProducerService.sendEmailToKafka(email);
       }
+      const notification = this.createAccountPushNotification(newUser.user_id);
+      await this.messageProducerService.sendPushNotificationToKafka(
+        notification,
+      );
 
       return savedAccount;
     } catch (error) {
@@ -182,6 +188,22 @@ export class PersonalAccountService {
     };
 
     return email;
+  }
+
+  private createAccountPushNotification(
+    recipientId: UserID,
+  ): CreatePushNotificationDto {
+    const notification: CreatePushNotificationDto = {
+      recipient: recipientId.toString(),
+      title: 'Account Created',
+      message: 'Your account has been successfully created. Welcome!',
+      message_type: 'INFO',
+      platform: 'IOS',
+      status: 'PENDING',
+      priority: null,
+    };
+
+    return notification;
   }
 
   private async getRoleByName(roleName: string): Promise<Role> {

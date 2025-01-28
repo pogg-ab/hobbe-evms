@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PushNotification } from 'src/domain/entities/push-notification.entity';
 import { IPushNotificationRepository } from 'src/domain/repositories/push-notification/push-notification.repository';
 import { PushNotificationID } from 'src/domain/value-objects/push-notification-id.value-object';
+import { PushNotificationSenderService } from 'src/infrastructure/push-notification/push-notification-sender.service';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -12,13 +13,19 @@ export class PushNotificationRepositoryImpl
   constructor(
     @InjectRepository(PushNotification)
     private readonly pushNotificationRepository: Repository<PushNotification>,
+    private readonly pushNotificationSenderService: PushNotificationSenderService,
   ) {}
 
   async create(pushNotification: PushNotification): Promise<PushNotification> {
     try {
       const newNotification =
         this.pushNotificationRepository.create(pushNotification);
-      return await this.pushNotificationRepository.save(newNotification);
+      const savedNotification =
+        await this.pushNotificationRepository.save(newNotification);
+      await this.pushNotificationSenderService.createPushNotification(
+        newNotification,
+      );
+      return savedNotification;
     } catch (error) {
       throw new HttpException(
         `Error creating push notification: ${error.message}`,

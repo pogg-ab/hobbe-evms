@@ -10,11 +10,10 @@ export class PushNotificationController {
 
   constructor(private readonly commandBus: CommandBus) {}
 
-  @MessagePattern('create-push-notification')
+  @MessagePattern('send-push-notification')
   async handleKafkaPayload(@Payload() payload: CreatePushNotificationDto) {
     this.logger.log('Received Kafka message to create push notification.');
     try {
-      // Execute the command to create the push notification
       await this.commandBus.execute(new CreatePushNotificationCommand(payload));
       this.logger.log('Push notification created successfully.');
 
