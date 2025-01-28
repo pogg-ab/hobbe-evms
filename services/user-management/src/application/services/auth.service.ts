@@ -1,10 +1,4 @@
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -22,6 +16,7 @@ import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.t
 import { AccessToken } from 'src/domain/value-objects/access-token.value-object';
 import { RefreshToken } from 'src/domain/value-objects/refresh-token.value-object';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
 import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 import { Repository } from 'typeorm';
 @Injectable()
@@ -47,7 +42,8 @@ export class AuthService {
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userWithAccountRepository: IUserRepository,
     private readonly messageProducerService: MessageProducerService,
-  ) { }
+    private readonly notificationConfigService: NotificationConfigService,
+  ) {}
 
   async validateUser(user_name: string, password: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
@@ -225,8 +221,6 @@ export class AuthService {
         message: 'Failed to send password reset email.',
       };
     }
-
-    return { message: 'Password reset token sent to your email.' };
   }
 
   async verifyPasswordResetToken(token: string): Promise<any> {
@@ -518,44 +512,21 @@ export class AuthService {
       user.otp = otp;
       user.otp_expiry = otpExpiry;
       await this.userRepository.save(user);
+      if (this.notificationConfigService.useSmsNotification) {
+        const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
+        const phoneNumber = await this.getPhoneNumberByAccount(user);
 
-      const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
-      const phoneNumber = await this.getPhoneNumberByAccount(user);
-
-      const smsPayload = {
-        recipient: phoneNumber,
-        message: smsMessage,
-        messageType: MessageType.OTP,
-      };
-
-      const smsResponse =
-        await this.messageProducerService.sendSmsToKafka(smsPayload);
-
-      // const smsResponse = await this.smsSenderService.sendSMS(
-      //   phoneNumber,
-      //   smsMessage,
-      //   user,
-      //   'OTP',
-      //   null,
-      // );
-
-      if ('error' in smsResponse) {
-        const email = this.createOtpEmail(user.user_name, otp);
-        const emailPayload = {
-          to: user.user_name,
-          subject: 'Your OTP for Hobbe EVMS',
-          body: email.body,
-          user,
+        const smsPayload = {
+          recipient: phoneNumber,
+          message: smsMessage,
+          messageType: MessageType.OTP,
         };
-        const emailResponse =
-          await this.messageProducerService.sendEmailToKafka(emailPayload);
-        // const emailResponse = await this.emailService.sendEmail(email);
 
-        if (!emailResponse) {
-          throw new InternalServerErrorException(
-            `Failed to send OTP via SMS and email. ${smsResponse.error ? `SMS failed: ${smsResponse.error}` : ''} ${emailResponse ? '' : 'Email sending failed.'}`,
-          );
-        }
+        await this.messageProducerService.sendSmsToKafka(smsPayload);
+      } else {
+        const email = this.createOtpEmail(user.user_name, otp);
+
+        await this.messageProducerService.sendEmailToKafka(email);
       }
 
       return { message: 'OTP resent successfully.' };
