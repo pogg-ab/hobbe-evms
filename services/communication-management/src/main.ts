@@ -3,7 +3,7 @@ import { MicroserviceOptions } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
-import { kafkaProducerConfig } from './infrastructure/kafka/kafka.config';
+import { kafkaConsumerConfig } from './infrastructure/kafka/kafka-consumer.config';
 dotenv.config();
 
 async function bootstrap() {
@@ -18,7 +18,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  app.connectMicroservice<MicroserviceOptions>(kafkaProducerConfig);
+  app.connectMicroservice<MicroserviceOptions>(kafkaConsumerConfig);
   await app.startAllMicroservices();
   app.enableCors();
 

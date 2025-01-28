@@ -22,6 +22,7 @@ import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.t
 import { AccessToken } from 'src/domain/value-objects/access-token.value-object';
 import { RefreshToken } from 'src/domain/value-objects/refresh-token.value-object';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 import { Repository } from 'typeorm';
 @Injectable()
 export class AuthService {
@@ -46,7 +47,7 @@ export class AuthService {
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userWithAccountRepository: IUserRepository,
     private readonly messageProducerService: MessageProducerService,
-  ) {}
+  ) { }
 
   async validateUser(user_name: string, password: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
@@ -522,10 +523,9 @@ export class AuthService {
       const phoneNumber = await this.getPhoneNumberByAccount(user);
 
       const smsPayload = {
-        phoneNumber,
+        recipient: phoneNumber,
         message: smsMessage,
-        user,
-        type: 'OTP',
+        messageType: MessageType.OTP,
       };
 
       const smsResponse =

@@ -9,6 +9,8 @@ import { Email } from 'src/domain/entities/email.entity';
 import { EMAIL_REPOSITORY_TOKEN } from 'src/domain/repositories/email/email.repository.token';
 import { EmailRepositoryImpl } from 'src/infrastructure/persistance/repository/email.repository.impl';
 import { EmailSenderService } from '../../infrastructure/email/email-sender.service';
+import { ClientKafka } from '@nestjs/microservices';
+import { kafkaConsumerConfig } from 'src/infrastructure/kafka/kafka-consumer.config';
 
 @Module({
   imports: [AutomapperModule, CqrsModule, TypeOrmModule.forFeature([Email])],
@@ -18,6 +20,19 @@ import { EmailSenderService } from '../../infrastructure/email/email-sender.serv
       provide: EMAIL_REPOSITORY_TOKEN,
       useClass: EmailRepositoryImpl,
     },
+    {
+      provide: 'KAFKA_CONSUMER',
+      useFactory: async () => {
+        const client = new ClientKafka(kafkaConsumerConfig.options);
+        try {
+          await client.connect();
+          return client;
+        } catch (error) {
+          console.error('Error connecting to Kafka:', error);
+          throw error;
+        }
+      },
+    },
     EmailService,
     EmailSenderService,
     SendEmailHandler,
@@ -25,4 +40,4 @@ import { EmailSenderService } from '../../infrastructure/email/email-sender.serv
   ],
   exports: [EMAIL_REPOSITORY_TOKEN, EmailRepositoryImpl, EmailSenderService],
 })
-export class EmailModule {}
+export class EmailModule { }
