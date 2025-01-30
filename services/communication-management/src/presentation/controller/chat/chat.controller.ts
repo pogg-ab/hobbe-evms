@@ -36,9 +36,15 @@ export class ChatController {
     return  {message:"Sent message successfully !"}
   }
 
-  @Get(':room/messages')
-  async getMessages(@Param('room') room: string) {
-    const messages = await this.chatService.getMessages(room);
+
+  @ApiOperation({ description: 'Get My messages' })
+  @HttpCode(200)
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('my-messages')
+
+  async getMessages(@CurrentUserId() user: any,) {
+    const messages = await this.chatService.getMessages(user.user.user_id.toString());
     return { messages };
   }
 }

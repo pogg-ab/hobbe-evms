@@ -9,10 +9,10 @@ export class CreateChatDto{
     @ApiProperty({ description: 'Message', example: 'Hello World' })
     text: string;
 
-    @ApiProperty({ description: 'Message', example: 'https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1xIbuX.img?w=800&h=435&q=60&m=2&f=jpg' })
+    @ApiProperty({ description: 'Message'})
     file: string;
 
 
-    @ApiProperty({ description: 'Message', example: '' })
+    @ApiProperty({ description: 'Message' })
     audio: string;
 }

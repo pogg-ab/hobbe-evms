@@ -16,12 +16,15 @@ import { ChatController } from "src/presentation/controller/chat/chat.controller
 import { JwtStrategy } from "./jwt.strategy";
 import { CHAT_REPOSITORY_TOKEN } from "src/domain/repositories/chat/chat.repository.token";
 import { ChatRepositoryImpl } from "src/infrastructure/persistance/repository/chat.repository.impl";
+import { E2EEModule } from "../e2ee/e2ee.module";
+import { E2eeService } from "src/application/services/e2ee/e2ee.service";
 
 
 @Module({
   imports: [
     AutomapperModule,
     PassportModule,
+    E2EEModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '60s' },
@@ -42,6 +45,7 @@ import { ChatRepositoryImpl } from "src/infrastructure/persistance/repository/ch
   ],
   providers: [
     ChatService,
+    E2eeService,
     CreateChatCommandHandler,
     KafkaProducerService,
     ChatProfile,
