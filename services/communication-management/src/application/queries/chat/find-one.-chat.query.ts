@@ -1,0 +1,9 @@
+import { IQuery } from "@nestjs/cqrs";
+
+
+export class FindOneChatQuery implements IQuery{
+    constructor(
+        public readonly user:string,
+        public readonly chat_id:string
+    ){}
+}
