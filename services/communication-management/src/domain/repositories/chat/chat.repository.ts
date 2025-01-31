@@ -4,4 +4,5 @@ import { CreateChatDto } from "src/presentation/dto/chat/create-chat.dto"
 
 export interface IChatRepository {
     create(chat:Chat):Promise<Chat>
+    // findOne(id:string):Promise<Chat>
 }

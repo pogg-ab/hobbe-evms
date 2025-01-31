@@ -8,6 +8,7 @@ import { CreateChatDto } from 'src/presentation/dto/chat/create-chat.dto';
 import { firebaseDatabase } from '../../../infrastructure/firebase/firebase.config';
 import { E2eeService } from '../e2ee/e2ee.service';
 import { Timestamp } from 'firebase/firestore';
+import { log } from 'console';
 
 @Injectable()
 export class ChatService {
@@ -17,24 +18,50 @@ export class ChatService {
     @InjectMapper() private readonly mapper: Mapper,
     private readonly e2eeService: E2eeService,
   ) {}
-  private chatRef = firebaseDatabase.ref('chats'); // Realtime DB "chats" node
+  // private chatRef = firebaseDatabase.ref('chats'); // Realtime DB "chats" node
+  private chatRef = firebaseDatabase.ref('HobbeChats'); // Realtime DB "chats" node
 
-  async getMessages(chatRoom: string): Promise<Chat[]> {
-    console.log({ user_id: chatRoom });
-
-    const snapshot = await this.chatRef.child(chatRoom).once('value');
+  async getMessages(user: any, sender: string): Promise<any[]> {
+    const snapshot = await this.chatRef
+      .child(user.user.user_id.toString())
+      .child(sender)
+      .once('value');
     const messages = snapshot.val();
-    const privateKey = await this.e2eeService.getPrivateKey(chatRoom);
-
-    Object.values(messages).forEach((message) => {
-      const decryptedMessage = this.e2eeService.decrypt(
-        privateKey.privateKey.toString(),
-        message['text'].toString(),
+    if (messages) {
+      const senderPrivateKey = await this.e2eeService.getPrivateKey(
+        sender,
       );
-      message['text'] = decryptedMessage;
-      // console.log(message['text']);
-    });
-    return messages;
+
+      const receiverPrivateKey = await this.e2eeService.getPrivateKey(
+        user.user.user_id.toString(),
+      );
+
+      Object.values(messages).forEach((message) => {
+        const classedMessage = [message]
+        classedMessage.forEach((msg) => {
+          if(msg['direction'] == 'in'){
+            const decryptedMessage = this.e2eeService.decrypt(
+              receiverPrivateKey.privateKey.toString(),
+              msg['text'].toString(),
+            );
+            msg['text'] = decryptedMessage;
+          }
+
+          if(msg['direction'] == 'out'){
+            const decryptedMessage = this.e2eeService.decrypt(
+              senderPrivateKey.privateKey.toString(),
+              msg['text'].toString(),
+            );
+            msg['text'] = decryptedMessage;
+          }
+          
+          // console.log(message['text']);
+        });
+      });
+      
+
+      return { ...messages, sender: user.user.user_name };
+    }
   }
 
   async createMessage(
@@ -46,17 +73,43 @@ export class ChatService {
       publicKey.publicKey.toString(),
       createChatDto.text,
     );
-    createChatDto.text = encryptedMessage;
-    const mappedChat = this.mapper.map(createChatDto, CreateChatDto, Chat);
-    mappedChat.sender_id = sender_id;
+    const messageToSent = {
+      text: encryptedMessage,
+      created_at: Timestamp.fromDate(new Date()),
+      status: {
+        seen_at: '',
+        updated_at: '',
+      },
+    };
+    await this.chatRef
+      .child(createChatDto.to)
+      .child(sender_id)
+      .push({ ...messageToSent, direction: 'in' });
 
-    const message = await this.createChatRepository.create(mappedChat);
-    if (message) {
-      const updatedMessage = {
-        ...message,
-        created_at: Timestamp.fromDate(new Date()),
-      };
-      await this.chatRef.child(message.room).push(updatedMessage);
+    // sent
+    await this.chatRef
+      .child(sender_id)
+      .child(createChatDto.to)
+      .push({ ...messageToSent, direction: 'out' });
+  }
+
+  async findOne(user: string, id: string) {
+    const snapshot = await this.chatRef.child(user).child(id).once('value');
+    const data = snapshot.val();
+
+    if (!data) {
+      return { message: 'Message not found', user, id };
     }
+
+    return { id: id, ...data };
+  }
+
+  async updateMessage(
+    user: string,
+    chat_id: string,
+    text: string,
+  ): Promise<any> {
+    const chat = await this.findOne(user, chat_id);
+    return chat;
   }
 }

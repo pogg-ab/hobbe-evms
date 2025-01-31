@@ -18,6 +18,8 @@ import { CHAT_REPOSITORY_TOKEN } from "src/domain/repositories/chat/chat.reposit
 import { ChatRepositoryImpl } from "src/infrastructure/persistance/repository/chat.repository.impl";
 import { E2EEModule } from "../e2ee/e2ee.module";
 import { E2eeService } from "src/application/services/e2ee/e2ee.service";
+import { FindOneQueryHandler } from "src/application/handlers/chat/find-one-chat.handler";
+import { UpdateChatCommandHandler } from "src/application/handlers/chat/update-chat.handler";
 
 
 @Module({
@@ -47,6 +49,8 @@ import { E2eeService } from "src/application/services/e2ee/e2ee.service";
     ChatService,
     E2eeService,
     CreateChatCommandHandler,
+    FindOneQueryHandler,
+    UpdateChatCommandHandler,
     KafkaProducerService,
     ChatProfile,
     UserValidationService,

@@ -19,11 +19,5 @@ export class ChatRepositoryImpl implements IChatRepository{
     async create(chat: Chat):Promise<Chat>{
         return this.chatRepository.save(chat);
     }
-
-    // async findAll() :Promise<Categories[]>{
-    //     return await this.categoriesRepository.find();
-    // }
-
-
     
 }
