@@ -9,7 +9,7 @@ import { Chat } from "src/domain/entities/chat.entity";
 export class UpdateChatCommandHandler implements ICommandHandler<UpdateChatCommand>{
     constructor(private readonly chatService:ChatService){}
     execute(command: UpdateChatCommand): Promise<Chat> {
-        const {user,chat_id,text} = command;
-        return this.chatService.updateMessage(user,chat_id,text);
+        const {user,chat} = command;
+        return this.chatService.updateMessage(user,chat);
     }
 }

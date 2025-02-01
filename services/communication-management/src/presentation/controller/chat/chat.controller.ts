@@ -6,6 +6,8 @@ import {
   Param,
   UseGuards,
   HttpCode,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import { ChatService } from '../../../application/services/chat/chat.service';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
@@ -18,6 +20,9 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateChatCommand } from 'src/application/commands/chat/create-chat.command';
 import { FindOneChatQuery } from 'src/application/queries/chat/find-one.-chat.query';
 import { UpdateChatCommand } from 'src/application/commands/chat/update-chat.command';
+import { UpdateChatDto } from 'src/presentation/dto/chat/update-chat.dto';
+import { RemoveChatDto } from 'src/presentation/dto/chat/remove-chat.dto';
+import { RemoveChatCommand } from 'src/application/commands/chat/remove-chat.command';
 
 @ApiTags('Chat')
 @Controller('chat')
@@ -52,15 +57,15 @@ export class ChatController {
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   
-  @Get('my-messages/:sender')
+  @Get('my-messages/:friend')
   
   async getMessages(
     @CurrentUserId() user: any,
-    @Param('sender') sender: string
+    @Param('friend') friend: string
   ) {
     const messages = await this.chatService.getMessages(
       user,
-      sender,
+      friend,
     );
     return { messages };
   }
@@ -70,10 +75,14 @@ export class ChatController {
   @HttpCode(200)
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('/find-one/:id')
-  async findOne(@CurrentUserId() user: any, @Param('id') id: string) {
+  @Get('/find-one/:freind/:id')
+  async findOne(
+    @CurrentUserId() user: any, 
+    @Param('freind') freind: string,
+    @Param('id') id: string,
+  ) {
     return this.queryBus.execute(
-      new FindOneChatQuery(user.user.user_id.toString(), id),
+      new FindOneChatQuery(user,freind, id),
     );
   }
 
@@ -81,14 +90,29 @@ export class ChatController {
   @HttpCode(200)
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Post('/update/:id')
+  @Patch('/update')
   async update(
     @CurrentUserId() user: any,
-    @Param('id') id: string,
-    @Body() text: string,
+    @Body() chat: UpdateChatDto,
   ) {
     return this.commandBus.execute(
-      new UpdateChatCommand(user.user.user_id.toString(), id, text),
+      new UpdateChatCommand(user, chat),
+    );
+  }
+
+
+
+  @ApiOperation({ description: 'Delete Chat' })
+  @HttpCode(200)
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete('/remove')
+  async remove(
+    @CurrentUserId() user: any,
+    @Body() chat: RemoveChatDto,
+  ) {
+    return this.commandBus.execute(
+      new RemoveChatCommand(user, chat),
     );
   }
 }
