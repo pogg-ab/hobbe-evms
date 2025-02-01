@@ -20,6 +20,7 @@ import { E2EEModule } from "../e2ee/e2ee.module";
 import { E2eeService } from "src/application/services/e2ee/e2ee.service";
 import { FindOneQueryHandler } from "src/application/handlers/chat/find-one-chat.handler";
 import { UpdateChatCommandHandler } from "src/application/handlers/chat/update-chat.handler";
+import { RemoveChatCommandHandler } from "src/application/handlers/chat/remove-chat.handler";
 
 
 @Module({
@@ -51,6 +52,7 @@ import { UpdateChatCommandHandler } from "src/application/handlers/chat/update-c
     CreateChatCommandHandler,
     FindOneQueryHandler,
     UpdateChatCommandHandler,
+    RemoveChatCommandHandler,
     KafkaProducerService,
     ChatProfile,
     UserValidationService,

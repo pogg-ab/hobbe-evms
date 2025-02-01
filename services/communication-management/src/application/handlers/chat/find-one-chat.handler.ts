@@ -9,8 +9,8 @@ export class FindOneQueryHandler implements IQueryHandler<FindOneChatQuery>{
         private readonly chatService:ChatService
     ){}
     execute(query: FindOneChatQuery): Promise<any> {
-        const {user,chat_id} = query;
-        return this.chatService.findOne(user,chat_id);
+        const {user, friend,chat_id} = query;
+        return this.chatService.findOne(user,friend,chat_id);
     }
     
 }
