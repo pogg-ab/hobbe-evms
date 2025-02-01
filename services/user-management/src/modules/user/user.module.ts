@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FindAllUsersQueryHandler } from 'src/application/handlers/user/find-all-users.query-handler';
 import { FindUserByIdQueryHandler } from 'src/application/handlers/user/find-user-by-id.query-handler';
+import { UpdateUserCommandHandler } from 'src/application/handlers/user/update-user.command-handler';
 import { UserService } from 'src/application/services/user.service';
 import { User } from 'src/domain/entities/user.entity';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
@@ -17,6 +18,7 @@ import { UserController } from 'src/presentation/controllers/user.controller';
         UserService,
         FindAllUsersQueryHandler,
         FindUserByIdQueryHandler,
+        UpdateUserCommandHandler,
         {
             provide: USER_REPOSITORY_TOKEN,
             useClass: UserRepositoryImpl,

@@ -49,10 +49,15 @@ export class PersonalAccountRepositoryImpl
       }
       return account;
     } catch (error) {
+      if (error instanceof HttpException && error.getStatus() === HttpStatus.NOT_FOUND) {
+        throw error;
+      }
+
       throw new HttpException(
         `Error fetching PersonalAccount with ID ${id}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+
     }
   }
 

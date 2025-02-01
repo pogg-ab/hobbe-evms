@@ -7,6 +7,7 @@ import { User } from 'src/domain/entities/user.entity';
 import { AccountStatus } from 'src/domain/value-objects/account-status.value-object';
 import { CreateRoleDto } from 'src/presentation/dtos/create-role.dto';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto'; // Adjust the path
+import { UpdatePersonalAccountDto } from 'src/presentation/dtos/update-personal-account.dto';
 
 @Injectable()
 export class PersonalAccountProfile extends AutomapperProfile {
@@ -120,6 +121,52 @@ export class PersonalAccountProfile extends AutomapperProfile {
         forMember(
           (destination) => destination.description,
           mapFrom((src: CreateRoleDto) => src.description),
+        ),
+      );
+
+      createMap(
+        mapper,
+        UpdatePersonalAccountDto,
+        PersonalAccount,
+        forMember(
+          (destination) => destination.first_name,
+          mapFrom((src) => src.firstName),
+        ),
+        forMember(
+          (destination) => destination.surname,
+          mapFrom((src) => src.surname),
+        ),
+        forMember(
+          (destination) => destination.email_address,
+          mapFrom((src) => src.emailAddress),
+        ),
+        forMember(
+          (destination) => destination.phone_number,
+          mapFrom((src) => src.phoneNumber),
+        ),
+        forMember(
+          (destination) => destination.country,
+          mapFrom((src) => src.country),
+        ),
+        forMember(
+          (destination) => destination.date_of_birth,
+          mapFrom((src) => src.dateOfBirth),
+        ),
+        forMember(
+          (destination) => destination.gender,
+          mapFrom((src) => src.gender),
+        ),
+        forMember(
+          (destination) => destination.national_id,
+          mapFrom((src) => src.nationalId),
+        ),
+        forMember(
+          (destination) => destination.profile_image,
+          mapFrom((src) => src.profile_image),
+        ),
+        forMember(
+          (destination) => destination.updated_date,
+          mapFrom(() => new Date()),
         ),
       );
     };
