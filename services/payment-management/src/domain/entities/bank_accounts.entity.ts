@@ -21,6 +21,9 @@ export class BankAccounts{
     @Column()
     currency: string;
 
+    @Column()
+    profit_share_amount: number;
+
     @Column({nullable: true})
     user_id: string;
 

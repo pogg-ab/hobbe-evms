@@ -33,6 +33,7 @@ export class AppService {
                 account_owner:account.account_owner,
                 country:account.country,
                 currency:account.currency,
+                profit_share_amount:account.profit_share_amount,
               },
               CreateBankAccountDto,
               BankAccounts,
