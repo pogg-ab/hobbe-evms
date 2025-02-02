@@ -38,6 +38,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
 import * as path from 'path';
 import { Response } from 'express';
+import { CurrentUserId } from '../decorators/currentUserId.decorater';
 @ApiTags('Personal Account')
 @Controller('personal-account')
 export class PersonalAccountController {
@@ -106,14 +107,17 @@ export class PersonalAccountController {
   }
 
   @Put(':id')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async update(
     @Param('id') id: PersonalAccountID,
     @Body() updatePersonalAccountDto: UpdatePersonalAccountDto,
+    @CurrentUserId() user: any,
   ): Promise<PersonalAccount> {
-    const account = await this.commandBus.execute(
+    const account = await this.queryBus.execute(
       new FindPersonalAccountByIdQuery(id),
     );
-    if (!account) throw new Error('Account not found');
+
     Object.assign(account, updatePersonalAccountDto);
     return this.commandBus.execute(
       new UpdatePersonalAccountCommand(id, account),

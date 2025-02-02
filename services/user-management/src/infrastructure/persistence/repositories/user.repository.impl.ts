@@ -108,4 +108,28 @@ export class UserRepositoryImpl implements IUserRepository {
       );
     }
   }
+
+  async update(user: User): Promise<User> {
+    try {
+      const existingUser = await this.userRepository.findOne({
+        where: { user_id: user.user_id },
+      });
+
+      if (!existingUser) {
+        throw new HttpException(
+          `User with ID ${user.user_id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const updatedUser = Object.assign(existingUser, user);
+
+      return await this.userRepository.save(updatedUser);
+    } catch (error) {
+      throw new HttpException(
+        `Error updating User: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

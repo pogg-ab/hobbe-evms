@@ -53,7 +53,7 @@ export class PersonalAccountService {
     private dataSource: DataSource,
     private readonly messageProducerService: MessageProducerService,
     private readonly notificationConfigService: NotificationConfigService,
-  ) {}
+  ) { }
   async create(
     createPersonalAccountDto: CreatePersonalAccountDto,
   ): Promise<PersonalAccount> {
@@ -240,7 +240,7 @@ export class PersonalAccountService {
     id: PersonalAccountID,
     updatePersonalAccountDto: UpdatePersonalAccountDto,
   ): Promise<PersonalAccount> {
-    const account = await this.findOne(id);
+
     const updatedAccount = this.mapper.map(
       updatePersonalAccountDto,
       UpdatePersonalAccountDto,

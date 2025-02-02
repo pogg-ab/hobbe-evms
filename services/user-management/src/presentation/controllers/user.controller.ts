@@ -18,6 +18,10 @@ import { User } from 'src/domain/entities/user.entity';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Any } from 'typeorm';
+import { UpdateUserDto } from '../dtos/update-user.dto';
+import { CurrentUserId } from '../decorators/currentUserId.decorater';
+import { UserID } from 'src/domain/value-objects/user-id.value-object';
+import { UpdateUserCommand } from 'src/application/commands/user/update-user.command';
 
 @ApiTags('Users')
 @Controller('users')
@@ -50,5 +54,34 @@ export class UserController {
     })
     async findAllUsers(): Promise<any | null> {
         return this.queryBus.execute(new FindAllUsersQuery());
+    }
+
+    @Put(':id')
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: 'Update user details' })
+    @ApiResponse({
+        status: 200,
+        description: 'User updated successfully',
+        type: User,
+    })
+    async update(
+        @Param('id') user_id: UserID,
+        @Body() updateUserDto: UpdateUserDto,
+        @CurrentUserId() currentUser: any,
+    ): Promise<User> {
+        if (user_id.toString() !== currentUser.user.user_id.toString()) {
+            throw new BadRequestException('You cannot update another user\'s details');
+        }
+        const user = await this.queryBus.execute(
+            new FindUserByIdQuery(user_id.toString()),
+        );
+
+        if (!user) {
+            throw new BadRequestException('User not found');
+        }
+
+        Object.assign(user, updateUserDto);
+
+        return this.commandBus.execute(new UpdateUserCommand(user_id, user));
     }
 }
