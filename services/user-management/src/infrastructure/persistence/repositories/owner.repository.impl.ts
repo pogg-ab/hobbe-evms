@@ -38,6 +38,18 @@ export class OwnerRepositoryImpl implements IOwnerRepository {
 
   async update(ownerId: string, owner: Owner): Promise<Owner> {
     try {
+      if (owner.owner_email) {
+        const existingWithEmail = await this.ownerRepository.findOne({
+          where: { owner_email: owner.owner_email },
+        });
+
+        if (existingWithEmail && existingWithEmail.owner_id.toString() !== ownerId) {
+          throw new HttpException(
+            `Email ${owner.owner_email} is already in use.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
       await this.ownerRepository.update(ownerId, owner);
       return await this.ownerRepository.findOne({
         where: { owner_id: ownerId },

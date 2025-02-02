@@ -36,6 +36,19 @@ export class SocialMediaRepositoryImpl implements ISocialMediaRepository {
     }
   }
 
+  async findByOrganizerId(organizationalAccountId: string): Promise<SocialMedia[]> {
+    try {
+      return await this.socialMediaRepository.find({
+        where: { organizational_account: organizationalAccountId },
+      });
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Social Media by organizer ID: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async update(
     socialMediaId: string,
     socialMedia: SocialMedia,

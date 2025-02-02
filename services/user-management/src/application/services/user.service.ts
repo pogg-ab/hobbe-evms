@@ -51,7 +51,7 @@ export class UserService {
     ) { }
 
 
-    async findUserById(userId: string): Promise<User> {
+    async findUserById(userId: string): Promise<any | null> {
         const user = await this.userRepository.findByIdWithAccountInfo(userId);
         if (!user) {
             throw new NotFoundException(`User with ID ${userId} not found`);
@@ -100,23 +100,25 @@ export class UserService {
                         UpdateOrganizationalAccountDto,
                         OrganizationalAccount,
                     );
-                    console.log(existingUser.organizational_account)
 
 
-                    await this.organizationalAccountRepository.update(
-                        existingUser.organizational_account,
+                    const organizationalAccount = await this.organizationalAccountRepository.update(
+                        existingUser.account_info.organizational_account_id,
                         updatedOrganizationalAccount,
                     );
 
                     if (updateUserDto.organizationalAccount.ownerFirstName || updateUserDto.organizationalAccount.ownerSurName) {
+
                         const updatedOwner = this.mapper.map(
                             updateUserDto.organizationalAccount,
                             UpdateOrganizationalAccountDto,
                             Owner,
                         );
-                        console.log(updatedOwner.owner_id)
+                        const ownerJsonString = JSON.stringify(organizationalAccount.owner);
+
+                        const ownerJson = JSON.parse(ownerJsonString);
                         await this.ownerRepository.update(
-                            updatedOwner.owner_id.toString(),
+                            ownerJson.owner_id,
                             updatedOwner,
                         );
                     }
@@ -131,26 +133,41 @@ export class UserService {
                             UpdateOrganizationalAccountDto,
                             KYC,
                         );
+                        const kycJsonString = JSON.stringify(organizationalAccount.kyc);
+
+                        const kycJson = JSON.parse(kycJsonString);
                         await this.kycRepository.update(
-                            updatedKYC.kyc_id.toString(),
+                            kycJson.kyc_id,
                             updatedKYC,
                         );
                     }
 
-                    if (updateUserDto.organizationalAccount.socialMediaAccounts) {
-                        const updatedSocialMedia = this.mapper.map(
-                            updateUserDto.organizationalAccount,
-                            UpdateOrganizationalAccountDto,
-                            SocialMedia,
-                        );
-                        updatedSocialMedia.organizational_account =
-                            existingUser.organizational_account;
+                    // if (updateUserDto.organizationalAccount.socialMediaAccounts) {
+                    //     const existingSocialMediaList = await this.socialMediaRepository.findByOrganizerId(
+                    //         organizationalAccount.organizational_account_id.toString(),
+                    //     );
 
-                        await this.socialMediaRepository.update(
-                            updatedSocialMedia.social_media_id.toString(),
-                            updatedSocialMedia,
-                        );
-                    }
+                    //     if (existingSocialMediaList.length > 0) {
+                    //         for (const socialMedia of existingSocialMediaList) {
+                    //             const updatedSocialMedia = this.mapper.map(
+                    //                 updateUserDto.organizationalAccount,
+                    //                 UpdateOrganizationalAccountDto,
+                    //                 SocialMedia,
+                    //             );
+                    //             updatedSocialMedia.organizational_account = existingUser.organizational_account;
+
+                    //             await this.socialMediaRepository.update(
+                    //                 socialMedia.social_media_id.toString(),
+                    //                 updatedSocialMedia,
+                    //             );
+                    //         }
+                    //     } else {
+                    //         throw new HttpException(
+                    //             `No Social Media accounts found for organizational account ID ${existingUser.organizational_account.organizational_account_id}.`,
+                    //             HttpStatus.NOT_FOUND,
+                    //         );
+                    //     }
+                    // }
 
                     await queryRunner.commitTransaction();
                 } catch (error) {

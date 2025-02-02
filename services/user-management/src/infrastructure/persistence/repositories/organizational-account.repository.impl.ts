@@ -57,7 +57,7 @@ export class OrganizationalAccountRepositoryImpl
   async update(
     id: OrganizationalAccountID,
     organizationalAccount: OrganizationalAccount,
-  ): Promise<OrganizationalAccount> {
+  ): Promise<any | null> {
     try {
       const existingAccount = await this.findOneById(id);
       if (!existingAccount) {
@@ -72,6 +72,7 @@ export class OrganizationalAccountRepositoryImpl
           where: { company_email: organizationalAccount.company_email },
         });
 
+
         if (existingWithEmail && existingWithEmail.organizational_account_id !== id) {
           throw new HttpException(
             `Email ${organizationalAccount.company_email} is already in use.`,
@@ -81,8 +82,15 @@ export class OrganizationalAccountRepositoryImpl
       }
 
       const updatedAccount = Object.assign(existingAccount, organizationalAccount);
+      const savedAccount = await this.organizationalAccountRepository.save(updatedAccount);
 
-      return await this.organizationalAccountRepository.save(updatedAccount);
+      const result = await this.organizationalAccountRepository.findOne({
+        where: { organizational_account_id: savedAccount.organizational_account_id },
+        relations: ['kyc', 'owner'],
+      });
+
+      return result;
+
     } catch (error) {
       throw new HttpException(
         `Error updating Organizational Account with ID ${id}: ${error.message}`,
