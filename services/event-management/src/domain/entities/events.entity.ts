@@ -12,7 +12,7 @@ import { Tickets } from './tickets.entity';
 import { Like } from './likes.entity';
 import { TicketBooking } from './ticket-booking.entity';
 import { Comments } from './comments.entity';
-import { Favorite } from './favorite.entity';
+import { FavoriteEvent } from './favorite-event.entity';
 
 @Entity()
 export class Events {
@@ -28,7 +28,7 @@ export class Events {
   @Column()
   thumbnail: string;
 
-  @Column({nullable:true})
+  @Column({ nullable: true })
   cover_image: string;
 
   @Column()
@@ -68,10 +68,10 @@ export class Events {
   })
   status: string;
 
-  @Column({type:'timestamptz'})
+  @Column({ type: 'timestamptz' })
   event_start_date: Date;
 
-  @Column({type:'timestamptz'})
+  @Column({ type: 'timestamptz' })
   event_end_date: Date;
 
   // @Column({ nullable: true })
@@ -111,32 +111,32 @@ export class Events {
   promocodes: Promocodes[];
 
 
-  @OneToMany(() => Like, (like) => like.event_id,{
+  @OneToMany(() => Like, (like) => like.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
   likes: Like[];
 
-  @OneToMany(() => Favorite, (favorite) => favorite.event_id,{
+  @OneToMany(() => FavoriteEvent, (favorite) => favorite.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
-  favorites: Favorite[];
+  favorites: FavoriteEvent[];
 
 
-  @OneToMany(() => Comments, (comment) => comment.event_id,{
+  @OneToMany(() => Comments, (comment) => comment.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
   comments: Comments[];
 
 
-  @OneToMany(() => TicketBooking, (booking) => booking.event_id,{
+  @OneToMany(() => TicketBooking, (booking) => booking.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
   bookings: TicketBooking[];
 
-  
-  
+
+
 }

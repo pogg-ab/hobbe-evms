@@ -13,6 +13,6 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: "669357"
       DB_NAME: hobbe_evms_db
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKER: kafka:29092
 volumes:
   postgres-data:
