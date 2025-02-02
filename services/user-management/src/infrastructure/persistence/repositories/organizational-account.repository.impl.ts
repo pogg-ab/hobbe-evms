@@ -62,15 +62,25 @@ export class OrganizationalAccountRepositoryImpl
       const existingAccount = await this.findOneById(id);
       if (!existingAccount) {
         throw new HttpException(
-          `Personal account with ID ${id} not found`,
+          `Organizational account with ID ${id} not found`,
           HttpStatus.NOT_FOUND,
         );
       }
 
-      const updatedAccount = Object.assign(
-        existingAccount,
-        organizationalAccount,
-      );
+      if (organizationalAccount.company_email) {
+        const existingWithEmail = await this.organizationalAccountRepository.findOne({
+          where: { company_email: organizationalAccount.company_email },
+        });
+
+        if (existingWithEmail && existingWithEmail.organizational_account_id !== id) {
+          throw new HttpException(
+            `Email ${organizationalAccount.company_email} is already in use.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
+      const updatedAccount = Object.assign(existingAccount, organizationalAccount);
 
       return await this.organizationalAccountRepository.save(updatedAccount);
     } catch (error) {
@@ -80,6 +90,7 @@ export class OrganizationalAccountRepositoryImpl
       );
     }
   }
+
 
   async delete(organizationalAccountId: string): Promise<void> {
     try {

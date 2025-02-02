@@ -5,6 +5,7 @@ import { Role } from 'src/domain/entities/role.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { CreateRoleDto } from 'src/presentation/dtos/create-role.dto';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto'; // Adjust the path
+import { UpdateUserDto } from 'src/presentation/dtos/update-user.dto';
 
 @Injectable()
 export class UserProfile extends AutomapperProfile {
@@ -54,6 +55,27 @@ export class UserProfile extends AutomapperProfile {
           mapFrom((src: CreateRoleDto) => src.description),
         ),
       );
+
+      createMap(
+        mapper,
+        UpdateUserDto,
+        User,
+        forMember(
+          (destination) => destination.user_name,
+          mapFrom((src: UpdateUserDto) => src.username),
+        ),
+        forMember(
+          (destination) => destination.password,
+          mapFrom((src: UpdateUserDto) => src.password),
+        ),
+        forMember(
+          (destination) => destination.updated_date,
+          mapFrom(() => new Date()),
+        ),
+
+
+      );
+
     };
   }
 }

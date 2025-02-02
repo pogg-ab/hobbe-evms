@@ -9,6 +9,7 @@ import { User } from 'src/domain/entities/user.entity';
 import { AccountStatus } from 'src/domain/value-objects/account-status.value-object';
 import { AccountType } from 'src/domain/value-objects/account-type.value-object';
 import { CreateOrganizationalAccountDto } from 'src/presentation/dtos/create-organizational-account.dto';
+import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
 
 @Injectable()
 export class OrganizationalAccountProfile extends AutomapperProfile {
@@ -139,6 +140,116 @@ export class OrganizationalAccountProfile extends AutomapperProfile {
       createMap(
         mapper,
         CreateOrganizationalAccountDto,
+        SocialMedia,
+        forMember(
+          (destination) => destination.url,
+          mapFrom((src) =>
+            src.socialMediaAccounts ? src.socialMediaAccounts[0]?.url : '',
+          ),
+        ),
+        forMember(
+          (destination) => destination.platform,
+          mapFrom((src) =>
+            src.socialMediaAccounts ? src.socialMediaAccounts[0]?.platform : '',
+          ),
+        ),
+      );
+      createMap(
+        mapper,
+        UpdateOrganizationalAccountDto,
+        OrganizationalAccount,
+        forMember(
+          (destination) => destination.company_name,
+          mapFrom((src) => src.companyName),
+        ),
+        forMember(
+          (destination) => destination.company_address,
+          mapFrom((src) => src.companyAddress),
+        ),
+        forMember(
+          (destination) => destination.company_phone_number,
+          mapFrom((src) => src.companyPhoneNumber),
+        ),
+        forMember(
+          (destination) => destination.company_email,
+          mapFrom((src) => src.companyEmail),
+        ),
+        forMember(
+          (destination) => destination.company_type,
+          mapFrom((src) => src.companyType),
+        ),
+        forMember(
+          (destination) => destination.TIN,
+          mapFrom((src) => src.TIN),
+        ),
+        forMember(
+          (destination) => destination.operating_country,
+          mapFrom((src) => src.operatingCountry),
+        ),
+
+
+        forMember(
+          (destination) => destination.updated_date,
+          mapFrom(() => new Date()),
+        ),
+      );
+
+      createMap(
+        mapper,
+        UpdateOrganizationalAccountDto,
+        Owner,
+        forMember(
+          (destination) => destination.owner_first_name,
+          mapFrom((src) => src.ownerFirstName),
+        ),
+        forMember(
+          (destination) => destination.owner_sur_name,
+          mapFrom((src) => src.ownerSurName),
+        ),
+        forMember(
+          (destination) => destination.owner_email,
+          mapFrom((src) => src.ownerEmail),
+        ),
+        forMember(
+          (destination) => destination.owner_phone_number,
+          mapFrom((src) => src.ownerPhoneNumber),
+        ),
+
+      );
+
+      createMap(
+        mapper,
+        UpdateOrganizationalAccountDto,
+        KYC,
+        forMember(
+          (destination) => destination.company_logo,
+          mapFrom((src) => src.companyLogo),
+        ),
+        forMember(
+          (destination) => destination.business_license,
+          mapFrom((src) => src.businessLicense),
+        ),
+        forMember(
+          (destination) => destination.business_certificate,
+          mapFrom((src) => src.businessCertificate),
+        ),
+        forMember(
+          (destination) => destination.memorandum_of_association,
+          mapFrom((src) => src.memorandumOfAssociation),
+        ),
+        forMember(
+          (destination) => destination.proof_of_address,
+          mapFrom((src) => src.proofOfAddress),
+        ),
+        forMember(
+          (destination) => destination.TIN,
+          mapFrom((src) => src.TIN),
+        ),
+      );
+
+      createMap(
+        mapper,
+        UpdateOrganizationalAccountDto,
         SocialMedia,
         forMember(
           (destination) => destination.url,

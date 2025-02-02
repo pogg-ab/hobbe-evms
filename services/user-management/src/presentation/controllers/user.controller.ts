@@ -82,6 +82,6 @@ export class UserController {
 
         Object.assign(user, updateUserDto);
 
-        return this.commandBus.execute(new UpdateUserCommand(user_id.toString(), user));
+        return this.commandBus.execute(new UpdateUserCommand(user_id, user));
     }
 }
