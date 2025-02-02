@@ -1,15 +1,15 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Favorite } from 'src/domain/entities/favorite.entity';
+import { FavoriteEvent } from 'src/domain/entities/favorite-event.entity';
 import { IFavoriteEventsRepository } from 'src/domain/repositories/favorite/favorite-event.repository';
 import { Repository } from 'typeorm';
 
 @Injectable()
 export class FavoriteEventRepositoryImpl implements IFavoriteEventsRepository {
   constructor(
-    @InjectRepository(Favorite)
-    private readonly favoriteEventRepository: Repository<Favorite>,
-  ) {}
+    @InjectRepository(FavoriteEvent)
+    private readonly favoriteEventRepository: Repository<FavoriteEvent>,
+  ) { }
 
   /**
    * Toggles the like status of an event for a user.
@@ -32,7 +32,7 @@ export class FavoriteEventRepositoryImpl implements IFavoriteEventsRepository {
   /**
    * Finds a like record for a user and event.
    */
-  async findOne(userId: string, eventId: any): Promise<Favorite | null> {
+  async findOne(userId: string, eventId: any): Promise<FavoriteEvent | null> {
     try {
       const favorite = await this.favoriteEventRepository
         .createQueryBuilder('favorite')
@@ -102,9 +102,9 @@ export class FavoriteEventRepositoryImpl implements IFavoriteEventsRepository {
     return { totalFavorites: allFavoritesCounter };
   }
 
-  async getFavoriteEvents(user:string):Promise<Favorite[]>{
+  async getFavoriteEvents(user: string): Promise<FavoriteEvent[]> {
     return this.favoriteEventRepository.find({
-      where: { user_id:user },
+      where: { user_id: user },
       relations: ['event_id'],
     });
   }
