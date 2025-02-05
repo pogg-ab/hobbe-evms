@@ -162,6 +162,24 @@ export class EventRepositoryEmpl implements IEventRepository {
     return events;
 
   }
+  async findByStatus(status: string): Promise<Events[]> {
+    const events = await this.eventRepository.find({
+      where: { status: status },
+      order: {
+        event_start_date: 'DESC', // or 'DESC' for descending order
+      },
+    });
+
+    // Check if no events were found
+    if (events.length === 0) {
+      throw new HttpException(
+        `Events with status ${status} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return events;
+  }
 
   async findByLocation(location: string): Promise<Events[]> {
     const events = await this.eventRepository.find({
@@ -174,7 +192,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     // Check if no events were found
     if (events.length === 0) {
       throw new HttpException(
-        `Events with category ${location} not found`,
+        `Events with status ${location} not found`,
         HttpStatus.NOT_FOUND,
       );
     }
