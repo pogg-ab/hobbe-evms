@@ -40,8 +40,8 @@ export class UserController {
         description: 'User found',
         type: [Any || null],
     })
-    async findUserById(@Param('user_id') user_id: string): Promise<User> {
-        return this.queryBus.execute(new FindUserByIdQuery(user_id));
+    async findUserById(@Param('id') id: string): Promise<User> {
+        return this.queryBus.execute(new FindUserByIdQuery(id));
     }
 
     @Get()
