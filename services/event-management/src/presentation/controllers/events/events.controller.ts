@@ -39,6 +39,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
 import { FindEventsByUsersFavoriteQuery } from 'src/application/queries/favorite/find-events-by-users-favorite.query';
 import { GetEventRemainingTimeQuery } from 'src/application/queries/events/get-event-remaining-time.query';
+import { GetEventsByStatusQuery } from 'src/application/queries/events/get-events-by-status.query';
 
 @ApiTags('Events')
 @Controller('events')
@@ -203,6 +204,13 @@ export class EventsController {
   @Get('/category/:category')
   async findByCategory(@Param('category') category: string): Promise<Events[]> {
     return this.queryBus.execute(new GetEventsByCategoryQuery(category));
+  }
+
+  @ApiOperation({ description: 'Get Events By Status' })
+  @HttpCode(200)
+  @Get('/status/:status')
+  async findByStatus(@Param('status') status: string): Promise<Events[]> {
+    return this.queryBus.execute(new GetEventsByStatusQuery(status));
   }
 
   @ApiOperation({ description: 'Get Events By Location' })

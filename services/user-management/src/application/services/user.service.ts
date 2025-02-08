@@ -26,6 +26,7 @@ import { SOCIAL_MEDIA_REPOSITORY_TOKEN } from 'src/domain/repositories/social-me
 import { ISocialMediaRepository } from 'src/domain/repositories/social-media.repository';
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { SocialMedia } from 'src/domain/entities/social-media.entity';
+import { SocialMediaAccountDto } from 'src/presentation/dtos/social-media-account.dto';
 
 @Injectable()
 export class UserService {
@@ -142,11 +143,17 @@ export class UserService {
                         );
                     }
 
+                    if (updateUserDto.organizationalAccount.socialMediaAccounts) {
+                        await this.updateSocialMedia(
+                            organizationalAccount,
+                            updateUserDto.organizationalAccount.socialMediaAccounts
+                        );
+                    }
+
                     // if (updateUserDto.organizationalAccount.socialMediaAccounts) {
                     //     const existingSocialMediaList = await this.socialMediaRepository.findByOrganizerId(
                     //         organizationalAccount.organizational_account_id.toString(),
                     //     );
-
                     //     if (existingSocialMediaList.length > 0) {
                     //         for (const socialMedia of existingSocialMediaList) {
                     //             const updatedSocialMedia = this.mapper.map(
@@ -155,7 +162,6 @@ export class UserService {
                     //                 SocialMedia,
                     //             );
                     //             updatedSocialMedia.organizational_account = existingUser.organizational_account;
-
                     //             await this.socialMediaRepository.update(
                     //                 socialMedia.social_media_id.toString(),
                     //                 updatedSocialMedia,
@@ -191,4 +197,46 @@ export class UserService {
     }
 
 
+    private async updateSocialMedia(
+        organizationalAccount: OrganizationalAccount,
+        socialMediaUpdates: SocialMediaAccountDto[]
+    ): Promise<void> {
+        const existingSocialMedia = await this.socialMediaRepository.findByOrganizerId(
+            organizationalAccount.organizational_account_id.toString(),
+        );
+
+        const existingSocialMediaMap = new Map(
+            existingSocialMedia.map((sm) => [sm.platform, sm])
+        );
+
+        const updatedSocialMedia: SocialMedia[] = [];
+
+        for (const smDto of socialMediaUpdates) {
+            const existing = existingSocialMediaMap.get(smDto.platform);
+            if (existing) {
+                const updatedEntity = this.mapper.map(smDto, SocialMediaAccountDto, SocialMedia);
+
+                updatedEntity.social_media_id = existing.social_media_id;
+                updatedEntity.organizational_account = existing.organizational_account;
+
+                updatedSocialMedia.push(updatedEntity);
+                existingSocialMediaMap.delete(smDto.platform);
+            } else {
+                const newSocialMedia = this.mapper.map(smDto, SocialMediaAccountDto, SocialMedia);
+                newSocialMedia.organizational_account = organizationalAccount.organizational_account_id;
+                updatedSocialMedia.push(newSocialMedia);
+            }
+        }
+
+        const toDelete = Array.from(existingSocialMediaMap.values());
+        if (toDelete.length > 0) {
+            for (const sm of toDelete) {
+                await this.socialMediaRepository.remove(sm.social_media_id.toString());
+            }
+        }
+        
+        for (const sm of updatedSocialMedia) {
+            await this.socialMediaRepository.update(sm.social_media_id.toString(), sm);
+        }
+    }
 }

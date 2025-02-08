@@ -12,6 +12,7 @@ import { TicketBookingModule } from './modules/ticketes/ticket-booking.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { SocketIoModule } from './modules/socket-io/socket-io.module';
 import { FavoriteModule } from './modules/favorite/favorite.module';
+import { EventShareModule } from './modules/event-share/event-share.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { FavoriteModule } from './modules/favorite/favorite.module';
     CommentsModule,
     TicketBookingModule,
     SocketIoModule,
+    EventShareModule
   ],
 })
 export class AppModule {}
