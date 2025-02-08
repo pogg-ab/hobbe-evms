@@ -13,7 +13,7 @@ export interface IOrganizationalAccountRepository {
   update(
     organizationalAccountId: OrganizationalAccountID,
     organizationalAccount: OrganizationalAccount,
-  ): Promise<OrganizationalAccount>;
+  ): Promise<any | null>;
   delete(organizationalAccountId: string): Promise<void>;
   sendEmailVerificationDb(user_name: string): Promise<any>;
   findByEmail(email: string): Promise<OrganizationalAccount | null>;
