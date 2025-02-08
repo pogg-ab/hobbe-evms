@@ -26,18 +26,43 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
 
     async findAllByUserId(userId: string): Promise<Follower[]> {
         try {
-            return await this.followerRepository.find({
+            const followers = await this.followerRepository.find({
                 where: [
                     { following: { user_id: userId } },
                     { follower: { user_id: userId } },
                 ],
+                relations: ['follower', 'following', 'follower.personal_account', 'following.personal_account', 'follower.organizational_account', 'following.organizational_account'],
+
             });
+            await Promise.all(followers.map(async (follower) => {
+                if (follower.follower) {
+                    this.removeSensitiveFields(follower.follower);
+                }
+                if (follower.following) {
+                    this.removeSensitiveFields(follower.following);
+                }
+            }));
+            return followers;
         } catch (error) {
             throw new HttpException(
                 `Error fetching Followers for user with ID ${userId}: ${error.message}`,
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
+    }
+    private removeSensitiveFields(user: any): void {
+        const fieldsToRemove = [
+            'password',
+            'password_reset_token',
+            'password_reset_token_expiry',
+            'password_reset_requested_at',
+            'otp',
+            'otp_expiry',
+        ];
+
+        fieldsToRemove.forEach(field => {
+            delete user[field];
+        });
     }
 
     async findOne(id: FollowID): Promise<Follower | null> {
@@ -46,12 +71,24 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
                 where: { follow_id: id },
                 relations: ['follower', 'following'],
             });
+
+
             if (!follower) {
                 throw new HttpException(
                     `Follower with ID ${id} not found`,
                     HttpStatus.NOT_FOUND,
                 );
             }
+            console.log
+
+            if (follower.follower) {
+                this.removeSensitiveFields(follower.follower);
+            }
+
+            if (follower.following) {
+                this.removeSensitiveFields(follower.following);
+            }
+
             return follower;
         } catch (error) {
             throw new HttpException(
@@ -60,6 +97,8 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
             );
         }
     }
+
+
 
     async update(id: FollowID, follower: Follower): Promise<Follower> {
         try {
@@ -81,7 +120,7 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
         }
     }
 
-    async delete(id: string): Promise<void> {
+    async delete(id: FollowID): Promise<void> {
         try {
             const followerToDelete = await this.followerRepository.findOne({
                 where: { follow_id: id },
@@ -93,7 +132,7 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
                 );
             }
 
-            await this.followerRepository.delete(id);
+            await this.followerRepository.delete(id.toString());
         } catch (error) {
             throw new HttpException(
                 `Error deleting Follower: ${error.message}`,

@@ -6,7 +6,7 @@ export interface IFollowerRepository {
     findAllByUserId(userId: string): Promise<Follower[]>;
     findOne(id: FollowID): Promise<Follower | null>;
     update(id: FollowID, follower: Follower): Promise<Follower>;
-    delete(id: string): Promise<void>;
+    delete(id: FollowID): Promise<void>;
     findStatus(followerId: string, followingId: string): Promise<string | null>;
     findByFollowerAndFollowing(followerId: string, followingId: string): Promise<Follower | null>;
 }

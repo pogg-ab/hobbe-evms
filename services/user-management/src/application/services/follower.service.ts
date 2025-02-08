@@ -107,8 +107,8 @@ export class FollowerService {
         await this.followerRepository.update(id, updatedFollower);
         return updatedFollower;
     }
-    async deleteFollower(followId: string): Promise<void> {
-        const follow = await this.followerRepository.findOne(new FollowID(followId));
+    async deleteFollower(followId: FollowID): Promise<void> {
+        const follow = await this.followerRepository.findOne(followId);
 
         if (!follow) {
             throw new NotFoundException('Follow record not found');
@@ -124,7 +124,7 @@ export class FollowerService {
             throw new NotFoundException('Follow relationship not found');
         }
 
-        await this.followerRepository.delete(follow.follow_id.toString());
+        await this.followerRepository.delete(follow.follow_id);
     }
 
     async findFollowStatus(

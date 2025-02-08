@@ -25,6 +25,8 @@ import { FollowStatusResponseDto } from '../dtos/follow-status-response.dto';
 import { UnfollowCommand } from 'src/application/commands/follower/unfollow.command';
 import { UnblockCommand } from 'src/application/commands/follower/unblock.command';
 import { BlockCommand } from 'src/application/commands/follower/block.command';
+import { FindFollowerByIdQuery } from 'src/application/queries/follower/find-follower-by-id.query';
+import { FollowID } from 'src/domain/value-objects/follower-id.value-object';
 @ApiTags('Followers')
 @Controller('followers')
 export class FollowerController {
@@ -97,6 +99,17 @@ export class FollowerController {
     return this.queryBus.execute(new FindAllFollowersQuery(userId));
   }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Find a follower by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Follower found by ID',
+    type: Follower,
+  })
+  async findFollowerById(@Param('id') id: string): Promise<Follower | null> {
+    return this.queryBus.execute(new FindFollowerByIdQuery(new FollowID(id)));
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Remove a follow relationship' })
   @ApiResponse({
@@ -104,7 +117,7 @@ export class FollowerController {
     description: 'Follow relationship removed successfully',
   })
   async removeFollow(@Param('id') id: string): Promise<void> {
-    return this.commandBus.execute(new RemoveFollowCommand(id));
+    return this.commandBus.execute(new RemoveFollowCommand(new FollowID(id)));
   }
 
   @Delete('unfollow/:followerId/:followingId')
