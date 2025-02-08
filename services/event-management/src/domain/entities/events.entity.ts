@@ -13,6 +13,7 @@ import { Like } from './likes.entity';
 import { TicketBooking } from './ticket-booking.entity';
 import { Comments } from './comments.entity';
 import { FavoriteEvent } from './favorite-event.entity';
+import { EventShare } from './event-share.entity';
 
 @Entity()
 export class Events {
@@ -137,6 +138,11 @@ export class Events {
   })
   bookings: TicketBooking[];
 
-
+  @OneToMany(() => EventShare, (share) => share.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  shares: EventShare[];
+  
 
 }

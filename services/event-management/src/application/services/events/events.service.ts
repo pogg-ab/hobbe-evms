@@ -147,6 +147,14 @@ export class EventsService {
     return event;
   }
 
+  async findByStatus(status: string): Promise<Events[]> {
+    const event = await this.createEventRepository.findByStatus(status);
+    if (!event) {
+      throw new NotFoundException(`Event with Status ${status} not found.`);
+    }
+    return event;
+  }
+
   async findByLocation(location: string): Promise<Events[]> {
     const event = await this.createEventRepository.findByLocation(location);
     if (!event) {

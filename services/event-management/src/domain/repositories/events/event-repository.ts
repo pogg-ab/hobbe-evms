@@ -9,6 +9,7 @@ export interface IEventRepository{
     findOneEventOnly(id:string):Promise<Events | null>
     findByUser(user:string):Promise<Events[]>
     findByCategory(category:string):Promise<Events[]>
+    findByStatus(status:string):Promise<Events[]>
     findByLocation(location:string):Promise<Events[]>
     findByOrganiser(organiser:string):Promise<Events[]>
     findByDateRange(startOfDay:Date, endOfDay:Date):Promise<Events[] | []>

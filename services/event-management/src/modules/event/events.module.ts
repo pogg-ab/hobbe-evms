@@ -42,6 +42,7 @@ import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/
 import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositories/tickets.repository.impl';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
+import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/get-events-by-status.handler';
 
 
 @Module({
@@ -84,6 +85,7 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
     FindEventsByUserQueryHandler,
     GetEventsByCategoryQueryHandler,
     GetEventsByLocationQueryHandler,
+    GetEventsByStatusQueryHandler,
     FindByOrganiserQueryHandler,
     FindEventsByThisWeekendQueryHandler,
     FindEventsBySpecificDateQueryHandler,
