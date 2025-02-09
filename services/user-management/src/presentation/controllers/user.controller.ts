@@ -12,7 +12,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FindAllUsersQuery } from 'src/application/queries/user/find-all-users.query';
 import { FindUserByIdQuery } from 'src/application/queries/user/find-user-by-id.query';
 import { User } from 'src/domain/entities/user.entity';
@@ -34,6 +34,7 @@ export class UserController {
 
 
     @Get('user/:id')
+    @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: 'Get user details by ID' })
     @ApiResponse({
@@ -46,6 +47,7 @@ export class UserController {
     }
 
     @Get()
+    @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: 'Get all users' })
     @ApiResponse({
@@ -61,6 +63,7 @@ export class UserController {
     }
 
     @Get('exclude-me')
+    @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: 'Get all users excluding the current user' })
     @ApiResponse({
@@ -81,6 +84,7 @@ export class UserController {
     }
 
     @Put(':id')
+    @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: 'Update user details' })
     @ApiResponse({
