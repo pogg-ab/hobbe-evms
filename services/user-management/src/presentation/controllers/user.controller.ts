@@ -8,6 +8,7 @@ import {
     Param,
     Post,
     Put,
+    Query,
     UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -32,7 +33,7 @@ export class UserController {
     ) { }
 
 
-    @Get(':id')
+    @Get('user/:id')
     @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: 'Get user details by ID' })
     @ApiResponse({
@@ -52,8 +53,31 @@ export class UserController {
         description: 'List of all users',
         type: [Any || null],
     })
-    async findAllUsers(): Promise<any | null> {
-        return this.queryBus.execute(new FindAllUsersQuery());
+    async findAllUsers(
+        @Query('page') page: number = 1,
+        @Query('limit') limit: number = 10,
+    ): Promise<any | null> {
+        return this.queryBus.execute(new FindAllUsersQuery(page, limit));
+    }
+
+    @Get('exclude-me')
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: 'Get all users excluding the current user' })
+    @ApiResponse({
+        status: 200,
+        description: 'List of all users excluding the current user',
+        type: [Any || null],
+    })
+    async findAllUsersExcludingCurrent(
+        @CurrentUserId() currentUser: any,
+        @Query('page') page: number = 1,
+        @Query('limit') limit: number = 10,
+    ): Promise<any | null> {
+        const response = await this.queryBus.execute(new FindAllUsersQuery(page, limit));
+
+        const filteredUsers = response.users.filter(user => user.user_id.toString() !== currentUser.user.user_id.toString());
+
+        return filteredUsers;
     }
 
     @Put(':id')

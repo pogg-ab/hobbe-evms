@@ -28,6 +28,9 @@ import { SocialMediaRepositoryImpl } from 'src/infrastructure/persistence/reposi
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { OrganizationalAccountService } from '../../application/services/organizational-account.service';
 import { OrganizationalAccountController } from '../../presentation/controllers/organizational-account.controller';
+import { Follower } from 'src/domain/entities/follower.entity';
+import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
+import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 
 @Module({
   imports: [
@@ -39,6 +42,7 @@ import { OrganizationalAccountController } from '../../presentation/controllers/
       Owner,
       KYC,
       User,
+      Follower
     ]),
     ClientsModule.register([
       {
@@ -78,6 +82,10 @@ import { OrganizationalAccountController } from '../../presentation/controllers/
       provide: SOCIAL_MEDIA_REPOSITORY_TOKEN,
       useClass: SocialMediaRepositoryImpl,
     },
+    {
+      provide: FOLLOWER_REPOSITORY_TOKEN,
+      useClass: FollowerRepositoryImpl,
+    },
   ],
 })
-export class OrganizationalAccountModule {}
+export class OrganizationalAccountModule { }

@@ -9,6 +9,7 @@ import { BlockCommandHandler } from 'src/application/handlers/follower/block.com
 import { CreateFollowCommandHandler } from 'src/application/handlers/follower/create-follow.command-handler';
 import { FindAllFollowersQueryHandler } from 'src/application/handlers/follower/find-all-followers.query-handler';
 import { FindFollowStatusQueryHandler } from 'src/application/handlers/follower/find-follow-status.query-handler';
+import { FindFollowerByIdQueryHandler } from 'src/application/handlers/follower/find-follower-by-id.query-handler';
 import { RemoveFollowCommandHandler } from 'src/application/handlers/follower/remove-follow.command-handler';
 import { UnblockCommandHandler } from 'src/application/handlers/follower/unblock.command-handler';
 import { UnfollowCommandHandler } from 'src/application/handlers/follower/unfollow.command-handler';
@@ -39,6 +40,7 @@ import { FollowerController } from 'src/presentation/controllers/follower.contro
     UnblockCommandHandler,
     FindAllFollowersQueryHandler,
     FindFollowStatusQueryHandler,
+    FindFollowerByIdQueryHandler,
     FollowerProfile,
     {
       provide: FOLLOWER_REPOSITORY_TOKEN,
@@ -49,5 +51,6 @@ import { FollowerController } from 'src/presentation/controllers/follower.contro
       useClass: UserRepositoryImpl,
     },
   ],
+
 })
-export class FollowerModule {}
+export class FollowerModule { }

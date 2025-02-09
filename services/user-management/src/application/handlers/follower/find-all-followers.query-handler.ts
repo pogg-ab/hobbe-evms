@@ -9,7 +9,14 @@ export class FindAllFollowersQueryHandler
     implements IQueryHandler<FindAllFollowersQuery> {
     constructor(private readonly followerService: FollowerService) { }
 
-    async execute(query: FindAllFollowersQuery): Promise<Follower[]> {
-        return this.followerService.findAllFollowers(query.userId);
+    async execute(query: FindAllFollowersQuery): Promise<{
+        followers: Follower[] | null;
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        const { userId, page, limit } = query;
+        return this.followerService.findAllFollowers(userId, page, limit);
     }
 }
+

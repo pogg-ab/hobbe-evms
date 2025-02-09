@@ -3,5 +3,7 @@ import { IQuery } from '@nestjs/cqrs';
 export class FindAllFollowersQuery implements IQuery {
     constructor(
         public readonly userId: string,
+        public readonly page: number,
+        public readonly limit: number,
     ) { }
 }

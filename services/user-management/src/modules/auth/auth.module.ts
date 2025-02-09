@@ -20,6 +20,9 @@ import { NotificationConfigService } from 'src/infrastructure/notification-confi
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { AuthController } from 'src/presentation/controllers/auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
+import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
+import { Follower } from 'src/domain/entities/follower.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -31,6 +34,7 @@ import { JwtStrategy } from './jwt.strategy';
       AdminUserAuth,
       PersonalAccount,
       OrganizationalAccount,
+      Follower
     ]),
     PassportModule,
     JwtModule.register({
@@ -55,6 +59,10 @@ import { JwtStrategy } from './jwt.strategy';
       useClass: UserRepositoryImpl,
     },
     {
+      provide: FOLLOWER_REPOSITORY_TOKEN,
+      useClass: FollowerRepositoryImpl,
+    },
+    {
       provide: 'KAFKA_CONSUMER',
       useFactory: async () => {
         const client = new ClientKafka(kafkaConfig.options);
@@ -70,4 +78,4 @@ import { JwtStrategy } from './jwt.strategy';
   ],
   controllers: [AuthController],
 })
-export class AuthModule {}
+export class AuthModule { }

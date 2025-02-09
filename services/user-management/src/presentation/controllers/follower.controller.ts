@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -25,6 +26,8 @@ import { FollowStatusResponseDto } from '../dtos/follow-status-response.dto';
 import { UnfollowCommand } from 'src/application/commands/follower/unfollow.command';
 import { UnblockCommand } from 'src/application/commands/follower/unblock.command';
 import { BlockCommand } from 'src/application/commands/follower/block.command';
+import { FindFollowerByIdQuery } from 'src/application/queries/follower/find-follower-by-id.query';
+import { FollowID } from 'src/domain/value-objects/follower-id.value-object';
 @ApiTags('Followers')
 @Controller('followers')
 export class FollowerController {
@@ -86,15 +89,46 @@ export class FollowerController {
     return this.queryBus.execute(new FindFollowStatusQuery(followerId, followingId));
   }
 
-  @Get(':userId')
-  @ApiOperation({ summary: 'Get all followers for a user' })
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get all followers for a user with pagination' })
   @ApiResponse({
     status: 200,
-    description: 'List of all followers for a user',
+    description: 'List of all followers for a user with pagination',
     type: [Follower],
   })
-  async findAllFollowers(@Param('userId') userId: string): Promise<Follower[]> {
-    return this.queryBus.execute(new FindAllFollowersQuery(userId));
+  async findAllFollowers(
+    @Param('userId') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{
+    followers: Follower[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { followers, total } = await this.queryBus.execute(
+      new FindAllFollowersQuery(userId, page, limit)
+    );
+
+    return {
+      followers,
+      total,
+      page,
+      limit,
+    };
+  }
+
+
+  @Get(':followId')
+  @ApiOperation({ summary: 'Find a follower by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Follower found by ID',
+    type: Follower,
+  })
+  async findFollowerById(@Param('followId') followId: string): Promise<Follower | null> {
+    const follow = new FollowID(followId)
+    return this.queryBus.execute(new FindFollowerByIdQuery(new FollowID(followId)));
   }
 
   @Delete(':id')
@@ -104,7 +138,7 @@ export class FollowerController {
     description: 'Follow relationship removed successfully',
   })
   async removeFollow(@Param('id') id: string): Promise<void> {
-    return this.commandBus.execute(new RemoveFollowCommand(id));
+    return this.commandBus.execute(new RemoveFollowCommand(new FollowID(id)));
   }
 
   @Delete('unfollow/:followerId/:followingId')

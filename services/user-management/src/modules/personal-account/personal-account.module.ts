@@ -32,11 +32,14 @@ import { UserRoleRepositoryImpl } from 'src/infrastructure/persistence/repositor
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { PersonalAccountController } from 'src/presentation/controllers/personal-account.controller';
 import { PersonalAccountService } from '../../application/services/personal-account.service';
+import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
+import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
+import { Follower } from 'src/domain/entities/follower.entity';
 
 @Module({
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([PersonalAccount, User, Role, UserRole]),
+    TypeOrmModule.forFeature([PersonalAccount, User, Role, UserRole, Follower]),
     ClientsModule.register([
       {
         name: 'KAFKA_PRODUCER',
@@ -78,6 +81,10 @@ import { PersonalAccountService } from '../../application/services/personal-acco
       provide: ROLE_REPOSITORY_TOKEN,
       useClass: RoleRepositoryImpl,
     },
+    {
+      provide: FOLLOWER_REPOSITORY_TOKEN,
+      useClass: FollowerRepositoryImpl,
+    },
   ],
 })
-export class PersonalAccountModule {}
+export class PersonalAccountModule { }

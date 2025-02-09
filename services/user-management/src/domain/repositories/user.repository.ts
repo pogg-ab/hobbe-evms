@@ -5,6 +5,10 @@ export interface IUserRepository {
   create(manager: EntityManager, user: User): Promise<User>;
   findById(userId: string): Promise<any | null>;
   findByIdWithAccountInfo(userId: string): Promise<any | null>;
-  findAllUsers(): Promise<any | null>;
-  update(user: User): Promise<User>;
+  findAllUsers(page: number, limit: number): Promise<{
+    users: any | null;
+    total: number;
+    page: number;
+    limit: number;
+  }>; update(user: User): Promise<User>;
 }

@@ -9,6 +9,8 @@ export class FindAllUsersQueryHandler
     constructor(private readonly userService: UserService) { }
 
     async execute(query: FindAllUsersQuery): Promise<any | null> {
-        return this.userService.findAllUsers();
+        const { page, limit } = query;
+
+        return this.userService.findAllUsers(page, limit);
     }
 }
