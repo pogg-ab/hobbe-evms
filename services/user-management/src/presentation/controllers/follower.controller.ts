@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -88,26 +89,46 @@ export class FollowerController {
     return this.queryBus.execute(new FindFollowStatusQuery(followerId, followingId));
   }
 
-  @Get(':userId')
-  @ApiOperation({ summary: 'Get all followers for a user' })
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get all followers for a user with pagination' })
   @ApiResponse({
     status: 200,
-    description: 'List of all followers for a user',
+    description: 'List of all followers for a user with pagination',
     type: [Follower],
   })
-  async findAllFollowers(@Param('userId') userId: string): Promise<Follower[]> {
-    return this.queryBus.execute(new FindAllFollowersQuery(userId));
+  async findAllFollowers(
+    @Param('userId') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{
+    followers: Follower[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { followers, total } = await this.queryBus.execute(
+      new FindAllFollowersQuery(userId, page, limit)
+    );
+
+    return {
+      followers,
+      total,
+      page,
+      limit,
+    };
   }
 
-  @Get(':id')
+
+  @Get(':followId')
   @ApiOperation({ summary: 'Find a follower by ID' })
   @ApiResponse({
     status: 200,
     description: 'Follower found by ID',
     type: Follower,
   })
-  async findFollowerById(@Param('id') id: string): Promise<Follower | null> {
-    return this.queryBus.execute(new FindFollowerByIdQuery(new FollowID(id)));
+  async findFollowerById(@Param('followId') followId: string): Promise<Follower | null> {
+    const follow = new FollowID(followId)
+    return this.queryBus.execute(new FindFollowerByIdQuery(new FollowID(followId)));
   }
 
   @Delete(':id')

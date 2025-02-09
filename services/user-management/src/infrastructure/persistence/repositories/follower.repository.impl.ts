@@ -24,25 +24,38 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
         }
     }
 
-    async findAllByUserId(userId: string): Promise<Follower[]> {
+    async findAllByUserId(userId: string, page: number, limit: number): Promise<{
+        followers: Follower[] | null;
+        total: number;
+        page: number;
+        limit: number;
+    }> {
         try {
+            const offset = (page - 1) * limit;
+
             const followers = await this.followerRepository.find({
                 where: [
-                    { following: { user_id: userId } },
                     { follower: { user_id: userId } },
                 ],
-                relations: ['follower', 'following', 'follower.personal_account', 'following.personal_account', 'follower.organizational_account', 'following.organizational_account'],
+                relations: ['following', 'following.personal_account', 'following.organizational_account'],
+                take: limit,
+                skip: offset,
 
             });
+            const total = await this.followerRepository.count({ where: { follower: { user_id: userId } }, });
+
             await Promise.all(followers.map(async (follower) => {
-                if (follower.follower) {
-                    this.removeSensitiveFields(follower.follower);
-                }
+
                 if (follower.following) {
                     this.removeSensitiveFields(follower.following);
                 }
             }));
-            return followers;
+            return {
+                followers: followers || null,
+                total,
+                page,
+                limit,
+            };
         } catch (error) {
             throw new HttpException(
                 `Error fetching Followers for user with ID ${userId}: ${error.message}`,
@@ -68,8 +81,8 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
     async findOne(id: FollowID): Promise<Follower | null> {
         try {
             const follower = await this.followerRepository.findOne({
-                where: { follow_id: id },
-                relations: ['follower', 'following'],
+                where: { follow_id: id.toString() },
+                relations: ['following', 'following.personal_account', 'following.organizational_account'],
             });
 
 
@@ -79,11 +92,7 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
                     HttpStatus.NOT_FOUND,
                 );
             }
-            console.log
 
-            if (follower.follower) {
-                this.removeSensitiveFields(follower.follower);
-            }
 
             if (follower.following) {
                 this.removeSensitiveFields(follower.following);

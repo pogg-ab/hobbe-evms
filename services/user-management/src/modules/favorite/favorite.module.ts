@@ -19,11 +19,14 @@ import { CreateFavoriteCommandHandler } from 'src/application/handlers/favorite/
 import { RemoveFavoriteCommandHandler } from 'src/application/handlers/favorite/remove-favorite-command.handler';
 import { FindUserFavoritesQueryHandler } from 'src/application/handlers/favorite/get-favorites-query.handler';
 import { FindFavoritedByQueryHandler } from 'src/application/handlers/favorite/get-favorited-by-query.handler';
+import { Follower } from 'src/domain/entities/follower.entity';
+import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
+import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 
 @Module({
     imports: [
         AutomapperModule,
-        TypeOrmModule.forFeature([Favorite, User]),
+        TypeOrmModule.forFeature([Favorite, User, Follower]),
         CqrsModule,
     ],
     controllers: [FavoriteController],
@@ -45,6 +48,10 @@ import { FindFavoritedByQueryHandler } from 'src/application/handlers/favorite/g
         {
             provide: USER_REPOSITORY_TOKEN,
             useClass: UserRepositoryImpl,
+        },
+        {
+            provide: FOLLOWER_REPOSITORY_TOKEN,
+            useClass: FollowerRepositoryImpl,
         },
     ],
 })

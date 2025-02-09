@@ -60,11 +60,11 @@ export class UserService {
         return user;
     }
 
-    async findAllUsers(): Promise<any | null> {
-        return await this.userRepository.findAllUsers();
+    async findAllUsers(page: number, limit: number): Promise<any | null> {
+        return await this.userRepository.findAllUsers(page, limit);
     }
 
-    async update(userId: UserID, updateUserDto: UpdateUserDto): Promise<User> {
+    async update(userId: UserID, updateUserDto: UpdateUserDto): Promise<any> {
         const existingUser = await this.findUserById(userId.toString());
 
         if (!existingUser) {
@@ -88,7 +88,7 @@ export class UserService {
                     UpdatePersonalAccountDto,
                     PersonalAccount,
                 );
-                await this.personalAccountRepository.update(existingUser.personal_account, updatedPersonalAccount);
+                await this.personalAccountRepository.update(existingUser.account_info.personal_account_id, updatedPersonalAccount);
             }
         } else if (updateUserDto.accountType === 'organizational') {
             if (updateUserDto.organizationalAccount) {
@@ -150,31 +150,6 @@ export class UserService {
                         );
                     }
 
-                    // if (updateUserDto.organizationalAccount.socialMediaAccounts) {
-                    //     const existingSocialMediaList = await this.socialMediaRepository.findByOrganizerId(
-                    //         organizationalAccount.organizational_account_id.toString(),
-                    //     );
-                    //     if (existingSocialMediaList.length > 0) {
-                    //         for (const socialMedia of existingSocialMediaList) {
-                    //             const updatedSocialMedia = this.mapper.map(
-                    //                 updateUserDto.organizationalAccount,
-                    //                 UpdateOrganizationalAccountDto,
-                    //                 SocialMedia,
-                    //             );
-                    //             updatedSocialMedia.organizational_account = existingUser.organizational_account;
-                    //             await this.socialMediaRepository.update(
-                    //                 socialMedia.social_media_id.toString(),
-                    //                 updatedSocialMedia,
-                    //             );
-                    //         }
-                    //     } else {
-                    //         throw new HttpException(
-                    //             `No Social Media accounts found for organizational account ID ${existingUser.organizational_account.organizational_account_id}.`,
-                    //             HttpStatus.NOT_FOUND,
-                    //         );
-                    //     }
-                    // }
-
                     await queryRunner.commitTransaction();
                 } catch (error) {
                     await queryRunner.rollbackTransaction();
@@ -185,10 +160,12 @@ export class UserService {
             }
         }
 
-
-
-
-        return await this.userRepository.update(updatedUser);
+        await this.userRepository.update(updatedUser);
+        const { password, ...userWithoutPassword } = updatedUser;
+        return {
+            message: 'User updated successfully',
+            user: userWithoutPassword,
+        };
     }
 
     private async hashPassword(password: string): Promise<string> {
@@ -234,7 +211,7 @@ export class UserService {
                 await this.socialMediaRepository.remove(sm.social_media_id.toString());
             }
         }
-        
+
         for (const sm of updatedSocialMedia) {
             await this.socialMediaRepository.update(sm.social_media_id.toString(), sm);
         }

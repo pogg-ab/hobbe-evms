@@ -82,8 +82,18 @@ export class FollowerService {
         return follower;
     }
 
-    async findAllFollowers(userId: string): Promise<Follower[]> {
-        return this.followerRepository.findAllByUserId(userId);
+    async findAllFollowers(
+        userId: string,
+        page: number,
+        limit: number
+    ): Promise<{
+        followers: Follower[] | null;
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        return this.followerRepository.findAllByUserId(userId, page, limit);
+
     }
 
     async findOne(id: FollowID): Promise<Follower> {
