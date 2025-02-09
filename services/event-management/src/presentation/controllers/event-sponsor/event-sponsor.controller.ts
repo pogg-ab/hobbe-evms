@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DeleteEventSponsorCommand } from 'src/application/commands/event-sponsor/delete-event-sponsor.command';
 import { EventSponsorCommand } from 'src/application/commands/event-sponsor/event-sponsor.command';
 import { UpdatedEventSponsorCommand } from 'src/application/commands/event-sponsor/update-event-sponsor.command';
@@ -29,12 +29,13 @@ export class EventSponsorController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @ApiBody({ type: CreateEventSponsorDto })
   @ApiOperation({ description: 'Create a new Event Sponsor' })
   @HttpCode(200)
   @Post()
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async create(
@@ -47,6 +48,7 @@ export class EventSponsorController {
   @ApiOperation({ description: 'Get All Event Sponsors' })
   @HttpCode(200)
   @Get()
+  @ApiBearerAuth('access-token')
   async findAll() {
     const query = new GetAllEventSponsors();
     return await this.queryBus.execute(query);

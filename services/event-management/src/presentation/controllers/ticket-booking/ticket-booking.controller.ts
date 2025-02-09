@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateTicketBookingCommand } from 'src/application/commands/ticket/create-ticket-booking.command';
 import { DeleteTicketBookingCommand } from 'src/application/commands/ticket/delete-ticket-booking.command';
 import { UpdateTicketBookingCommand } from 'src/application/commands/ticket/update-ticket-booking.command';
@@ -34,7 +34,7 @@ export class TicketBookingController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @ApiOperation({ description: 'Get All Ticket Bookings' })
   @HttpCode(200)
@@ -58,6 +58,7 @@ export class TicketBookingController {
     type: CreateTicketBookingDto,
   })
   @Post()
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   async createTicketBooking(
     @Body() createTicketBookingDto: CreateTicketBookingDto,
@@ -84,6 +85,7 @@ export class TicketBookingController {
   @ApiOperation({ description: 'Update Ticket Booking By ID' })
   @HttpCode(200)
   @Patch(':id')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   async update(
     @Param('id') id: string,
@@ -101,6 +103,7 @@ export class TicketBookingController {
   @ApiOperation({ description: 'Delete Ticket Booking By ID' })
   @HttpCode(200)
   @Delete(':id')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string): Promise<void> {
     const command = new DeleteTicketBookingCommand(id);
@@ -158,6 +161,7 @@ export class TicketBookingController {
   })
   @HttpCode(200)
   @Patch(':id/attend')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   async markTicketAsAttended(
     @Param('id') id: string,

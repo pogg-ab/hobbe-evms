@@ -14,7 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateEventCommand } from 'src/application/commands/create-event.command';
 import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
 import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
@@ -77,6 +77,7 @@ export class EventsController {
     type: CreateEventsDto,
   })
   @Post()
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @UseInterceptors(
@@ -107,6 +108,7 @@ export class EventsController {
 
   @ApiOperation({ description: 'Get Events By User' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('find-by-user')
@@ -144,6 +146,7 @@ export class EventsController {
 
   @ApiOperation({ description: 'Get Event By ID' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
@@ -153,6 +156,7 @@ export class EventsController {
 
   @ApiOperation({ description: 'Update Event' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -170,6 +174,7 @@ export class EventsController {
 
   @ApiOperation({ description: 'Delete Event By ID' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)

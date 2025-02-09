@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateCommentsCommand } from 'src/application/commands/comments/create-comments.command';
 import { RemoveCommentsCommand } from 'src/application/commands/comments/remove-comments.command';
 import { UpdateCommentsCommand } from 'src/application/commands/comments/update-comments.command';
@@ -30,19 +30,19 @@ export class CommentsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
-  // Create a new category
   @ApiOperation({ description: 'Drop Your Comment On Event' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
   async create(
     @Body() commentsDto: CommentsDto,
     @CurrentUserId() user: any,
-): Promise<Comments> {
-    const comment = new CreateCommentsCommand(user.user.user_id.toString(),commentsDto);
+  ): Promise<Comments> {
+    const comment = new CreateCommentsCommand(user.user.user_id.toString(), commentsDto);
     return await this.commandBus.execute(comment);
   }
 
@@ -50,7 +50,7 @@ export class CommentsController {
   @HttpCode(200)
 
   @Get('/event/:event_id')
-  async findByEvent(@Param('event_id') event_id:string): Promise<Comments[]> {
+  async findByEvent(@Param('event_id') event_id: string): Promise<Comments[]> {
     return await this.queryBus.execute(new FindByEventCommentsQuery(event_id));
   }
 
@@ -68,6 +68,7 @@ export class CommentsController {
 
   @ApiOperation({ description: 'Update Comment' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':comment_id')
@@ -75,22 +76,23 @@ export class CommentsController {
     @Body() commentsDto: CommentsDto,
     @Param('comment_id') comment_id: string,
   ): Promise<Comments> {
-      const comment = new UpdateCommentsCommand(comment_id,commentsDto);
-      return await this.commandBus.execute(comment);
+    const comment = new UpdateCommentsCommand(comment_id, commentsDto);
+    return await this.commandBus.execute(comment);
   }
 
   @ApiOperation({ description: 'Update Comment' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':comment_id')
   async dalete(
     @Param('comment_id') comment_id: string,
   ): Promise<{ message: string }> {
-      const command = new RemoveCommentsCommand(comment_id);
-       await this.commandBus.execute(command);
+    const command = new RemoveCommentsCommand(comment_id);
+    await this.commandBus.execute(command);
     return { message: 'Comment Deleted' };
   }
 
-  
+
 }

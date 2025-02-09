@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DeleteSpecialGuestCommand } from 'src/application/commands/special-guest/delete-special-guest.command';
 import { SpecialGuestCommand } from 'src/application/commands/special-guest/special-guest.command';
 import { UpdatedSpecialGuestCommand } from 'src/application/commands/special-guest/update-special-guest.command';
@@ -36,6 +36,7 @@ export class SpecialGuestController {
   @ApiOperation({ description: 'Create a new Special Guest' })
   @HttpCode(200)
   @Post()
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async create(

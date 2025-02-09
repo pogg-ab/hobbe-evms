@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
 import { FindTicketByHeadingQuery } from 'src/application/queries/tickets/find-all-tickets-by-heading.query';
 import { GetAllTicketsQuery } from 'src/application/queries/tickets/get-all-tickets.query';
@@ -59,6 +59,7 @@ export class TicketsController {
 
   @ApiOperation({ description: 'Get Tickets for Upcoming Events for the User' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/upcoming')
@@ -78,6 +79,7 @@ export class TicketsController {
 
   @ApiOperation({ description: 'Get Tickets for Past Events for the User' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/past')
@@ -97,6 +99,7 @@ export class TicketsController {
 
   @ApiOperation({ description: 'Get Tickets Gifted to the User' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/gifted')
