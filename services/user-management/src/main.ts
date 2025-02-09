@@ -11,11 +11,22 @@ import { kafkaProducerConfig } from './infrastructure/kafka/kafka.producer.confi
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors({ credentials: true, origin: '*' });
   const config = new DocumentBuilder()
     .setTitle('User Management API')
     .setDescription('API for managing users')
     .setVersion('1.0')
-    // .addTag('personal-accounts')
+    .addBearerAuth(
+      {
+        description: `[just text field] Please enter token in following format: Bearer <JWT>`,
+        name: 'Authorization',
+        bearerFormat: 'Bearer',
+        scheme: 'Bearer',
+        type: 'http',
+        in: 'Header'
+      },
+      'access-token',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
 

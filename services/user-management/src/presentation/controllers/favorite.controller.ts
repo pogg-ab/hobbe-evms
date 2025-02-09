@@ -6,15 +6,17 @@ import {
   HttpCode,
   Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Favorite } from 'src/domain/entities/favorite.entity';
 import { CreateFavoriteDto } from '../dtos/create-favorite.dto';
 import { CreateFavoriteCommand } from 'src/application/commands/favorite/add-favorite.command';
 import { RemoveFavoriteCommand } from 'src/application/commands/favorite/remove-favorite.command';
 import { FindUserFavoritesQuery } from 'src/application/queries/favorite/get-favorites.query';
 import { FindFavoritedByQuery } from 'src/application/queries/favorite/get-favorited-by.query';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @ApiTags('Favorites')
 @Controller('favorites')
@@ -22,9 +24,11 @@ export class FavoriteController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @Post()
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Mark a user as favorite' })
   @ApiBody({ type: CreateFavoriteDto })
   @HttpCode(201)
@@ -46,6 +50,8 @@ export class FavoriteController {
   }
 
   @Delete(':favoritingUserId/:favoritedUserId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Remove a favorite relationship' })
   @ApiResponse({
     status: 200,
@@ -62,6 +68,8 @@ export class FavoriteController {
   }
 
   @Get(':userId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all favorite users for a given user' })
   @ApiResponse({
     status: 200,
@@ -73,6 +81,8 @@ export class FavoriteController {
   }
 
   @Get('favorited-by/:userId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all users who favorited a given user' })
   @ApiResponse({
     status: 200,

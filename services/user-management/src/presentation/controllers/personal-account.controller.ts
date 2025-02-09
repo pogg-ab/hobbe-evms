@@ -15,7 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreatePersonalAccountCommand } from 'src/application/commands/personal-account/create-personal-account.command';
 import { RemovePersonalAccountCommand } from 'src/application/commands/personal-account/remove-personal-account.command';
 import { SendEmailVerificationCommand } from 'src/application/commands/personal-account/send-email-verification.command';
@@ -74,6 +74,7 @@ export class PersonalAccountController {
   }
 
   @Get(':id/profile-image')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   async getProfileImage(
     @Param('id') id: PersonalAccountID,
@@ -93,6 +94,7 @@ export class PersonalAccountController {
   }
 
   @Get()
+  @ApiBearerAuth('access-token')
   @Roles('Admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async findAll(): Promise<PersonalAccount[]> {
@@ -107,6 +109,7 @@ export class PersonalAccountController {
   }
 
   @Put(':id')
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async update(

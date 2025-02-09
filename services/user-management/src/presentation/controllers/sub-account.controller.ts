@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateSubAccountCommand } from 'src/application/commands/sub-account/create-sub-account.command';
 import { RemoveSubAccountCommand } from 'src/application/commands/sub-account/remove-sub-account.command';
 import { UpdateSubAccountCommand } from 'src/application/commands/sub-account/update-sub-account.command';
@@ -29,7 +29,7 @@ export class SubAccountController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new sub-account' })
@@ -53,6 +53,7 @@ export class SubAccountController {
   }
 
   @Get()
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all sub-accounts' })
   @ApiResponse({
@@ -65,6 +66,8 @@ export class SubAccountController {
   }
 
   @Get(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a sub-account by ID' })
   @ApiResponse({
     status: 200,
@@ -85,6 +88,8 @@ export class SubAccountController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update a sub-account' })
   @ApiBody({ type: UpdateSubAccountDto })
   @ApiResponse({
@@ -113,6 +118,8 @@ export class SubAccountController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Delete a sub-account' })
   @ApiResponse({
     status: 200,

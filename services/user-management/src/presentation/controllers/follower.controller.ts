@@ -10,9 +10,10 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateFollowCommand } from 'src/application/commands/follower/create-follow.command';
 import { AcceptFollowRequestCommand } from 'src/application/commands/follower/accept-follow-request.command';
 import { RemoveFollowCommand } from 'src/application/commands/follower/remove-follow.command';
@@ -28,6 +29,7 @@ import { UnblockCommand } from 'src/application/commands/follower/unblock.comman
 import { BlockCommand } from 'src/application/commands/follower/block.command';
 import { FindFollowerByIdQuery } from 'src/application/queries/follower/find-follower-by-id.query';
 import { FollowID } from 'src/domain/value-objects/follower-id.value-object';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 @ApiTags('Followers')
 @Controller('followers')
 export class FollowerController {
@@ -37,6 +39,8 @@ export class FollowerController {
   ) { }
 
   @Post('follow')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Follow a user' })
   @ApiBody({ type: CreateFollowDto })
   @HttpCode(201)
@@ -58,6 +62,8 @@ export class FollowerController {
   }
 
   @Post('accept/:followerId/:followingId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Accept a follow request' })
   @ApiBody({ type: AcceptFollowDto })
   @ApiResponse({
@@ -76,6 +82,8 @@ export class FollowerController {
   }
 
   @Get('status/:followerId/:followingId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get follow status between two users' })
   @ApiResponse({
     status: 200,
@@ -90,6 +98,8 @@ export class FollowerController {
   }
 
   @Get('user/:userId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all followers for a user with pagination' })
   @ApiResponse({
     status: 200,
@@ -120,6 +130,8 @@ export class FollowerController {
 
 
   @Get(':followId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Find a follower by ID' })
   @ApiResponse({
     status: 200,
@@ -132,6 +144,8 @@ export class FollowerController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Remove a follow relationship' })
   @ApiResponse({
     status: 200,
@@ -142,6 +156,8 @@ export class FollowerController {
   }
 
   @Delete('unfollow/:followerId/:followingId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Unfollow a user' })
   @ApiResponse({
     status: 200,
@@ -157,6 +173,8 @@ export class FollowerController {
   }
 
   @Post('block/:followerId/:followingId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Block a user' })
   @ApiResponse({
     status: 200,
@@ -171,6 +189,8 @@ export class FollowerController {
   }
 
   @Post('unblock/:followerId/:followingId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Unblock a user' })
   @ApiResponse({
     status: 200,
