@@ -2,7 +2,7 @@
 
 import { Controller, Get, HttpCode, Param, Post, UseGuards } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { FavoriteEventCommand } from "src/application/commands/favorite/favorite-event.command";
 import { LikeEventCommand } from "src/application/commands/like/like-event.command";
 import { FindEventsByUsersFavoriteQuery } from "src/application/queries/favorite/find-events-by-users-favorite.query";
@@ -31,9 +31,9 @@ export class FavoriteController {
     return this.queryBus.execute(new FindEventsByUsersFavoriteQuery(user));
   }
 
-  // Create a new category
   @ApiOperation({ description: 'Favorite Event' })
   @HttpCode(200)
+  @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post(":event_id")
