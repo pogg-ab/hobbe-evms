@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+  import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { start } from 'repl';
@@ -44,12 +44,45 @@ export class EventRepositoryEmpl implements IEventRepository {
     const offset = (page - 1) * limit;
 
     // Use QueryBuilder to handle pagination
+    // const [events, total] = await this.eventRepository
+    //   .createQueryBuilder('event') // 'event' is the alias for your table/entity
+    //   .skip(offset) // Number of rows to skip
+    //   .take(limit) // Number of rows to fetch
+    //   .orderBy('event.event_start_date', 'DESC')
+    //   .getManyAndCount(); // Fetch entities and total count
+
     const [events, total] = await this.eventRepository
-      .createQueryBuilder('event') // 'event' is the alias for your table/entity
-      .skip(offset) // Number of rows to skip
-      .take(limit) // Number of rows to fetch
-      .orderBy('event.event_start_date', 'DESC')
-      .getManyAndCount(); // Fetch entities and total count
+    .createQueryBuilder('event')
+    .leftJoinAndSelect('event.promocodes', 'promocode')
+    // .leftJoinAndSelect('event.bank_accounts', 'bank_account')
+    .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
+    .leftJoinAndSelect('event.bookings', 'bookings')
+    .leftJoin('ticket_heading.tickets', 'ticket') // Join tickets
+    // .leftJoin('bookings.participants', 'participant') // Join participants if needed
+    .loadRelationCountAndMap('event.likes', 'event.likes')
+    .loadRelationCountAndMap('event.share', 'event.shares')
+    .loadRelationCountAndMap('event.comments', 'event.comments')
+    .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
+    .loadRelationCountAndMap('event.bookings', 'event.bookings')
+    .skip((page - 1) * limit) // Offset for pagination
+    .take(limit) // Limit per page
+    .getManyAndCount(); // Get paginated results and total count
+
+      // Fetch booked ticket counts for each event
+  const updatedEvents = await Promise.all(
+    events.map(async (event) => {
+      const bookedTicketCount = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('event.ticket_heading', 'ticket_heading')
+        .leftJoin('ticket_heading.tickets', 'ticket')
+        .select('COUNT(ticket.id)', 'count')
+        .where('event.id = :id', { id: event.id })
+        .andWhere('ticket.status = :status', { status: 'Booked' })
+        .getRawOne();
+
+      return { ...event, soldOutTickets: parseInt(bookedTicketCount.count, 10) };
+    })
+  );
 
     return { events, total, page, limit };
   }
@@ -93,6 +126,7 @@ export class EventRepositoryEmpl implements IEventRepository {
       .leftJoin('ticket_heading.tickets', 'ticket') // Join tickets
       // .leftJoin('bookings.participants', 'participant') // Join tickets
       .loadRelationCountAndMap('event.likes', 'event.likes')
+      .loadRelationCountAndMap('event.share', 'event.shares')
       .loadRelationCountAndMap('event.comments', 'event.comments')
       .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
       .loadRelationCountAndMap('event.bookings', 'event.bookings')
