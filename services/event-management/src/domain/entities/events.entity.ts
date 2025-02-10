@@ -118,11 +118,18 @@ export class Events {
   })
   likes: Like[];
 
+
   @OneToMany(() => FavoriteEvent, (favorite) => favorite.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
   favorites: FavoriteEvent[];
+  
+  @OneToMany(() => EventShare, (share) => share.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  shares: EventShare[];
 
 
   @OneToMany(() => Comments, (comment) => comment.event_id, {
@@ -138,11 +145,6 @@ export class Events {
   })
   bookings: TicketBooking[];
 
-  @OneToMany(() => EventShare, (share) => share.event_id, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
-  shares: EventShare[];
   
 
 }
