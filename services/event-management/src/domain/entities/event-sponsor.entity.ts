@@ -13,6 +13,12 @@ export enum EventSponsorStatus {
   REJECTED = 'rejected',
 }
 
+export enum SponsorshipType {
+  GOLD = 'gold',
+  SILVER = 'silver',
+  BRONZE = 'bronze',
+}
+
 @Entity()
 export class EventSponsor {
   @PrimaryGeneratedColumn('uuid')
@@ -25,15 +31,19 @@ export class EventSponsor {
   @Column('uuid')
   sponsor_user_id: string;
 
-  @Column({ type: 'timestamp' })
-  sponsored_at: string;
-
   @Column({
     type: 'enum',
     enum: EventSponsorStatus,
     default: EventSponsorStatus.PENDING,
   })
   status: EventSponsorStatus;
+
+  @Column({
+    type: 'enum',
+    enum: SponsorshipType,
+    default: SponsorshipType.SILVER,
+  })
+  sponsorship_type: SponsorshipType;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

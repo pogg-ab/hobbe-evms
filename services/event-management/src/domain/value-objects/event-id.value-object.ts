@@ -1,4 +1,3 @@
-// src/domain/value-objects/personal-account-id.value-object.ts
 
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 

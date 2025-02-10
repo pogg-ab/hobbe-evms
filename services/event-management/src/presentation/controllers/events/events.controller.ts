@@ -56,8 +56,8 @@ export class EventsController {
   @HttpCode(200)
   @Get()
   async findAll(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
   ): Promise<{
     events: Events[] | null;
     total: number;

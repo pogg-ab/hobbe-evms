@@ -16,7 +16,7 @@ export class FindAllFollowersQueryHandler
         limit: number;
     }> {
         const { userId, page, limit } = query;
-        return this.followerService.findAllFollowers(userId, page, limit);
+        return this.followerService.findAllFollowersByUserId(userId, page, limit);
     }
 }
 

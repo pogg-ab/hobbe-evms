@@ -30,6 +30,8 @@ import { BlockCommand } from 'src/application/commands/follower/block.command';
 import { FindFollowerByIdQuery } from 'src/application/queries/follower/find-follower-by-id.query';
 import { FollowID } from 'src/domain/value-objects/follower-id.value-object';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CurrentUserId } from '../decorators/currentUserId.decorater';
+import { FindAllFollowingQuery } from 'src/application/queries/follower/find-all-following.query';
 @ApiTags('Followers')
 @Controller('followers')
 export class FollowerController {
@@ -51,13 +53,12 @@ export class FollowerController {
   })
   async create(
     @Body() createFollowDto: CreateFollowDto,
-  ): Promise<{ message: string; follow: Follower }> {
+  ): Promise<{ message: string }> {
     const command = new CreateFollowCommand(createFollowDto);
     const follow = await this.commandBus.execute(command);
 
     return {
       message: 'Follow request created successfully',
-      follow,
     };
   }
 
@@ -97,7 +98,7 @@ export class FollowerController {
     return this.queryBus.execute(new FindFollowStatusQuery(followerId, followingId));
   }
 
-  @Get('user/:userId')
+  @Get('all-followers')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all followers for a user with pagination' })
@@ -107,21 +108,54 @@ export class FollowerController {
     type: [Follower],
   })
   async findAllFollowers(
-    @Param('userId') userId: string,
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10
+    @Query('limit') limit: number = 10,
+    @CurrentUserId() currentUser: any,
   ): Promise<{
     followers: Follower[] | null;
     total: number;
     page: number;
     limit: number;
   }> {
+    const userId = currentUser.user.user_id.toString()
     const { followers, total } = await this.queryBus.execute(
       new FindAllFollowersQuery(userId, page, limit)
     );
 
     return {
       followers,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  @Get('all-following')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all followers for a user with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all followers for a user with pagination',
+    type: [Follower],
+  })
+  async findAllFollowings(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @CurrentUserId() currentUser: any,
+  ): Promise<{
+    following: Follower[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const userId = currentUser.user.user_id.toString()
+    const { following, total } = await this.queryBus.execute(
+      new FindAllFollowingQuery(userId, page, limit)
+    );
+
+    return {
+      following,
       total,
       page,
       limit,

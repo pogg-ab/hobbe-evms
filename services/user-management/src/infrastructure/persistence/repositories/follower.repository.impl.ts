@@ -24,7 +24,7 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
         }
     }
 
-    async findAllByUserId(userId: string, page: number, limit: number): Promise<{
+    async findAllFollowersByUserId(userId: string, page: number, limit: number): Promise<{
         followers: Follower[] | null;
         total: number;
         page: number;
@@ -35,6 +35,45 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
 
             const followers = await this.followerRepository.find({
                 where: [
+                    { following: { user_id: userId } },
+                ],
+                relations: ['follower', 'follower.personal_account', 'follower.organizational_account'],
+                take: limit,
+                skip: offset,
+
+            });
+            const total = await this.followerRepository.count({ where: { following: { user_id: userId } }, });
+
+            await Promise.all(followers.map(async (follower) => {
+
+                if (follower.follower) {
+                    this.removeSensitiveFields(follower.follower);
+                }
+            }));
+            return {
+                followers: followers || null,
+                total,
+                page,
+                limit,
+            };
+        } catch (error) {
+            throw new HttpException(
+                `Error fetching Followers for user with ID ${userId}: ${error.message}`,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+    async findAllFollowingByUserId(userId: string, page: number, limit: number): Promise<{
+        following: Follower[] | null;
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        try {
+            const offset = (page - 1) * limit;
+
+            const following = await this.followerRepository.find({
+                where: [
                     { follower: { user_id: userId } },
                 ],
                 relations: ['following', 'following.personal_account', 'following.organizational_account'],
@@ -44,14 +83,14 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
             });
             const total = await this.followerRepository.count({ where: { follower: { user_id: userId } }, });
 
-            await Promise.all(followers.map(async (follower) => {
+            await Promise.all(following.map(async (follower) => {
 
                 if (follower.following) {
                     this.removeSensitiveFields(follower.following);
                 }
             }));
             return {
-                followers: followers || null,
+                following: following || null,
                 total,
                 page,
                 limit,
@@ -177,7 +216,6 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
             return await this.followerRepository.findOne({
                 where: [
                     { follower: { user_id: followerId }, following: { user_id: followingId } },
-                    { follower: { user_id: followingId }, following: { user_id: followerId } },
                 ],
             });
         } catch (error) {
