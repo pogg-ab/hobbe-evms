@@ -1,7 +1,7 @@
 import { createMap, forMember, mapFrom, Mapper } from '@automapper/core';
 import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
-import { EventSponsor } from 'src/domain/entities/event-sponsor.entity';
+import { EventSponsor, SponsorshipType } from 'src/domain/entities/event-sponsor.entity';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateEventSponsorDto } from 'src/presentation/dtos/event-sponsor/create-event-sponsor.dto';
 
@@ -18,12 +18,16 @@ export class EventSponsorProfile extends AutomapperProfile {
         CreateEventSponsorDto,
         EventSponsor,
         forMember(
-          (destination) => destination.event_sponsor_id,
-          mapFrom((src) => new IdValueObject(src.sponsor_user_id)),
+          (destination) => destination.sponsor_user_id,
+          mapFrom((src) => src.sponsor_user_id),
         ),
         forMember(
           (destination) => destination.event_id,
           mapFrom((source) => source.event_id),
+        ),
+        forMember(
+          (destination) => destination.sponsorship_type,
+          mapFrom((source) => SponsorshipType[source.sponsorship_type.toUpperCase()]),
         ),
       );
     };

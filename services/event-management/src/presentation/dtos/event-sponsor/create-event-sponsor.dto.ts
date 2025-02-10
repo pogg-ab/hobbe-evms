@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsUUID, IsString } from 'class-validator';
+import { SponsorshipType } from 'src/domain/entities/event-sponsor.entity';
 
 export class CreateEventSponsorDto {
   @ApiProperty({
@@ -17,4 +18,12 @@ export class CreateEventSponsorDto {
   @IsNotEmpty()
   @IsUUID()
   sponsor_user_id: string;
+
+  @ApiProperty({
+    description: 'Type of sponsorship (e.g., gold, silver, bronze)',
+    example: 'gold',
+  })
+  @IsNotEmpty()
+  @IsString()
+  sponsorship_type: SponsorshipType;
 }

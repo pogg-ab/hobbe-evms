@@ -3,8 +3,14 @@ import { FollowID } from '../value-objects/follower-id.value-object';
 
 export interface IFollowerRepository {
     create(follower: Follower): Promise<Follower>;
-    findAllByUserId(userId: string, page: number, limit: number): Promise<{
+    findAllFollowersByUserId(userId: string, page: number, limit: number): Promise<{
         followers: Follower[] | null;
+        total: number;
+        page: number;
+        limit: number;
+    }>;
+    findAllFollowingByUserId(userId: string, page: number, limit: number): Promise<{
+        following: Follower[] | null;
         total: number;
         page: number;
         limit: number;

@@ -10,12 +10,25 @@ export class EventSponsorRepositoryImpl implements IEventSponsorRepository {
   constructor(
     @InjectRepository(EventSponsor)
     private readonly eventSponsorRepository: Repository<EventSponsor>,
-  ) {}
+  ) { }
 
   async create(
     createEventSponsorDto: CreateEventSponsorDto,
   ): Promise<EventSponsor> {
-    return this.eventSponsorRepository.save(createEventSponsorDto);
+    try {
+      return this.eventSponsorRepository.save(createEventSponsorDto);
+    } catch (error) {
+      if (error.code === '23505') {
+        throw new HttpException(
+          `Event Sponsor with this data already exists: ${error.detail}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      throw new HttpException(
+        `Error creating Event Sponsor: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async findAll(): Promise<EventSponsor[]> {
