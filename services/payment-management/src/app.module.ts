@@ -10,6 +10,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { BankAccountRepositoryImpl } from './infrastructure/persistence/repositories/bank-account.repository.impl';
 import { BankAccountsModule } from './modules/bank-accounts/bank-account.module';
 import { WiseModule } from './modules/payment-methods/wise/wise.module';
+import { ChapaModule } from './modules/payment-methods/chapa/chapa.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { WiseModule } from './modules/payment-methods/wise/wise.module';
     CqrsModule,
     BankAccountsModule,
     WiseModule,
+    ChapaModule,
   ],
   controllers: [AppController],
   providers: [AppService,KafkaConsumerService],
