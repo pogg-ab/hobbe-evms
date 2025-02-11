@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Follower } from 'src/domain/entities/follower.entity';
 import { IFollowerRepository } from 'src/domain/repositories/follower.repository';
+import { FollowStatus } from 'src/domain/value-objects/follow-status.value-object';
 import { FollowID } from 'src/domain/value-objects/follower-id.value-object';
 import { Repository } from 'typeorm';
 
@@ -24,7 +25,7 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
         }
     }
 
-    async findAllFollowersByUserId(userId: string, page: number, limit: number): Promise<{
+    async findAllFollowersByUserId(userId: string, page: number, limit: number, status: FollowStatus,): Promise<{
         followers: Follower[] | null;
         total: number;
         page: number;
@@ -35,14 +36,14 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
 
             const followers = await this.followerRepository.find({
                 where: [
-                    { following: { user_id: userId } },
+                    { following: { user_id: userId }, status: status }
                 ],
                 relations: ['follower', 'follower.personal_account', 'follower.organizational_account'],
                 take: limit,
                 skip: offset,
 
             });
-            const total = await this.followerRepository.count({ where: { following: { user_id: userId } }, });
+            const total = await this.followerRepository.count({ where: { following: { user_id: userId }, status: status }, });
 
             await Promise.all(followers.map(async (follower) => {
 
@@ -63,7 +64,7 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
             );
         }
     }
-    async findAllFollowingByUserId(userId: string, page: number, limit: number): Promise<{
+    async findAllFollowingByUserId(userId: string, page: number, limit: number, status: FollowStatus,): Promise<{
         following: Follower[] | null;
         total: number;
         page: number;
@@ -74,14 +75,14 @@ export class FollowerRepositoryImpl implements IFollowerRepository {
 
             const following = await this.followerRepository.find({
                 where: [
-                    { follower: { user_id: userId } },
+                    { follower: { user_id: userId }, status: status },
                 ],
                 relations: ['following', 'following.personal_account', 'following.organizational_account'],
                 take: limit,
                 skip: offset,
 
             });
-            const total = await this.followerRepository.count({ where: { follower: { user_id: userId } }, });
+            const total = await this.followerRepository.count({ where: { follower: { user_id: userId }, status: status }, });
 
             await Promise.all(following.map(async (follower) => {
 

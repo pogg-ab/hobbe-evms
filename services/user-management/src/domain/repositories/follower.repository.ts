@@ -1,15 +1,16 @@
 import { Follower } from '../entities/follower.entity';
+import { FollowStatus } from '../value-objects/follow-status.value-object';
 import { FollowID } from '../value-objects/follower-id.value-object';
 
 export interface IFollowerRepository {
     create(follower: Follower): Promise<Follower>;
-    findAllFollowersByUserId(userId: string, page: number, limit: number): Promise<{
+    findAllFollowersByUserId(userId: string, page: number, limit: number, status: string): Promise<{
         followers: Follower[] | null;
         total: number;
         page: number;
         limit: number;
     }>;
-    findAllFollowingByUserId(userId: string, page: number, limit: number): Promise<{
+    findAllFollowingByUserId(userId: string, page: number, limit: number, status: FollowStatus): Promise<{
         following: Follower[] | null;
         total: number;
         page: number;
