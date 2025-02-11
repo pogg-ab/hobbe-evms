@@ -105,9 +105,9 @@ export class WiseService {
 
 
   // Check transfer status every 5 minutes
-  @Cron(CronExpression.EVERY_5_MINUTES)
-  async checkTransferStatuses() {
-    console.log('Checking Wise transfer statuses...');
-    // Fetch ongoing transfers from your database and check their status
-  }
+  // @Cron(CronExpression.EVERY_5_MINUTES)
+  // async checkTransferStatuses() {
+  //   console.log('Checking Wise transfer statuses...');
+  //   // Fetch ongoing transfers from your database and check their status
+  // }
 }
