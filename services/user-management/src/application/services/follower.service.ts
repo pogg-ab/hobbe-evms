@@ -85,28 +85,30 @@ export class FollowerService {
     async findAllFollowersByUserId(
         userId: string,
         page: number,
-        limit: number
+        limit: number,
+        status: FollowStatus,
     ): Promise<{
         followers: Follower[] | null;
         total: number;
         page: number;
         limit: number;
     }> {
-        return this.followerRepository.findAllFollowersByUserId(userId, page, limit);
+        return this.followerRepository.findAllFollowersByUserId(userId, page, limit, status);
 
     }
 
     async findAllFollowingByUserId(
         userId: string,
         page: number,
-        limit: number
+        limit: number,
+        status: FollowStatus,
     ): Promise<{
         following: Follower[] | null;
         total: number;
         page: number;
         limit: number;
     }> {
-        return this.followerRepository.findAllFollowingByUserId(userId, page, limit);
+        return this.followerRepository.findAllFollowingByUserId(userId, page, limit, status);
 
     }
 

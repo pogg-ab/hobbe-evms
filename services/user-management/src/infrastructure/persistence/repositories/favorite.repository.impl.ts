@@ -23,20 +23,102 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
     }
   }
 
-  async findAllByUserId(userId: string): Promise<Favorite[]> {
+  async findAllByUserId(userId: string, page: number, limit: number,): Promise<{
+    favoriteUsers: Favorite[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     try {
-      return await this.favoriteRepository.find({
+      const offset = (page - 1) * limit;
+
+      const favoriteUsers = await this.favoriteRepository.find({
         where: [
-          { favoriting_user: { user_id: userId } },
+          { favorited_user: { user_id: userId } },
+        ],
+        relations: ['favoriting_user', 'favoriting_user.personal_account', 'favoriting_user.organizational_account'],
+        take: limit,
+        skip: offset,
+      });
+      const total = await this.favoriteRepository.count({
+        where: [
           { favorited_user: { user_id: userId } },
         ],
       });
+
+      await Promise.all(favoriteUsers.map(async (favoriteUser) => {
+
+        if (favoriteUser.favoriting_user) {
+          this.removeSensitiveFields(favoriteUser.favoriting_user);
+        }
+      }));
+      return {
+        favoriteUsers: favoriteUsers || null,
+        total,
+        page,
+        limit,
+      };
+
     } catch (error) {
       throw new HttpException(
         `Error fetching Favorites for user with ID ${userId}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+  async findAllFavoritedByUserId(userId: string, page: number, limit: number,): Promise<{
+    favoritedByUsers: Favorite[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    try {
+      const offset = (page - 1) * limit;
+
+      const favoritedByUsers = await this.favoriteRepository.find({
+        where: { favoriting_user: { user_id: userId } },
+        relations: ['favorited_user', 'favorited_user.personal_account', 'favorited_user.organizational_account'],
+        take: limit,
+        skip: offset,
+      });
+      const total = await this.favoriteRepository.count({
+        where: [
+          { favoriting_user: { user_id: userId } },
+        ],
+      });
+
+      await Promise.all(favoritedByUsers.map(async (favoritedUser) => {
+
+        if (favoritedUser.favorited_user) {
+          this.removeSensitiveFields(favoritedUser.favorited_user);
+        }
+      }));
+      return {
+        favoritedByUsers: favoritedByUsers || null,
+        total,
+        page,
+        limit,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching all users who favorited user with ID ${userId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  private removeSensitiveFields(user: any): void {
+    const fieldsToRemove = [
+      'password',
+      'password_reset_token',
+      'password_reset_token_expiry',
+      'password_reset_requested_at',
+      'otp',
+      'otp_expiry',
+    ];
+
+    fieldsToRemove.forEach(field => {
+      delete user[field];
+    });
   }
   async delete(id: string): Promise<void> {
     try {
@@ -78,16 +160,5 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
     }
   }
 
-  async findAllFavoritedByUserId(userId: string): Promise<Favorite[]> {
-    try {
-      return await this.favoriteRepository.find({
-        where: { favorited_user: { user_id: userId } },
-      });
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching all users who favorited user with ID ${userId}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
+
 }

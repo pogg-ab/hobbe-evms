@@ -98,16 +98,16 @@ export class FollowerController {
     return this.queryBus.execute(new FindFollowStatusQuery(followerId, followingId));
   }
 
-  @Get('all-followers')
+  @Get('accepted-followers')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get all followers for a user with pagination' })
+  @ApiOperation({ summary: 'Get all accepted followers for a user with pagination' })
   @ApiResponse({
     status: 200,
-    description: 'List of all followers for a user with pagination',
+    description: 'List of accepted followers for a user with pagination',
     type: [Follower],
   })
-  async findAllFollowers(
+  async findAllAcceptedFollowers(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @CurrentUserId() currentUser: any,
@@ -119,7 +119,7 @@ export class FollowerController {
   }> {
     const userId = currentUser.user.user_id.toString()
     const { followers, total } = await this.queryBus.execute(
-      new FindAllFollowersQuery(userId, page, limit)
+      new FindAllFollowersQuery(userId, page, limit, FollowStatus.ACCEPTED)
     );
 
     return {
@@ -130,16 +130,48 @@ export class FollowerController {
     };
   }
 
-  @Get('all-following')
+  @Get('pending-followers')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get all followers for a user with pagination' })
+  @ApiOperation({ summary: 'Get all pending followers for a user with pagination' })
   @ApiResponse({
     status: 200,
-    description: 'List of all followers for a user with pagination',
+    description: 'List of pending followers for a user with pagination',
     type: [Follower],
   })
-  async findAllFollowings(
+  async findAllPendingFollowers(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @CurrentUserId() currentUser: any,
+  ): Promise<{
+    followers: Follower[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const userId = currentUser.user.user_id.toString()
+    const { followers, total } = await this.queryBus.execute(
+      new FindAllFollowersQuery(userId, page, limit, FollowStatus.PENDING)
+    );
+
+    return {
+      followers,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  @Get('accepted-following')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all accepted followings for a user with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of accepted followings for a user with pagination',
+    type: [Follower],
+  })
+  async findAllAcceptedFollowing(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @CurrentUserId() currentUser: any,
@@ -151,7 +183,39 @@ export class FollowerController {
   }> {
     const userId = currentUser.user.user_id.toString()
     const { following, total } = await this.queryBus.execute(
-      new FindAllFollowingQuery(userId, page, limit)
+      new FindAllFollowingQuery(userId, page, limit, FollowStatus.ACCEPTED)
+    );
+
+    return {
+      following,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  @Get('pending-following')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all pending followings for a user with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of pending followings for a user with pagination',
+    type: [Follower],
+  })
+  async findAllPendingFollowing(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @CurrentUserId() currentUser: any,
+  ): Promise<{
+    following: Follower[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const userId = currentUser.user.user_id.toString()
+    const { following, total } = await this.queryBus.execute(
+      new FindAllFollowingQuery(userId, page, limit, FollowStatus.PENDING)
     );
 
     return {

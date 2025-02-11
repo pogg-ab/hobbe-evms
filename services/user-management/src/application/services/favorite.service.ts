@@ -74,11 +74,21 @@ export class FavoriteService {
         await this.favoriteRepository.delete(favorite.favorite_id.toString());
     }
 
-    async findUserFavorites(userId: string): Promise<Favorite[]> {
-        return this.favoriteRepository.findAllByUserId(userId);
+    async findUserFavorites(userId: string, page: number, limit: number,): Promise<{
+        favoriteUsers: Favorite[] | null;
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        return this.favoriteRepository.findAllByUserId(userId, page, limit,);
     }
 
-    async findFavoritedBy(userId: string): Promise<Favorite[]> {
-        return this.favoriteRepository.findAllFavoritedByUserId(userId);
+    async findFavoritedBy(userId: string, page: number, limit: number,): Promise<{
+        favoritedByUsers: Favorite[] | null;
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        return this.favoriteRepository.findAllFavoritedByUserId(userId, page, limit,);
     }
 }

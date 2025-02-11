@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -17,6 +18,7 @@ import { RemoveFavoriteCommand } from 'src/application/commands/favorite/remove-
 import { FindUserFavoritesQuery } from 'src/application/queries/favorite/get-favorites.query';
 import { FindFavoritedByQuery } from 'src/application/queries/favorite/get-favorited-by.query';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CurrentUserId } from '../decorators/currentUserId.decorater';
 
 @ApiTags('Favorites')
 @Controller('favorites')
@@ -67,7 +69,7 @@ export class FavoriteController {
     return { message: 'Favorite relationship removed successfully' };
   }
 
-  @Get(':userId')
+  @Get('favorite-users')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all favorite users for a given user' })
@@ -76,11 +78,29 @@ export class FavoriteController {
     description: 'List of all users favorited by the given user',
     type: [Favorite],
   })
-  async findUserFavorites(@Param('userId') userId: string): Promise<Favorite[]> {
-    return this.queryBus.execute(new FindUserFavoritesQuery(userId));
+  async findUserFavorites(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @CurrentUserId() currentUser: any):
+    Promise<
+      {
+        favoriteUsers: Favorite[] | null;
+        total: number;
+        page: number;
+        limit: number;
+      }> {
+    const userId = currentUser.user.user_id.toString()
+
+    const { favoriteUsers, total } = await this.queryBus.execute(new FindUserFavoritesQuery(userId, page, limit));
+    return {
+      favoriteUsers,
+      total,
+      page,
+      limit,
+    };
   }
 
-  @Get('favorited-by/:userId')
+  @Get('favorited-by-user')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all users who favorited a given user' })
@@ -89,7 +109,25 @@ export class FavoriteController {
     description: 'List of all users who marked the given user as a favorite',
     type: [Favorite],
   })
-  async findFavoritedBy(@Param('userId') userId: string): Promise<Favorite[]> {
-    return this.queryBus.execute(new FindFavoritedByQuery(userId));
+  async findFavoritedBy(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @CurrentUserId() currentUser: any):
+    Promise<
+      {
+        favoritedByUsers: Favorite[] | null;
+        total: number;
+        page: number;
+        limit: number;
+      }> {
+    const userId = currentUser.user.user_id.toString()
+
+    const { favoritedByUsers, total } = await this.queryBus.execute(new FindFavoritedByQuery(userId, page, limit));
+    return {
+      favoritedByUsers,
+      total,
+      page,
+      limit,
+    };
   }
 }

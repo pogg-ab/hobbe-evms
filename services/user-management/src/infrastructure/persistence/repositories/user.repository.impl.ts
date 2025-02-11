@@ -46,6 +46,17 @@ export class UserRepositoryImpl implements IUserRepository {
             : user.organizational_account,
       };
 
+      const followersCount = await this.followerRepository.count({
+        where: { following: user },
+      });
+
+      const followingCount = await this.followerRepository.count({
+        where: { follower: user },
+      });
+
+      userAccountInfo['followers_count'] = followersCount;
+      userAccountInfo['following_count'] = followingCount;
+
       return userAccountInfo;
     } catch (error) {
       throw new HttpException(

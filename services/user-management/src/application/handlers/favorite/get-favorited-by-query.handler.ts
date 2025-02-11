@@ -6,9 +6,16 @@ import { Favorite } from 'src/domain/entities/favorite.entity';
 @QueryHandler(FindFavoritedByQuery)
 export class FindFavoritedByQueryHandler
   implements IQueryHandler<FindFavoritedByQuery> {
-  constructor(private readonly favoriteService: FavoriteService) {}
+  constructor(private readonly favoriteService: FavoriteService) { }
 
-  async execute(query: FindFavoritedByQuery): Promise<Favorite[]> {
-    return this.favoriteService.findFavoritedBy(query.userId); 
+  async execute(query: FindFavoritedByQuery): Promise<
+    {
+      favoritedByUsers: Favorite[] | null;
+      total: number;
+      page: number;
+      limit: number;
+    }> {
+    const { userId, page, limit } = query;
+    return this.favoriteService.findFavoritedBy(userId, page, limit,);
   }
 }
