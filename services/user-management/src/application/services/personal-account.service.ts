@@ -7,6 +7,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
@@ -35,8 +36,12 @@ import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verif
 import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
 import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
 import { DataSource } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto';
 import { UpdatePersonalAccountDto } from '../../presentation/dtos/update-personal-account.dto';
+import { deleteExistingFile } from 'src/shared/file-deletion.util';
+const logger = new Logger('ProfileImageUpdate');
 
 @Injectable()
 export class PersonalAccountService {
@@ -248,6 +253,37 @@ export class PersonalAccountService {
     );
     await this.personalAccountRepository.update(id, updatedAccount);
     return updatedAccount;
+  }
+
+  async updateProfileImage(
+    id: PersonalAccountID,
+    profile_image: string,
+  ): Promise<PersonalAccount> {
+    const account = await this.personalAccountRepository.findOneById(id);
+
+    if (!account) {
+      throw new NotFoundException(`Personal account with ID ${id} not found`);
+    }
+
+    const previousImage = account.profile_image;
+    account.profile_image = profile_image;
+
+    try {
+      await this.personalAccountRepository.update(id, account);
+
+      if (account.profile_image) {
+        try {
+          await deleteExistingFile('profile_image', previousImage);
+        } catch (err) {
+          logger.error(`Error deleting previous file: ${err.message}`, err.stack);
+        }
+      }
+
+      return account;
+    } catch (err) {
+      logger.error(`Error updating profile image for account ID ${id}: ${err.message}`, err.stack);
+      throw new Error('Failed to update profile image');
+    }
   }
 
   async deletePersonalAccount(id: PersonalAccountID): Promise<void> {
