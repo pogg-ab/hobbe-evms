@@ -39,6 +39,7 @@ import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
 import * as path from 'path';
 import { Response } from 'express';
 import { CurrentUserId } from '../decorators/currentUserId.decorater';
+import { UpdateProfileImageCommand } from 'src/application/commands/personal-account/update-profile-image-command';
 @ApiTags('Personal Account')
 @Controller('personal-account')
 export class PersonalAccountController {
@@ -72,6 +73,43 @@ export class PersonalAccountController {
       account: createdAccount,
     };
   }
+
+  @Put(':id/profile-image')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update profile image of the account' })
+  @ApiBody({ description: 'Profile image file to update the user profile' })
+  @UseInterceptors(FileInterceptor('profile_image', multerConfig('profile_image')))
+  async updateProfileImage(
+    @Param('id') id: PersonalAccountID,
+    @UploadedFile() profile_image: File,
+    @Res() res: Response,
+  ): Promise<any> {
+    if (!profile_image) {
+      throw new BadRequestException('No profile image file uploaded');
+    }
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedMimeTypes.includes(profile_image.mimetype)) {
+      throw new BadRequestException('Invalid file type. Only JPEG, PNG, and GIF are allowed.');
+    }
+
+    const account: PersonalAccount | null = await this.queryBus.execute(
+      new FindPersonalAccountByIdQuery(id),
+    );
+
+    if (!account) {
+      throw new NotFoundException('Personal account not found');
+    }
+
+    await this.commandBus.execute(
+      new UpdateProfileImageCommand(id, profile_image.path),
+    );
+
+    return res.status(200).json({
+      message: 'Profile image updated successfully',
+    });
+  }
+
 
   @Get(':id/profile-image')
   @ApiBearerAuth('access-token')

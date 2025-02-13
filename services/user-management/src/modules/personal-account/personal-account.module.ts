@@ -35,6 +35,8 @@ import { PersonalAccountService } from '../../application/services/personal-acco
 import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { Follower } from 'src/domain/entities/follower.entity';
+import { UpdateProfileImageCommand } from 'src/application/commands/personal-account/update-profile-image-command';
+import { UpdateProfileImageCommandHandler } from 'src/application/handlers/personal-account/update-profile-image-command-handler';
 
 @Module({
   imports: [
@@ -60,11 +62,13 @@ import { Follower } from 'src/domain/entities/follower.entity';
     SendEmailVerificationCommandHandler,
     SendEmailVerificationWithDBCommandHandler,
     VerifyEmailCommandHandler,
+    UpdateProfileImageCommandHandler,
     PersonalAccountProfile,
     UserProfile,
     RoleProfile,
     MessageProducerService,
     NotificationConfigService,
+
     {
       provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
       useClass: PersonalAccountRepositoryImpl,
