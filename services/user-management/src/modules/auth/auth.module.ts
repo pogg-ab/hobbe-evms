@@ -23,6 +23,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { Follower } from 'src/domain/entities/follower.entity';
+import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -51,6 +52,7 @@ import { Follower } from 'src/domain/entities/follower.entity';
   ],
   providers: [
     AuthService,
+    ElasticsearchConfig,
     JwtStrategy,
     MessageProducerService,
     NotificationConfigService,

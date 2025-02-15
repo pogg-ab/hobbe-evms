@@ -23,6 +23,8 @@ import { UpdateUserDto } from '../dtos/update-user.dto';
 import { CurrentUserId } from '../decorators/currentUserId.decorater';
 import { UserID } from 'src/domain/value-objects/user-id.value-object';
 import { UpdateUserCommand } from 'src/application/commands/user/update-user.command';
+import { SearchUsersQuery } from 'src/application/queries/user/search-users.query';
+import { SearchFilters } from '../dtos/search-filters.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -61,6 +63,7 @@ export class UserController {
     ): Promise<any | null> {
         return this.queryBus.execute(new FindAllUsersQuery(page, limit));
     }
+
 
     @Get('exclude-me')
     @ApiBearerAuth('access-token')
@@ -111,5 +114,23 @@ export class UserController {
         Object.assign(user, updateUserDto);
 
         return this.commandBus.execute(new UpdateUserCommand(user_id, user));
+    }
+
+    @Get('search-organizer')
+    @ApiBearerAuth('access-token')
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: 'Search users by name or email' })
+    @ApiResponse({
+        status: 200,
+        description: 'List of users matching search criteria',
+        type: [UserResponseDto],
+    })
+    async searchUsers(
+        @Query('query') query: string,
+        @Query() filters: SearchFilters,
+        @Query('page') page: number,
+        @Query('limit') limit: number,
+    ): Promise<User[]> {
+        return this.queryBus.execute(new SearchUsersQuery(query, filters, page, limit));
     }
 }

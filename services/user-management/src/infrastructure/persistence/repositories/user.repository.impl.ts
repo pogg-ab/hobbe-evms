@@ -4,15 +4,19 @@ import { Follower } from 'src/domain/entities/follower.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { EntityManager, Repository } from 'typeorm';
+import { Client } from '@elastic/elasticsearch';
+import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 @Injectable()
 export class UserRepositoryImpl implements IUserRepository {
+  private readonly client: Client;
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Follower)
     private followerRepository: Repository<Follower>,
+    private readonly elasticsearchConfig: ElasticsearchConfig
 
-  ) { }
+  ) { this.client = elasticsearchConfig.getClient(); }
 
   async create(manager: EntityManager, user: User): Promise<User> {
     try {
@@ -201,6 +205,44 @@ export class UserRepositoryImpl implements IUserRepository {
         `Error updating User: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  async search(query: string, filters: any, page: number = 1, limit: number = 10): Promise<any> {
+    const from = (page - 1) * limit;
+    const body: any = {
+      query: {
+        bool: {
+          must: [
+            {
+              multi_match: {
+                query,
+                fields: ['name^2', 'email'],
+              },
+            },
+          ],
+          filter: [
+            filters.isActive !== undefined
+              ? { term: { isActive: filters.isActive } }
+              : undefined,
+          ].filter(Boolean),
+        },
+      },
+      from,
+      size: limit,
+    };
+
+    try {
+      const response = await this.client.search({
+        index: 'users',
+        body,
+      });
+
+      const results = response.hits.hits.map(hit => hit._source);
+
+      return results;
+    } catch (error) {
+      throw new Error(`Error executing Elasticsearch query: ${error.message}`);
     }
   }
 }

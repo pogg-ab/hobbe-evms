@@ -31,6 +31,7 @@ import { OrganizationalAccountController } from '../../presentation/controllers/
 import { Follower } from 'src/domain/entities/follower.entity';
 import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
+import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositor
   controllers: [OrganizationalAccountController],
   providers: [
     OrganizationalAccountService,
+    ElasticsearchConfig,
     CreateOrganizationalAccountCommandHandler,
     FindAllOrganizationalAccountsQueryHandler,
     FindOrganizationalAccountByIdQueryHandler,

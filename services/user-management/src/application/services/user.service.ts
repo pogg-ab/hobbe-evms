@@ -27,6 +27,7 @@ import { ISocialMediaRepository } from 'src/domain/repositories/social-media.rep
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { SocialMedia } from 'src/domain/entities/social-media.entity';
 import { SocialMediaAccountDto } from 'src/presentation/dtos/social-media-account.dto';
+import { SearchFilters } from 'src/presentation/dtos/search-filters.dto';
 
 @Injectable()
 export class UserService {
@@ -215,5 +216,15 @@ export class UserService {
         for (const sm of updatedSocialMedia) {
             await this.socialMediaRepository.update(sm.social_media_id.toString(), sm);
         }
+    }
+
+    async searchUsers(searchTerm: string, filters: SearchFilters, page: number, limit: number): Promise<any | null> {
+        const users = await this.userRepository.search(searchTerm, filters, page, limit);
+
+        if (!users || users.length === 0) {
+            throw new NotFoundException('No users found matching your search criteria');
+        }
+
+        return users;
     }
 }
