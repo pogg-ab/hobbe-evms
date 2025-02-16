@@ -1,6 +1,6 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { User } from 'src/domain/entities/user.entity';
@@ -27,9 +27,15 @@ import { ISocialMediaRepository } from 'src/domain/repositories/social-media.rep
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { SocialMedia } from 'src/domain/entities/social-media.entity';
 import { SocialMediaAccountDto } from 'src/presentation/dtos/social-media-account.dto';
+import { SearchFilters } from 'src/presentation/dtos/search-filters.dto';
+import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { Client } from '@elastic/elasticsearch';
 
 @Injectable()
 export class UserService {
+    private readonly client: Client;
+    private readonly logger = new Logger(ElasticsearchConfig.name)
+
     constructor(
         @Inject(USER_REPOSITORY_TOKEN)
         private readonly userRepository: IUserRepository,
@@ -47,9 +53,11 @@ export class UserService {
         private readonly socialMediaRepository: ISocialMediaRepository,
         @InjectMapper() private readonly mapper: Mapper,
         private dataSource: DataSource,
+        private readonly elasticsearchConfig: ElasticsearchConfig,
 
 
-    ) { }
+
+    ) { this.client = elasticsearchConfig.getClient(); }
 
 
     async findUserById(userId: string): Promise<any | null> {
@@ -214,6 +222,102 @@ export class UserService {
 
         for (const sm of updatedSocialMedia) {
             await this.socialMediaRepository.update(sm.social_media_id.toString(), sm);
+        }
+    }
+
+    async searchUsers(searchTerm: string, filters: SearchFilters, page: number, limit: number): Promise<any | null> {
+        const users = await this.userRepository.search(searchTerm, filters, page, limit);
+
+        if (!users || users.length === 0) {
+            throw new NotFoundException('No users found matching your search criteria');
+        }
+
+        return users;
+    }
+
+    async reindexAllUsers() {
+        const BATCH_SIZE = parseInt(process.env.BULK_SIZE) || 1000;
+        const users = await this.userRepository.findAllUsersOnly();
+
+        for (let i = 0; i < users.length; i += BATCH_SIZE) {
+            const batch = users.slice(i, i + BATCH_SIZE);
+
+            const bulkBody = batch.flatMap(user => [
+                { index: { _index: 'users', _id: user.user_id.toString() } },
+                {
+                    user_id: user.user_id,
+                    user_name: user.user_name,
+                    email: user.user_name,
+                    isActive: user.is_active,
+                },
+            ]);
+
+            if (bulkBody.length > 0) {
+                try {
+                    const result = await this.client.bulk({ body: bulkBody });
+
+                    if (result.errors) {
+                        this.logger.log('Error during reindexing:', result.errors);
+                    } else {
+                        this.logger.log(`Batch from ${i + 1} to ${i + batch.length} reindexed successfully.`);
+                    }
+                } catch (error) {
+                    this.logger.error(`Error performing bulk reindex for batch starting at ${i + 1}:`, error);
+                }
+            }
+        }
+
+        this.logger.log('Reindexing process completed.');
+    }
+
+    async onModuleInit() {
+        this.createIndexWithEdgeNGram();
+        this.reindexAllUsers()
+    }
+
+    private async createIndexWithEdgeNGram() {
+        const indexName = 'users';
+
+        try {
+            const exists = await this.client.indices.exists({ index: indexName });
+            if (!exists) {
+                await this.client.indices.create({
+                    index: indexName,
+                    body: {
+                        settings: {
+                            analysis: {
+                                tokenizer: {
+                                    edge_ngram_tokenizer: {
+                                        type: 'edge_ngram',
+                                        min_gram: 1,
+                                        max_gram: 25,
+                                        token_chars: ['letter', 'digit'],
+                                    },
+                                },
+                                analyzer: {
+                                    edge_ngram_analyzer: {
+                                        type: 'custom',
+                                        tokenizer: 'edge_ngram_tokenizer',
+                                    },
+                                },
+                            },
+                        },
+                        mappings: {
+                            properties: {
+                                user_name: {
+                                    type: 'text',
+                                    analyzer: 'edge_ngram_analyzer',
+                                },
+                            },
+                        },
+                    },
+                });
+                this.logger.log('Index created with Edge N-Gram analyzer');
+            } else {
+                this.logger.log('Index already exists');
+            }
+        } catch (error) {
+            this.logger.error('Error creating index:', error.stack);
         }
     }
 }

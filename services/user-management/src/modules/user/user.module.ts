@@ -29,6 +29,9 @@ import { SocialMediaRepositoryImpl } from 'src/infrastructure/persistence/reposi
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { FollowerModule } from '../follower/follower.module';
+import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { SearchUsersQuery } from 'src/application/queries/user/search-users.query';
+import { SearchUsersQueryHandler } from 'src/application/handlers/user/search-users.query-handler';
 
 @Module({
     imports: [AutomapperModule, TypeOrmModule.forFeature([
@@ -38,9 +41,11 @@ import { FollowerModule } from '../follower/follower.module';
     controllers: [UserController],
     providers: [
         UserService,
+        ElasticsearchConfig,
         FindAllUsersQueryHandler,
         FindUserByIdQueryHandler,
         UpdateUserCommandHandler,
+        SearchUsersQueryHandler,
         {
             provide: USER_REPOSITORY_TOKEN,
             useClass: UserRepositoryImpl,

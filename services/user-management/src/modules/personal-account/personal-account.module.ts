@@ -37,6 +37,7 @@ import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositor
 import { Follower } from 'src/domain/entities/follower.entity';
 import { UpdateProfileImageCommand } from 'src/application/commands/personal-account/update-profile-image-command';
 import { UpdateProfileImageCommandHandler } from 'src/application/handlers/personal-account/update-profile-image-command-handler';
+import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { UpdateProfileImageCommandHandler } from 'src/application/handlers/perso
   controllers: [PersonalAccountController],
   providers: [
     PersonalAccountService,
+    ElasticsearchConfig,
     CreatePersonalAccountCommandHandler,
     FindAllPersonalAccountsQueryHandler,
     FindPersonalAccountByIdQueryHandler,

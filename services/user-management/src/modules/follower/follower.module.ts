@@ -21,6 +21,7 @@ import { Follower } from 'src/domain/entities/follower.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
+import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { FollowerController } from 'src/presentation/controllers/follower.controller';
@@ -34,6 +35,7 @@ import { FollowerController } from 'src/presentation/controllers/follower.contro
   controllers: [FollowerController],
   providers: [
     FollowerService,
+    ElasticsearchConfig,
     CreateFollowCommandHandler,
     AcceptFollowRequestCommandHandler,
     RemoveFollowCommandHandler,
