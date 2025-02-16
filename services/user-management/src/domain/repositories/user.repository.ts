@@ -13,5 +13,6 @@ export interface IUserRepository {
     limit: number;
   }>;
   update(user: User): Promise<User>;
+  findAllUsersOnly(): Promise<any>;
   search(searchTerm: string, filters: SearchFilters, page: number, limit: number): Promise<User[]>;
 }

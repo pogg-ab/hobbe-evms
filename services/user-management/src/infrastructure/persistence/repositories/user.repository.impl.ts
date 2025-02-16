@@ -21,7 +21,12 @@ export class UserRepositoryImpl implements IUserRepository {
   async create(manager: EntityManager, user: User): Promise<User> {
     try {
       const newUser = this.userRepository.create(user);
-      return await manager.save(newUser);
+      const savedUser = await manager.save(newUser);
+
+      await this.indexUser(savedUser);
+
+      return savedUser;
+
     } catch (error) {
       throw new HttpException(
         `Error creating User: ${error.message}`,
@@ -142,7 +147,6 @@ export class UserRepositoryImpl implements IUserRepository {
 
       const total = await this.userRepository.count();
 
-
       const userAccountInfo = await Promise.all(
         users.map(async (user) => {
           const followersCount = await this.followerRepository.count({
@@ -184,6 +188,10 @@ export class UserRepositoryImpl implements IUserRepository {
     }
   }
 
+  async findAllUsersOnly(): Promise<any> {
+    return await this.userRepository.find();
+  }
+
   async update(user: User): Promise<User> {
     try {
       const existingUser = await this.userRepository.findOne({
@@ -207,6 +215,21 @@ export class UserRepositoryImpl implements IUserRepository {
       );
     }
   }
+  async indexUser(user: User) {
+    const result = await this.client.index({
+      index: 'users',
+      id: user.user_id.toString(),
+      body: {
+        user_id: user.user_id,
+        user_name: user.user_name,
+        email: user.user_name,
+        isActive: user.is_active,
+      },
+    });
+    return result;
+  }
+
+
 
   async search(query: string, filters: any, page: number = 1, limit: number = 10): Promise<any> {
     const from = (page - 1) * limit;
@@ -217,7 +240,7 @@ export class UserRepositoryImpl implements IUserRepository {
             {
               multi_match: {
                 query,
-                fields: ['name^2', 'email'],
+                fields: ['name^2', 'user_name'],
               },
             },
           ],
@@ -237,7 +260,6 @@ export class UserRepositoryImpl implements IUserRepository {
         index: 'users',
         body,
       });
-
       const results = response.hits.hits.map(hit => hit._source);
 
       return results;
