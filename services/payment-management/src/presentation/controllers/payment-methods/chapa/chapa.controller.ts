@@ -3,42 +3,29 @@ import {
   Get,
   Post,
   Body,
-  Headers,
   Param,
   HttpCode,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ChapaService } from 'src/application/services/payment-methods/chapa/chapa.service';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
-import * as crypto from 'crypto';
+import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
 
 @Controller('chapa')
 @ApiTags('Chapa')
 export class ChapaController {
-  private readonly logger = new Logger(ChapaController.name);
-  constructor(private readonly chapaService: ChapaService) {}
+  constructor(
+    private readonly chapaSdkService: ChapaSDKService,
+  ) {}
 
   @ApiBody({ type: CreateChapaPayDto })
-  @ApiOperation({ description: 'Initialize Payment' })
+  @ApiOperation({ description: 'Initialize  Payment' })
   @HttpCode(200)
-  @ApiResponse({
-    description: 'Returns the checkout URL to complete the payment',
-    type: Object, // You can define a specific response DTO if needed
-  })
-  @Post('pay')
-  async pay(@Body() data: CreateChapaPayDto) {
-    try {
-      const result = await this.chapaService.initializePayment(data);
-      return { checkoutUrl: result.data.checkout_url }; // Send only the checkout URL back
-    } catch (error) {
-      throw new HttpException(
-        'Failed to initialize payment: ' + error.message,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  
+  @Post('initialize')
+  async initializePayment(@Body() chapaPayDto:CreateChapaPayDto):Promise<any>{
+    return this.chapaSdkService.paymentInit(chapaPayDto);
   }
 
   @ApiOperation({ description: 'Verify Payment' })
@@ -50,7 +37,7 @@ export class ChapaController {
   @Get('verify/:txRef')
   async verify(@Param('txRef') txRef: string) {
     try {
-      const result = await this.chapaService.verifyPayment(txRef);
+      const result = await this.chapaSdkService.verifyPayment(txRef);
       return result;
     } catch (error) {
       throw new HttpException(
@@ -60,26 +47,50 @@ export class ChapaController {
     }
   }
 
-  @Post('webhook')
-  async webhook(@Body() body: any, @Headers() headers: any) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // @Post('webhook')
+  // async webhook(@Body() body: any, @Headers() headers: any) {
  
-    this.logger.log('Received webhook from Chapa');
+  //   this.logger.log('Received webhook from Chapa');
 
-    const chapaSignature = headers['x-chapa-signature'];
-    this.logger.log('Received Signature:', chapaSignature);
+  //   const chapaSignature = headers['x-chapa-signature'];
+  //   this.logger.log('Received Signature:', chapaSignature);
 
-    const secret = process.env.CHAPA_WEBHOOK_SECRET;
-    const computedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(JSON.stringify(body))
-      .digest('hex');
+  //   const secret = process.env.CHAPA_WEBHOOK_SECRET;
+  //   const computedSignature = crypto
+  //     .createHmac('sha256', secret)
+  //     .update(JSON.stringify(body))
+  //     .digest('hex');
 
-    this.logger.log('Computed Signature:', computedSignature);
+  //   this.logger.log('Computed Signature:', computedSignature);
 
-    if (!chapaSignature || chapaSignature !== computedSignature) {
-      this.logger.warn('Unauthorized webhook attempt');
-      return { message: 'Unauthorized' };
-    }    
-    return this.chapaService.handleWebhook(body);
-  }
+  //   if (!chapaSignature || chapaSignature !== computedSignature) {
+  //     this.logger.warn('Unauthorized webhook attempt');
+  //     return { message: 'Unauthorized' };
+  //   }    
+  //   return this.chapaService.handleWebhook(body);
+  // }
+
 }

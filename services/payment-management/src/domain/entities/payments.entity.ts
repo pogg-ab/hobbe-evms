@@ -1,0 +1,46 @@
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { IdValueObject } from "../value-objects/event-id.value-object";
+
+@Entity()
+export class Payments{
+    @PrimaryGeneratedColumn('uuid')
+    id: IdValueObject;
+
+    @Column()
+    user_id: string;
+
+    @Column()
+    event_id: string;
+
+    @Column()
+    booking_id: string;
+
+    @Column()
+    amount: number;
+    
+    @Column()
+    currency: string;
+
+    @Column()
+    tx_ref: string;
+
+    @Column()
+    payment_method: string;
+
+    @Column({ default:'Pending'})
+    payment_status: string;
+
+    @Column({nullable:true, default:0})
+    charge: string;
+
+    @Column({ type: 'timestamptz', default:new Date()})
+    created_at: Date;
+
+    @Column({ type: 'timestamptz',nullable:true})
+    verified_at: Date;
+  
+    @Column({nullable:true })
+    bank_name: string;
+
+  
+}
