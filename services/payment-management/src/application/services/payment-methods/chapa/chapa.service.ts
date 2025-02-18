@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { CREATE_PAYMENT_TOKEN } from 'src/domain/repositories/payments/payments.repository.token';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
 
 @Injectable()
@@ -9,8 +10,10 @@ export class ChapaService {
   private readonly API_KEY: string;
   private readonly BASE_URL = 'https://api.chapa.co/v1';
 
-  constructor(private readonly configService: ConfigService) {
-    // Load API key from environment
+  constructor(
+    @Inject(CREATE_PAYMENT_TOKEN)
+    private readonly configService: ConfigService
+  ) {
     this.API_KEY = this.configService.get<string>('CHAPA_SECRET_KEY');
   }
 
