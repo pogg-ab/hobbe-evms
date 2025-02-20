@@ -6,6 +6,7 @@ import { IE2EERepository } from 'src/domain/repositories/e2ee/e2ee.repository';
 import { E2EE_REPOSITORY_TOKEN } from 'src/domain/repositories/e2ee/e2ee.repository.token';
 import { E2EEDto } from 'src/presentation/dto/e2ee/create.e2ee.dto';
 import * as crypto from 'crypto';
+import { firebaseDatabase } from 'src/infrastructure/firebase/firebase.config';
 
 @Injectable()
 export class E2eeService {
@@ -14,6 +15,9 @@ export class E2eeService {
     private readonly E2EERepository: IE2EERepository,
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
+
+    private firebase_db = firebaseDatabase.ref('HobbeChats'); 
+  
   
   async storeKeyPair(e2eeDto:E2EEDto): Promise<E2EE> {
     const mappedE2EE = this.mapper.map(e2eeDto, E2EEDto, E2EE);

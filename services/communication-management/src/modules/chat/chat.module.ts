@@ -21,6 +21,16 @@ import { E2eeService } from "src/application/services/e2ee/e2ee.service";
 import { FindOneQueryHandler } from "src/application/handlers/chat/find-one-chat.handler";
 import { UpdateChatCommandHandler } from "src/application/handlers/chat/update-chat.handler";
 import { RemoveChatCommandHandler } from "src/application/handlers/chat/remove-chat.handler";
+import { UsersController } from "src/presentation/controller/chat/users/users.controller";
+import { UserService } from "src/application/services/chat/users/users.service";
+import { ChatsController } from "src/presentation/controller/chat/chats/chats.controller";
+import { ChatsService } from "src/application/services/chat/chat-service/chats.service";
+import { MessageService } from "src/application/services/chat/message-service/message-service";
+import { MessagesController } from "src/presentation/controller/chat/messages/messages.controller";
+import { TypingStatusController } from "src/presentation/controller/chat/typing-status/typing-status.controller";
+import { TypingStatusService } from "src/application/services/chat/typing-status-service/typing-status.service";
+import { OnlineStatusService } from "src/application/services/chat/online-status-service/online-status-service";
+import { OnlineStatusController } from "src/presentation/controller/chat/online-status/online-status.controller";
 
 
 @Module({
@@ -43,12 +53,25 @@ import { RemoveChatCommandHandler } from "src/application/handlers/chat/remove-c
     CqrsModule,
   ],
   controllers: [
-   ChatController
+   ChatController,
+   UsersController,
+   ChatsController,
+   MessagesController,
+   TypingStatusController,
+   OnlineStatusController
 
   ],
   providers: [
+    // services
     ChatService,
+    UserService,
+    ChatsService,
+    MessageService,
+    TypingStatusService,
+    OnlineStatusService,
+
     E2eeService,
+    // handlers
     CreateChatCommandHandler,
     FindOneQueryHandler,
     UpdateChatCommandHandler,
