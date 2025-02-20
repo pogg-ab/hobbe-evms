@@ -33,6 +33,39 @@ export class ChatController {
     private readonly chatService: ChatService,
   ) {}
 
+
+
+  @ApiOperation({ description: 'Get start chating' })
+  @HttpCode(200)
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  
+  @Get()
+
+  async start(
+    @CurrentUserId() user: any,
+  ) {
+    const messages = await this.chatService.start(
+      user,
+    );
+    return { messages };
+  }
+
+
+  @ApiOperation({ description: 'Chat Home' })
+  @HttpCode(200)
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  
+  @Get('/home')
+
+  async chatHome(
+    @CurrentUserId() user: any,
+  ) {
+    const data = await this.chatService.home(user);
+    return { data };
+  }
+
   @ApiBody({ type: CreateChatDto })
   @ApiOperation({ description: 'Create a new Chat' })
   @HttpCode(200)
@@ -52,13 +85,12 @@ export class ChatController {
     return { message: 'Sent message successfully !' };
   }
 
-  @ApiOperation({ description: 'Get messages by sender' })
+  @ApiOperation({ description: 'Get messages of friend' })
   @HttpCode(200)
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   
-  @Get('my-messages/:friend')
-  
+  @Get('messages/:friend')
   async getMessages(
     @CurrentUserId() user: any,
     @Param('friend') friend: string
