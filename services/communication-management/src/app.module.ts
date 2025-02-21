@@ -8,6 +8,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { EmailModule } from './modules/email/email.module';
 import { PushNotificationModule } from './modules/push-notification/push-notification.module';
 import { SmsModule } from './modules/sms/sms.module';
+import { StreamModule } from './modules/live-stream/stream.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SmsModule } from './modules/sms/sms.module';
     EmailModule,
     SmsModule,
     PushNotificationModule,
+    StreamModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
