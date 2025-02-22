@@ -8,6 +8,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { EmailModule } from './modules/email/email.module';
 import { PushNotificationModule } from './modules/push-notification/push-notification.module';
 import { SmsModule } from './modules/sms/sms.module';
+import { MessageModule } from './modules/message/message.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { SmsModule } from './modules/sms/sms.module';
     ]),
     DatabaseModule,
     CqrsModule,
-    ChatModule,
+    // ChatModule,
+    MessageModule,
     EmailModule,
     SmsModule,
     PushNotificationModule,
