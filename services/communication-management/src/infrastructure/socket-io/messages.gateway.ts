@@ -26,8 +26,8 @@ import { SendMessageCommand } from 'src/application/commands/messages/send-messa
       );
   
       // ✅ Broadcast from the WebSocket server (not just the sender)
-      this.server.to(`user_${data.receiverId}`).emit('newMessage', message);
-      client.to(`user_${data.senderId}`).emit('newMessage', message);
+      this.server.to(`user@${data.receiverId}`).emit('newMessage', message);
+      client.to(`user@${data.senderId}`).emit('newMessage', message);
   
       console.log(`Message sent to user_${data.receiverId}:`, message);
   
