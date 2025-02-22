@@ -4,6 +4,8 @@ import * as fs from 'fs';
 
 @Injectable()
 export class FluentFFmpegService {
+  private activeProcesses: Map<string, ffmpeg.FfmpegCommand> = new Map();
+
   constructor() {
     ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || 'ffmpeg');
   }
@@ -30,7 +32,11 @@ export class FluentFFmpegService {
     });
   }
 
-  async streamFileToRtmp(inputFilePath: string, rtmpUrl: string): Promise<void> {
+  async streamFileToRtmp(
+    inputFilePath: string,
+    rtmpUrl: string,
+    streamId: string,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const command = ffmpeg(inputFilePath)
         .inputFormat('mp4')
@@ -47,17 +53,31 @@ export class FluentFFmpegService {
         ])
         .on('start', (commandLine) => {
           console.log(`FFmpeg process started with command: ${commandLine}`);
+          this.activeProcesses.set(streamId, command);
         })
         .on('end', () => {
           console.log('Streaming finished.');
+          this.activeProcesses.delete(streamId);
           resolve();
         })
         .on('error', (err) => {
           console.error('FFmpeg error:', err);
+          this.activeProcesses.delete(streamId);
           reject(err);
         });
 
       command.run();
     });
+  }
+
+  stopStream(streamId: string): void {
+    const process = this.activeProcesses.get(streamId);
+    if (process) {
+      process.kill('SIGTERM');
+      this.activeProcesses.delete(streamId);
+      console.log(`Stream ${streamId} stopped successfully`);
+    } else {
+      console.warn(`No active stream found for ID ${streamId}`);
+    }
   }
 }

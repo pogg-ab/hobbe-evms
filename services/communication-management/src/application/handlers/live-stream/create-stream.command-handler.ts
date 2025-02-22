@@ -9,9 +9,13 @@ export class CreateStreamHandler
   constructor(private readonly streamService: StreamService) { }
 
   async execute(command: CreateStreamCommand): Promise<any> {
-    const { userId, eventId } = command;
+    const { userId, eventId, startDate, endDate } = command;
 
     const streamID = new StreamID();
-    return this.streamService.createStream(streamID, userId, eventId);
+    return this.streamService.createStream(streamID,
+      userId,
+      eventId,
+      startDate,
+      endDate,);
   }
 }

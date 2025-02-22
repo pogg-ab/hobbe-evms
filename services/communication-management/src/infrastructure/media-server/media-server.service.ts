@@ -10,12 +10,19 @@ export class NodeMediaService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     const nmsConfig = streamConfig().nodeMediaServer;
 
+
+    console.log('NodeMediaServer Config:', nmsConfig);
+
     this.nms = new NodeMediaServer({
       ...nmsConfig,
       logType: 3,
     });
 
+    console.log('Starting NodeMediaServer...');
     this.nms.run();
+    console.log('NodeMediaServer started.');
+
+
   }
 
   onModuleDestroy(): void {

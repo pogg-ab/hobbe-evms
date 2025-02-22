@@ -1,15 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsUUID } from "class-validator";
+import { IsDateString, IsNotEmpty, IsUUID } from "class-validator";
 
 export class CreateStreamDto {
-
-  @ApiProperty({
-    description: 'URL of the stream',
-    example: 'rtmp://your-server-address/live/streamkey',
-  })
-  @IsNotEmpty()
-  url: string;
-
   @ApiProperty({
     description: 'User ID associated with the stream (UUID format)',
     example: '9ea675ab-19bc-440d-808e-842efbbc467a',
@@ -25,4 +17,20 @@ export class CreateStreamDto {
   @IsNotEmpty()
   @IsUUID()
   eventId: string;
+
+  @ApiProperty({
+    description: 'Start date and time of the stream (ISO 8601 date string)',
+    example: '2023-10-15T14:00:00Z',
+    required: false,
+  })
+  @IsDateString()
+  startDate?: string;
+
+  @ApiProperty({
+    description: 'End date and time of the stream (ISO 8601 date string)',
+    example: '2023-10-15T16:00:00Z',
+    required: false,
+  })
+  @IsDateString()
+  endDate?: string;
 }

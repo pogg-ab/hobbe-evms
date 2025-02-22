@@ -20,7 +20,9 @@ export class StreamService {
     streamID: StreamID,
     userId: string,
     eventId: string,
-  ): Promise<Stream> {
+    startDate?: string,
+    endDate?: string,
+  ): Promise<{ success: boolean; message: string; data: Stream }> {
     try {
       const stream = new Stream();
 
@@ -39,20 +41,106 @@ export class StreamService {
       const streamKey = `${userId}-${dateString}`;
 
       stream.url = `${process.env.RTMP_URL}/${streamKey}`;
-
-      const createdStream = await this.streamRepository.create(stream);
-      console.log(`Stream created with ID: ${streamID.toString()}`);
-
-      stream.status = 'active';
-
-      if (stream.status === 'active') {
-        const rtmpUrl = `${process.env.RTMP_URL}/${streamKey}`;
-        await this.startStreamFromFile('./media/sample.mp4', rtmpUrl);
+      stream.streamKey = streamKey;
+      if (startDate) {
+        stream.startDate = new Date(startDate);
       }
+      if (endDate) {
+        stream.endDate = new Date(endDate);
+      }
+      const createdStream = await this.streamRepository.create(stream);
 
-      return createdStream;
+      return {
+        success: true,
+        message: 'Stream created successfully',
+        data: createdStream,
+      };
     } catch (error) {
       console.error(`Failed to create stream: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async startStream(streamId: string, filePath: string): Promise<{ success: boolean; message: string; data: Stream | null }> {
+    try {
+      const stream = await this.streamRepository.findById(streamId);
+      if (!stream) {
+        throw new Error(`Stream with ID ${streamId.toString()} not found`);
+      }
+
+      if (stream.status === 'active') {
+        throw new Error(`Stream with ID ${streamId.toString()} is already active`);
+      }
+
+      stream.status = 'active';
+      stream.startDate = new Date();
+      stream.updatedAt = new Date();
+      await this.streamRepository.update(stream);
+
+      const rtmpUrl = stream.url;
+      await this.startStreamFromFile(filePath, rtmpUrl, streamId);
+      this.nodeMediaService.startStream(rtmpUrl, streamId);
+
+      return {
+        success: true,
+        message: `Stream ${streamId} started successfully`,
+        data: stream,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to start stream ${streamId}: ${error.message}`,
+        data: null,
+      };
+    }
+  }
+
+  async stopStream(
+    streamId: string,
+  ): Promise<{ success: boolean; message: string; data: Stream | null }> {
+    try {
+      const stream = await this.streamRepository.findById(streamId);
+      if (!stream) {
+        throw new Error(`Stream with ID ${streamId} not found`);
+      }
+
+      if (stream.status !== 'active') {
+        throw new Error(`Stream with ID ${streamId} is not active`);
+      }
+
+      this.fluentFFmpegService.stopStream(streamId);
+      this.nodeMediaService.stopStream(streamId);
+
+      stream.status = 'completed';
+      stream.endDate = new Date();
+      stream.updatedAt = new Date();
+      await this.streamRepository.update(stream);
+
+
+      console.log(`Stream ${streamId} completed successfully`);
+
+      return {
+        success: true,
+        message: `Stream ${streamId} stopped successfully`,
+        data: stream,
+      };
+    } catch (error) {
+      console.error(`Failed to stop stream ${streamId}: ${error.message}`);
+
+      return {
+        success: false,
+        message: `Failed to stop stream ${streamId}: ${error.message}`,
+        data: null,
+      };
+    }
+  }
+
+  async findByUserId(userId: string): Promise<Stream[]> {
+    try {
+      const streams = await this.streamRepository.findByUserId(userId);
+      return streams;
+    } catch (error) {
+      console.error(`Failed to fetch streams for user ${userId}: ${error.message}`);
       throw error;
     }
   }
@@ -62,7 +150,7 @@ export class StreamService {
     url: string,
     status: 'inactive' | 'active' | 'completed',
   ): Promise<Stream> {
-    const stream = await this.streamRepository.findById(new StreamID(streamId));
+    const stream = await this.streamRepository.findById(streamId);
     if (!stream) throw new Error('Stream not found');
     stream.url = url;
     stream.status = status;
@@ -76,7 +164,7 @@ export class StreamService {
   }
 
   async getStreamById(streamId: string): Promise<Stream> {
-    const stream = await this.streamRepository.findById(new StreamID(streamId));
+    const stream = await this.streamRepository.findById(streamId);
     if (!stream) throw new Error('Stream not found');
     return stream;
   }
@@ -99,6 +187,7 @@ export class StreamService {
   async startStreamFromFile(
     inputFilePath: string,
     rtmpUrl: string,
+    streamId: string
   ): Promise<void> {
     try {
       console.log(`Starting stream from file: ${inputFilePath} to ${rtmpUrl}`);
@@ -107,7 +196,7 @@ export class StreamService {
         throw new Error(`File not found: ${inputFilePath}`);
       }
 
-      await this.fluentFFmpegService.streamFileToRtmp(inputFilePath, rtmpUrl);
+      await this.fluentFFmpegService.streamFileToRtmp(inputFilePath, rtmpUrl, streamId);
 
       console.log(`Stream started successfully from file: ${inputFilePath}`);
     } catch (error) {

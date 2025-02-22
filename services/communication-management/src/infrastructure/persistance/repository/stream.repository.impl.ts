@@ -11,33 +11,32 @@ export class StreamRepositoryImpl implements IStreamRepository {
   constructor(
     @InjectRepository(Stream)
     private readonly streamRepository: Repository<Stream>,
-  ) {}
+  ) { }
 
   async create(stream: Stream): Promise<Stream> {
     await this.streamRepository.save(stream);
     return stream;
   }
 
-  async findById(id: StreamID): Promise<Stream | null> {
+  async findById(id: string): Promise<Stream | null> {
     return await this.streamRepository.findOne({
-      where: { id: id.getValue() },
+      where: { id: id },
     });
+  }
+
+  async findByUserId(userId: string): Promise<Stream[]> {
+    return this.streamRepository.find({ where: { userId }, order: { createdAt: 'DESC' }, });
   }
 
   async findAll(): Promise<Stream[]> {
-    return await this.streamRepository.find();
+    return await this.streamRepository.find({
+      order: {
+        createdAt: 'DESC',
+      },
+    });
   }
 
   async update(stream: Stream): Promise<Stream> {
-    const result = await this.streamRepository.findOne({
-      where: { id: stream.id.toString() },
-    });
-    if (!stream) throw new Error('Stream not found');
-
-    stream.url = result.url;
-    stream.status = result.status;
-    stream.updatedAt = new Date();
-    stream.updatedBy = result.updatedBy;
 
     return await this.streamRepository.save(stream);
   }

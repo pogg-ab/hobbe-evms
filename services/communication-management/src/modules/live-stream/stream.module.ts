@@ -4,7 +4,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateStreamHandler } from 'src/application/handlers/live-stream/create-stream.command-handler';
 import { GetAllStreamsHandler } from 'src/application/handlers/live-stream/get-all-streams.query-handler';
 import { GetStreamHandler } from 'src/application/handlers/live-stream/get-stream.query-handler';
+import { GetStreamsByUserIdQueryHandler } from 'src/application/handlers/live-stream/get-streams-by-user-id.query-handler';
+import { StartStreamCommandHandler } from 'src/application/handlers/live-stream/start-stream.command-handler';
+import { StopStreamCommandHandler } from 'src/application/handlers/live-stream/stop-stream.command-handler';
 import { UpdateStreamHandler } from 'src/application/handlers/live-stream/update-stream.command-handler';
+import { GetStreamsByUserIdQuery } from 'src/application/queries/live-stream/get-streams-by-user-id.query';
 import { StreamService } from 'src/application/services/live-stream/stream.service';
 import { Stream } from 'src/domain/entities/stream.entity';
 import { STREAM_REPOSITORY_TOKEN } from 'src/domain/repositories/live-stream/stream.repository.token';
@@ -24,10 +28,13 @@ import { StreamController } from 'src/presentation/controller/live-stream/stream
     UpdateStreamHandler,
     GetStreamHandler,
     GetAllStreamsHandler,
+    StartStreamCommandHandler,
+    GetStreamsByUserIdQueryHandler,
+    StopStreamCommandHandler,
     {
       provide: STREAM_REPOSITORY_TOKEN,
       useClass: StreamRepositoryImpl,
     },
   ],
 })
-export class StreamModule {}
+export class StreamModule { }

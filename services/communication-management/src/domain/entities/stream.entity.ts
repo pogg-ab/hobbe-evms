@@ -28,6 +28,14 @@ export class Stream {
 
   @Column()
   eventId: string;
+  @Column({ type: 'timestamp', nullable: true })
+  startDate: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  endDate: Date;
+
+  @Column({ nullable: true })
+  streamKey: string;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
