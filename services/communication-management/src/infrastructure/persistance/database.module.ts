@@ -2,7 +2,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Chat } from 'src/domain/entities/chat.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -22,7 +21,7 @@ import { Chat } from 'src/domain/entities/chat.entity';
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([Chat]),
+    // TypeOrmModule.forFeature([]),
   ],
   exports: [TypeOrmModule],
 })
