@@ -134,7 +134,6 @@ export class FluentFFmpegService {
         reject({ success: false, message: errorMessage, status: 'error' });
         return;
       }
-      console.log(cameraDevice)
 
       const command = ffmpeg()
         .input(cameraDevice)
