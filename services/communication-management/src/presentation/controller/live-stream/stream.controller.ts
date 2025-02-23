@@ -52,9 +52,11 @@ export class StreamController {
     @Param('id') streamId: string,
     @Body() startStreamDto: StartStreamDto,
   ) {
-    const { filePath } = startStreamDto;
+    const { source } = startStreamDto;
+
     try {
-      const result = await this.commandBus.execute(new StartStreamCommand(streamId, filePath));
+      const result = await this.commandBus.execute(new StartStreamCommand(streamId, source));
+
       return {
         success: true,
         message: `Stream ${streamId} started successfully`,
