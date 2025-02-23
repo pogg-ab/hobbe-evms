@@ -188,20 +188,38 @@ export class StreamService {
     inputFilePath: string,
     rtmpUrl: string,
     streamId: string
-  ): Promise<void> {
+  ): Promise<{ success: boolean; message: string; data?: { streamId: string; rtmpUrl: string } }> {
     try {
-      console.log(`Starting stream from file: ${inputFilePath} to ${rtmpUrl}`);
+      console.log(`Starting stream from file: ${inputFilePath} to ${rtmpUrl} for stream ID: ${streamId}`);
 
       if (!fs.existsSync(inputFilePath)) {
-        throw new Error(`File not found: ${inputFilePath}`);
+        const errorMessage = `File not found: ${inputFilePath}`;
+        console.error(errorMessage);
+        return {
+          success: false,
+          message: errorMessage,
+        };
       }
 
-      await this.fluentFFmpegService.streamFileToRtmp(inputFilePath, rtmpUrl, streamId);
+      const streamStatus = await this.fluentFFmpegService.streamFileToRtmp(inputFilePath, rtmpUrl, streamId);
+      if (streamStatus.status === 'stopped') {
+        console.log(`Stream ID: ${streamId} is stopped, stopping any active stream before starting.`);
+        await this.stopStream(streamId);
+      }
 
-      console.log(`Stream started successfully from file: ${inputFilePath}`);
+      console.log(`Stream started successfully from file: ${inputFilePath} for stream ID: ${streamId}`);
+      return {
+        success: true,
+        message: `Stream started successfully for stream ID: ${streamId}`,
+        data: { streamId, rtmpUrl },
+      };
     } catch (error) {
-      console.error(`Failed to start stream from file: ${error.message}`);
-      throw error;
+      console.error(`Failed to start stream from file: ${inputFilePath} for stream ID: ${streamId}: ${error.message}`);
+      return {
+        success: false,
+        message: `Failed to start stream: ${error.message}`,
+      };
     }
   }
+
 }
