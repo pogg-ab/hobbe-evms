@@ -1,7 +1,8 @@
 import { Message } from "src/domain/entities/hobbe-chat/message.entity";
+import { CreateMessageDto } from "src/presentation/dto/hobbe-chat/create-message.dto";
 
 export interface MessageRepository {
-  sendMessage(chatId: string, senderId: string, content: string): Promise<Message>;
+  sendMessage(user: string, createMessageDto: CreateMessageDto): Promise<Message>;
   getChatMessages(chatId: string): Promise<Message[]>;
   softDeleteMessage(messageId: string): Promise<void>;
 }

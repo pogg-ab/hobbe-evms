@@ -45,10 +45,11 @@ export class ChatController {
   /**
    * Get all chats for a specific user
    */
-  @Get('user/:userId')
-  async getUserChats(@Param('userId') userId: string) {
-    return this.queryBus.execute(new GetUserChatsQuery(userId));
+  @Get()
+  async getUserChats(@CurrentUserId() user: any) {
+    return this.queryBus.execute(new GetUserChatsQuery(user.user.user_id.toString()));
   }
+  
 
   /**
    * Soft delete a chat

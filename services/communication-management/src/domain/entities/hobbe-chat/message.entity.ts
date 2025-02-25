@@ -1,4 +1,4 @@
-import { Column, DeleteDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Chat } from './chat.entity';
 
 @Entity()
@@ -15,14 +15,13 @@ export class Message {
   @Column('text')
   content: string;
 
-  @Column({default:false})
-  isDeleted: boolean;
-
   @Column({ default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
   @DeleteDateColumn({nullable:true})
   deletedAt: Date;
+
+
 
   @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
   chat: Chat;

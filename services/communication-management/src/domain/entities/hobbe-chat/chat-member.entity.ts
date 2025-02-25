@@ -12,6 +12,11 @@ export class ChatMember {
   @Column()
   chatId: string;
 
+  @Column({type:'int', default: 0 })
+  unreadCount: number;
+
   @ManyToOne(() => Chat, (chat) => chat.members, { onDelete: 'CASCADE' })
-  chat: Chat[];
+  chat: Chat;
+
+
 }
