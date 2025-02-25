@@ -1,11 +1,10 @@
 import { ICommand } from "@nestjs/cqrs";
+import { CreateChatDto } from "src/presentation/dto/hobbe-chat/create-chat.dto";
 
 export class CreateChatCommand implements ICommand{
     constructor(
-      public readonly userId: string,
-      public readonly friendId?: string,
-      public readonly type ?: string,
-      public readonly name?: string
+      public readonly user: any,
+      public readonly createChatDto: CreateChatDto,
     ) {}
   }
   

@@ -1,18 +1,18 @@
-import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AddChatMemberCommand } from 'src/application/commands/hobbe-chat/add-chat-member.command';
-import { ChatMemberRepository } from 'src/domain/repositories/hobbe-chat/chat-member.repository';
-import { CHAT_MEMBER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-member.repository.token';
+import { ChatMemberService } from 'src/application/services/hobbe-chat/chat-member.service';
+import { ChatService } from 'src/application/services/hobbe-chat/chat.service';
+
 
 
 @CommandHandler(AddChatMemberCommand)
 export class AddChatMemberHandler implements ICommandHandler<AddChatMemberCommand> {
   constructor(
-    @Inject(CHAT_MEMBER_REPOSITORY_TOKEN)
-    private readonly chatMemberRepo: ChatMemberRepository
+    private readonly chatService: ChatService
   ) {}
 
   async execute(command: AddChatMemberCommand): Promise<void> {
-    await this.chatMemberRepo.addMember(command.chatId, command.userId);
+    const { addChatMemberDto } = command;
+    await this.chatService.addChatMember(addChatMemberDto.chatId, addChatMemberDto.userId);
   }
 }

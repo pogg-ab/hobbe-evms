@@ -7,6 +7,7 @@ import { CHAT_MEMBER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat
 import { ChatMemberRepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/chat-member.repository.impl';
 import { ChatMemberController } from 'src/presentation/controller/hobbe-chat/chat-member.controller';
 import { AddChatMemberHandler } from 'src/application/handlers/hobbe-chat/add-chat-member.handler';
+import { RemoveChatMemberHandler } from 'src/application/handlers/hobbe-chat/remove.chat-member.handler';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { AddChatMemberHandler } from 'src/application/handlers/hobbe-chat/add-ch
   controllers: [ChatMemberController],
   providers: [
     ChatMemberService,
-    AddChatMemberHandler,
+    // AddChatMemberHandler,
+    RemoveChatMemberHandler,
     { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
   ],
   exports: [CHAT_MEMBER_REPOSITORY_TOKEN],
