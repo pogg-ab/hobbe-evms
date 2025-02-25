@@ -12,7 +12,18 @@ async function bootstrap() {
     .setTitle('Communication Management API')
     .setDescription('API for managing communication')
     .setVersion('1.0')
-    .addTag('Communications')
+    // .addTag('Communications')
+    .addBearerAuth(
+      {
+        description: `Please enter the token`,
+        name: 'Authorization',
+        bearerFormat: 'Bearer',
+        scheme: 'Bearer',
+        type: 'http',
+        in: 'Header'
+      },
+      'access-token',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

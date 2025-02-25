@@ -13,6 +13,8 @@ import { ChatController } from 'src/presentation/controller/hobbe-chat/chat.cont
 import { CreateChatHandler } from 'src/application/handlers/hobbe-chat/create-chat.handler';
 import { GetUserChatsQuery } from 'src/application/queries/hobbe-chat/get-user-chat.query';
 import { GetUserChatsHandler } from 'src/application/handlers/hobbe-chat/get-user.chats.handler';
+import { DeleteChatHandler } from 'src/application/handlers/hobbe-chat/delete-chat-handler';
+import { AddChatMemberHandler } from 'src/application/handlers/hobbe-chat/add-chat-member.handler';
 
 
 @Module({
@@ -24,6 +26,8 @@ import { GetUserChatsHandler } from 'src/application/handlers/hobbe-chat/get-use
     ChatService,
     CreateChatHandler,
     GetUserChatsHandler,
+    AddChatMemberHandler,
+    DeleteChatHandler,
     { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
     { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
   ],

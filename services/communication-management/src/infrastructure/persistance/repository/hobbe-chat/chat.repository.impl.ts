@@ -8,7 +8,6 @@ import { Repository } from 'typeorm';
 export class ChatRepositoryImpl implements ChatRepository {
   constructor(
     @InjectRepository(Chat)
-
     private readonly chatRepo: Repository<Chat>,
   ) {}
 
@@ -22,7 +21,12 @@ export class ChatRepositoryImpl implements ChatRepository {
   }
 
   async findPrivateChat(userId: string, friendId: string): Promise<Chat | null> {
-    return this.chatRepo.findOne({ where: { type: 'private', members: { userId } } });
+    return this.chatRepo
+    .createQueryBuilder('chat')
+    .innerJoin('chat.members', 'member1', 'member1.userId = :userId', { userId })
+    .innerJoin('chat.members', 'member2', 'member2.userId = :friendId', { friendId })
+    .where('chat.type = :type', { type: 'private' })
+    .getOne();
   }
 
   async getUserChats(userId: string): Promise<Chat[]> {

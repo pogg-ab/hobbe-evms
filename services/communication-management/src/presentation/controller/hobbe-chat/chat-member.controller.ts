@@ -1,20 +1,23 @@
-import { Controller, Post, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { AddChatMemberCommand } from 'src/application/commands/hobbe-chat/add-chat-member.command';
 import { RemoveChatMemberCommand } from 'src/application/commands/hobbe-chat/remove.chat-membere.command';
+import { AddChatMemberDto } from 'src/presentation/dto/hobbe-chat/add-chat-member.dto';
+import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 
 
 @Controller('chat-members')
+@Controller('chats')
+@ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard)
 export class ChatMemberController {
   constructor(private readonly commandBus: CommandBus) {}
 
   /**
    * Add a user to a chat
    */
-  @Post()
-  async addMember(@Body() body: { chatId: string; userId: string }) {
-    return this.commandBus.execute(new AddChatMemberCommand(body.chatId, body.userId));
-  }
+  
 
   /**
    * Remove a user from a chat

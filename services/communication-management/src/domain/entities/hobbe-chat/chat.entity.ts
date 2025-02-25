@@ -7,14 +7,14 @@ export class Chat {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'enum', enum: ['private', 'group'] })
+  @Column({ type: 'enum', enum: ['private', 'group'],default: 'private'})
   type: string;
 
   @Column({ default: false,nullable: true })
   isGroup: boolean;
   
   @Column({ nullable: true })
-  name?: string;
+  name: string;
 
   @Column({ nullable: true })
   deletedAt: Date;
