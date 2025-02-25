@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ChatRepository } from 'src/domain/repositories/hobbe-chat/chat.repository';
 import { Chat } from 'src/domain/entities/hobbe-chat/chat.entity';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -16,21 +17,43 @@ export class ChatRepositoryImpl implements ChatRepository {
     return this.chatRepo.save(chat);
   }
 
+  async updateLastMessage(
+    chatId: string,
+    lastMessageId: string,
+  ): Promise<void> {
+    await this.chatRepo.update(chatId, {
+      lastMessage: { id: lastMessageId },
+    } as any);
+  }
+
   async findById(chatId: string): Promise<Chat | null> {
     return this.chatRepo.findOne({ where: { id: chatId } });
   }
 
-  async findPrivateChat(userId: string, friendId: string): Promise<Chat | null> {
+  async findPrivateChat(
+    userId: string,
+    friendId: string,
+  ): Promise<Chat | null> {
     return this.chatRepo
-    .createQueryBuilder('chat')
-    .innerJoin('chat.members', 'member1', 'member1.userId = :userId', { userId })
-    .innerJoin('chat.members', 'member2', 'member2.userId = :friendId', { friendId })
-    .where('chat.type = :type', { type: 'private' })
-    .getOne();
+      .createQueryBuilder('chat')
+      .innerJoin('chat.members', 'member1', 'member1.userId = :userId', {
+        userId,
+      })
+      .innerJoin('chat.members', 'member2', 'member2.userId = :friendId', {
+        friendId,
+      })
+      .where('chat.type = :type', { type: 'private' })
+      .getOne();
   }
 
   async getUserChats(userId: string): Promise<Chat[]> {
-    return this.chatRepo.find({ where: { members: { userId } } });
+    return await this.chatRepo
+      .createQueryBuilder('chat')
+      .leftJoin('chat.members', 'chatMember')
+      .where('chatMember.userId = :userId', { userId })
+      .leftJoinAndSelect('chat.lastMessage', 'lastMessage')
+      .addSelect('chatMember.unreadCount')
+      .getRawMany();
   }
 
   async softDeleteChat(chatId: string): Promise<void> {

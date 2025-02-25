@@ -27,4 +27,23 @@ export class ChatMemberRepositoryImpl implements ChatMemberRepository {
   async getChatMembers(chatId: string): Promise<ChatMember[]> {
     return this.chatMemberRepo.find({ where: { chatId } });
   }
+
+  async incrementUnreadCount(chatId: string, senderId: string): Promise<void> {
+    await this.chatMemberRepo
+      .createQueryBuilder()
+      .update(ChatMember)
+      .set({ unreadCount: () => 'unreadCount + 1' })
+      .where('chatId = :chatId AND userId != :senderId', { chatId, senderId })
+      .execute();
+  }
+
+
+  async resetUnreadCount(chatId: string, userId: string): Promise<void> {
+    await this.chatMemberRepo
+    .createQueryBuilder()
+    .update(ChatMember)
+    .set({ unreadCount: 0 }) // Reset the unread count to 0
+    .where('chatId = :chatId AND userId = :userId', { chatId, userId })
+    .execute();
+  }
 }

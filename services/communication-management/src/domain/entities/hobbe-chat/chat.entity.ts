@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ChatMember } from './chat-member.entity';
 import { Message } from './message.entity';
 
@@ -12,9 +12,14 @@ export class Chat {
 
   @Column({ default: false,nullable: true })
   isGroup: boolean;
-  
+
   @Column({ nullable: true })
   name: string;
+
+  @OneToOne(() => Message, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'lastMessageId' })
+  lastMessage?: Message;
+
 
   @Column({ nullable: true })
   deletedAt: Date;

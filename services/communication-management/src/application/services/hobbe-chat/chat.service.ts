@@ -46,13 +46,7 @@ export class ChatService {
     }
     return chats;
   }
-  async deleteChat(chatId: string): Promise<void> {
-    const chat = await this.chatRepo.findById(chatId);
-    if (!chat) {
-      throw new NotFoundException('Chat not found');
-    }
-    await this.chatRepo.delete(chatId);
-  }
+ 
 
   async getChatById(chatId: string): Promise<Chat> {
     const chat = await this.chatRepo.findById(chatId);
@@ -88,6 +82,14 @@ export class ChatService {
 
   async softDeleteChat(chatId: string): Promise<any> {
     return this.chatRepo.softDeleteChat(chatId);
+  }
+
+  async deleteChat(chatId: string): Promise<void> {
+    const chat = await this.chatRepo.findById(chatId);
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+    await this.chatRepo.delete(chatId);
   }
 }
 

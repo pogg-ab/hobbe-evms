@@ -7,4 +7,5 @@ export interface ChatRepository {
   getUserChats(userId: string): Promise<Chat[]>;
   softDeleteChat(chatId: string): Promise<void>;
   delete(chatId: string): Promise<void>;
+  updateLastMessage(chatId: string, lastMessageId: string): Promise<void>;
 }
