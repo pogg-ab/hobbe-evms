@@ -12,7 +12,7 @@ export class ChatMemberService {
 ) {}
 
   async addMember(addChatMemberDto:AddChatMemberDto) {
-    return this.chatMemberRepo.addMember(addChatMemberDto.chatId, addChatMemberDto.userId);
+    return this.chatMemberRepo.addMember(addChatMemberDto.chatId, addChatMemberDto.userName, addChatMemberDto.userId);
   }
 
   async removeMember(chatId: string, userId: string) {

@@ -10,6 +10,9 @@ export class ChatMember {
   userId: string;
 
   @Column()
+  userName: string;
+
+  @Column()
   chatId: string;
 
   @Column({type:'int', default: 0 })

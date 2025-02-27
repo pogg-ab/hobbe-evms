@@ -6,7 +6,7 @@ import { ChatService } from 'src/application/services/hobbe-chat/chat.service';
 import { Chat } from 'src/domain/entities/hobbe-chat/chat.entity';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { Roles } from 'src/presentation/decorators/roles.decorator';
-import { CreateChatDto } from 'src/presentation/dto/hobbe-chat/create-chat.dto';
+import { CreatePrivateChatDto } from 'src/presentation/dto/hobbe-chat/create-chat.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 
@@ -22,7 +22,7 @@ export class ChatController {
     
 
   ) {}
- @ApiBody({ type: CreateChatDto })
+ @ApiBody({ type: CreatePrivateChatDto })
   @ApiOperation({ description: 'Create New Chat' })
   @HttpCode(200)
   @Roles('User')
@@ -32,10 +32,10 @@ export class ChatController {
 
 
   async createChat(
-    @Body() createChatDto:CreateChatDto,
+    @Body() createPrivateChatDto:CreatePrivateChatDto,
     @CurrentUserId() user: any,  
    ) {
-     return this.commandBus.execute(new CreateChatCommand(user,createChatDto));
+     return this.commandBus.execute(new CreateChatCommand(user,createPrivateChatDto));
    }
 
   @Get(':chatId')

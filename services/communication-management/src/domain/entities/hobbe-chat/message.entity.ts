@@ -15,7 +15,7 @@ export class Message {
   @Column('text')
   content: string;
 
-  @Column({ default: () => 'CURRENT_TIMESTAMP' })
+  @Column({type: 'timestamptz' ,default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
   @DeleteDateColumn({nullable:true})
