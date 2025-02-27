@@ -15,10 +15,12 @@ import { GetUserChatsQuery } from 'src/application/queries/hobbe-chat/get-user-c
 import { GetUserChatsHandler } from 'src/application/handlers/hobbe-chat/get-user.chats.handler';
 import { DeleteChatHandler } from 'src/application/handlers/hobbe-chat/delete-chat-handler';
 import { AddChatMemberHandler } from 'src/application/handlers/hobbe-chat/add-chat-member.handler';
+import { SocketGateway } from 'src/application/services/hobbe-chat/socket-io/socket.gateway';
 
 
 @Module({
   imports: [
+    
     TypeOrmModule.forFeature([Chat, ChatMember]),
     CqrsModule,  // Add this line to import CqrsModule
   ],
