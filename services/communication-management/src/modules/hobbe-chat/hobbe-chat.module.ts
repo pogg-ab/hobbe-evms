@@ -20,6 +20,8 @@ import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { UserValidationService } from 'src/application/services/hobbe-chat/user-validation.service';
 import { JwtStrategy } from './jwt.strategy';
+import { SocketGateway } from 'src/application/services/hobbe-chat/socket-io/socket.gateway';
+import { HobbeChatService } from 'src/application/services/hobbe-chat/socket-io/chat-service/hobbe-chat-service';
 
 
 
@@ -48,6 +50,11 @@ import { JwtStrategy } from './jwt.strategy';
       KafkaProducerService,
       UserValidationService,
       JwtStrategy,
+
+
+      // chat services
+      HobbeChatService,
+      SocketGateway,
       ],
 })
 export class HobbeChatModule {
