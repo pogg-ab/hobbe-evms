@@ -5,7 +5,6 @@ import { DeleteMessageCommand } from 'src/application/commands/hobbe-chat/delete
 import { SendMessageCommand } from 'src/application/commands/hobbe-chat/send-message.command';
 import { GetChatMessagesQuery } from 'src/application/queries/hobbe-chat/get-chat-messages-query';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
-import { CreateChatDto } from 'src/presentation/dto/hobbe-chat/create-chat.dto';
 import { CreateMessageDto } from 'src/presentation/dto/hobbe-chat/create-message.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 

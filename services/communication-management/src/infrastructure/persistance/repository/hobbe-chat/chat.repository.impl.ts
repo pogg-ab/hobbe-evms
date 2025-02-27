@@ -23,6 +23,7 @@ export class ChatRepositoryImpl implements ChatRepository {
   ): Promise<void> {
     await this.chatRepo.update(chatId, {
       lastMessage: { id: lastMessageId },
+      updatedAt: new Date(),
     } as any);
   }
 
@@ -50,11 +51,15 @@ export class ChatRepositoryImpl implements ChatRepository {
     return await this.chatRepo
       .createQueryBuilder('chat')
       .leftJoin('chat.members', 'chatMember')
+      .leftJoin('chat.members', 'friend', 'friend.userId != :userId', { userId })
       .where('chatMember.userId = :userId', { userId })
       .leftJoinAndSelect('chat.lastMessage', 'lastMessage')
-      .addSelect('chatMember.unreadCount')
+      .addSelect('friend.userName', 'friend')
+      .addSelect('chatMember.unreadCount', 'unreadMessages')
+      .orderBy('chat.updatedAt', 'DESC')
       .getRawMany();
   }
+  
 
   async softDeleteChat(chatId: string): Promise<void> {
     await this.chatRepo.update(chatId, { deletedAt: new Date() });

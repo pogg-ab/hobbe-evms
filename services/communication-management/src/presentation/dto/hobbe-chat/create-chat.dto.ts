@@ -5,16 +5,13 @@ import { IsNotEmpty } from "class-validator";
 
 
 
-export class CreateChatDto{
+export class CreatePrivateChatDto{
     
-    @ApiProperty({ description: "Friend ID", example: "220dd130-76be-4c37-9a11-eb983be51460"})
+    @ApiProperty({ description: "Friend ID", example: "2a746456-8fad-40ec-8559-b2e096d99946"})
     @IsNotEmpty()
     friendId: string;
 
-    @ApiProperty({ description: "Chat Type", example: "private"})
+    @ApiProperty({ description: "Friend Name", example: "Mohamed Ali"})
     @IsNotEmpty()
-    type: string;
-
-    @ApiProperty({ description: "Give a Name If It's Group", example: "Group One"})
-    name?: string;
+    name: string;
 }

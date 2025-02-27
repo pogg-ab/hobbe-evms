@@ -21,7 +21,13 @@ export class Chat {
   lastMessage?: Message;
 
 
-  @Column({ nullable: true })
+  @Column({type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP'})
+  updatedAt: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
   deletedAt: Date;
 
   @OneToMany(() => ChatMember, (member) => member.chat)

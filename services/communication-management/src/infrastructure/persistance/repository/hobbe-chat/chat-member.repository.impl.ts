@@ -11,8 +11,12 @@ export class ChatMemberRepositoryImpl implements ChatMemberRepository {
     private readonly chatMemberRepo: Repository<ChatMember>,
   ) {}
 
-  async addMember(chatId: string, userId: string): Promise<ChatMember> {
-    const chatMember = this.chatMemberRepo.create({ chatId, userId });
+  async addMember(chatId: string, userId: string,userName:string): Promise<ChatMember> {
+    const chatMember = this.chatMemberRepo.create({ chatId, userId ,userName});
+    return this.chatMemberRepo.save(chatMember);
+  }
+
+  async updateUserName(chatMember: ChatMember): Promise<ChatMember> {
     return this.chatMemberRepo.save(chatMember);
   }
 
@@ -21,6 +25,10 @@ export class ChatMemberRepositoryImpl implements ChatMemberRepository {
   }
 
   async findMember(chatId: string, userId: string): Promise<ChatMember | null> {
+    return this.chatMemberRepo.findOne({ where: { chatId, userId } });
+  }
+
+  async getSingleChatMember(chatId: string, userId: string): Promise<ChatMember | null> {
     return this.chatMemberRepo.findOne({ where: { chatId, userId } });
   }
 
