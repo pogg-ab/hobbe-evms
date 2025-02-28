@@ -21,8 +21,6 @@ export class Message {
   @DeleteDateColumn({nullable:true})
   deletedAt: Date;
 
-
-
   @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
   chat: Chat;
 }

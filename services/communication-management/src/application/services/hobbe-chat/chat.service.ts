@@ -32,7 +32,7 @@ export class ChatService {
           member.userName = createChatDto.name;
           await this.updateChatMember(member); 
         }
-        return existingChat;
+        return {message:createChatDto.name + " already exist !",chat : existingChat};
       }
        
     }

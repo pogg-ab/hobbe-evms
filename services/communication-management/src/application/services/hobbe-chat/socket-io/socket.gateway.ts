@@ -7,97 +7,72 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
-import { Inject } from '@nestjs/common';
-import { UserValidationService } from 'src/application/services/hobbe-chat/user-validation.service'; // Adjust path
+import { Inject, Injectable } from '@nestjs/common';
+import { UserValidationService } from 'src/application/services/hobbe-chat/user-validation.service';
 import { HobbeChatService } from './chat-service/hobbe-chat-service';
-import { UUID } from 'crypto';
+import { CreatePrivateChatDto } from 'src/presentation/dto/hobbe-chat/create-chat.dto';
 
-@WebSocketGateway({
-  cors: { origin: '*' }, // Adjust CORS as needed
-})
+@WebSocketGateway({ cors: { origin: '*' } })
+@Injectable()
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  private readonly server: Server;
 
-  private usersMap = new Map<string, string>();
+  private readonly usersMap = new Map<string, string>();
 
   constructor(
     private readonly jwtService: JwtService,
-    @Inject(UserValidationService)
-    private readonly userValidationService: UserValidationService,
+    @Inject(UserValidationService) private readonly userValidationService: UserValidationService,
     private readonly hobbeChatService: HobbeChatService,
   ) {}
 
-  async handleConnection(client: Socket) {
+  async handleConnection(client: Socket): Promise<void> {
     try {
-      // Extract token from handshake (e.g., auth or query)
       const token = client.handshake.auth.token || client.handshake.query.token;
+      if (!token) throw new Error('No token provided');
 
-      if (!token) {
-        throw new Error('No token provided');
-      }
+      const payload = await this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
+      const validatedUser = await this.userValidationService.validateUser(payload);
+      if (!validatedUser) throw new Error('User validation failed');
 
-      // Verify the JWT token using JwtService
-      const payload = await this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET, // Match your strategy's secret
-      });
-
-      // Validate the user using the same service as JwtStrategy
-      const validatedUser =
-        await this.userValidationService.validateUser(payload);
-
-      if (!validatedUser) {
-        throw new Error('User validation failed');
-      }
-      const userId = validatedUser.user.user_id.toString(); // Assuming user ID is available
+      const userId = validatedUser.user.user_id.toString();
       this.usersMap.set(userId, client.id);
-      
-       console.dir(this.usersMap, {depth:null});
-      // Attach user info to the socket for later use
-      client['user'] = validatedUser;
-     
-      const chats = await this.hobbeChatService.getUserChats(
-        userId,
-      );
+      client.data.user = validatedUser;
+
+      // console.dir(this.usersMap, { depth: null });
+
+      const chats = await this.hobbeChatService.getUserChats(userId);
       client.emit('chat', chats);
     } catch (error) {
-      console.error('Authentication failed:', error.message);
-      client.disconnect(); // Disconnect if token is invalid or validation fails
+      client.emit('auth',error.message)
+      client.disconnect();
     }
   }
 
-  handleDisconnect(client: Socket) {
-    const userId = client['user'].user.user_id.toString();
-    this.usersMap.delete(userId);
-    console.log(`${client['user'].user.user_name} disconnected: ${client.id}`);
+  handleDisconnect(client: Socket): void {
+    const userId = client.data?.user?.user?.user_id?.toString();
+    if (userId) {
+      this.usersMap.delete(userId);
+      console.log(`${client.data.user.user.user_name} disconnected: ${client.id}`);
+    }
   }
 
   @SubscribeMessage('create-chat-room')
-  handleChatRoom(client: Socket, friendId: string) {
-    const creatorUserName = client['user'].user.user_name;
-    console.log(`New Chat Room created by ${creatorUserName}`);
-  
-    // Notify the adder (creator)
-    client.emit('chat-room-created', `You have added ${friendId} to the chat.`);
-  
-    // Find the friend's socket ID
-    const friendSocketId = this.getUserSocketId(friendId);
-    if (friendSocketId) {
-      this.server.to(friendSocketId).emit('chat-room-invited', `${creatorUserName} added you to a chat.`);
-      console.log(friendId, friendSocketId);
+  async handleChatRoom(client: Socket, dto: CreatePrivateChatDto): Promise<void> {
+    const chat = await this.hobbeChatService.createChat(client.data.user, dto);
+    if (!chat.message) {
+      client.emit('chat-room-created', `You have added ${dto.name} to the chat.`);
+      this.notifyUser(dto.friendId, 'chat-room-invited', `${client.data.user.user.user_name} added you to a chat.`);
+    } else {
+      client.emit('chat-room-created', `You have already added ${dto.name} to the chat.`);
     }
   }
-  
-
-  // Example event handler
-  @SubscribeMessage('message')
-  handleMessage(client: Socket, payload: string): void {
-    console.log(`Message from ${client.id}: ${payload}`);
-    this.server.emit('message', `Echo: ${payload}`);
-  }
 
 
-  private getUserSocketId(userId: string): string | undefined {
-    return this.usersMap.get(userId);
+   notifyUser(userId: string, event: string, message: string): void {
+    const socketId = this.usersMap.get(userId);
+    if (socketId) {
+      this.server.to(socketId).emit(event, message);
+    }
   }
 }
