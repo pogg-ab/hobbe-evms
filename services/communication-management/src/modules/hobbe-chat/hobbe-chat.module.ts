@@ -22,6 +22,12 @@ import { UserValidationService } from 'src/application/services/hobbe-chat/user-
 import { JwtStrategy } from './jwt.strategy';
 import { SocketGateway } from 'src/application/services/hobbe-chat/socket-io/socket.gateway';
 import { HobbeChatService } from 'src/application/services/hobbe-chat/socket-io/chat-service/hobbe-chat-service';
+import { CHAT_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat.repository.token';
+import { CHAT_MEMBER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-member.repository.token';
+import { ChatRepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/chat.repository.impl';
+import { ChatMemberRepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/chat-member.repository.impl';
+import { MessageGateway } from 'src/application/services/hobbe-chat/socket-io/message.gateway';
+import { MessageService } from 'src/application/services/hobbe-chat/socket-io/message-service/message-service';
 
 
 
@@ -52,9 +58,14 @@ import { HobbeChatService } from 'src/application/services/hobbe-chat/socket-io/
       JwtStrategy,
 
 
-      // chat services
+      // Hobbe chat services
       HobbeChatService,
+      MessageService,
       SocketGateway,
+      MessageGateway,
+
+       { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
+       { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
       ],
 })
 export class HobbeChatModule {

@@ -21,7 +21,7 @@ export class MessageService {
     private readonly chatMemberRepo: ChatMemberRepository,
   ) {}
 
-  async sendMessage(user: string, createMessageDto: CreateMessageDto):Promise<Message> {
+  async sendMessage(user: string, createMessageDto: CreateMessageDto):Promise<any> {
     const chat = await this.chatRepo.findById(createMessageDto.chatId);
     if (!chat) {
       throw new NotFoundException('Chat not found');
@@ -29,7 +29,7 @@ export class MessageService {
      const message =  await this.messageRepo.sendMessage(user, createMessageDto);
      await this.chatRepo.updateLastMessage(chat.id, message.id);
      await this.chatMemberRepo.incrementUnreadCount(chat.id, message.senderId);
-     return message;
+     return {message}
   }
 
   async deleteMessage(messageId: string) {

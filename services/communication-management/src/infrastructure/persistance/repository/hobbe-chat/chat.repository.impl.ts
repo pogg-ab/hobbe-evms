@@ -28,7 +28,7 @@ export class ChatRepositoryImpl implements ChatRepository {
   }
 
   async findById(chatId: string): Promise<Chat | null> {
-    return this.chatRepo.findOne({ where: { id: chatId } });
+    return await this.chatRepo.findOne({ where: { id: chatId },relations: ['members'], });
   }
 
   async findPrivateChat(
