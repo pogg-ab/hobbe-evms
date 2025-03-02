@@ -42,6 +42,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // console.dir(this.usersMap, { depth: null });
 
       const chats = await this.hobbeChatService.getUserChats(userId);
+      const userName =  client.data?.user?.user?.user_name?.toString();
+
+      this.broadcastUserStatus(userName, true);
       client.emit('chat', chats);
     } catch (error) {
       client.emit('auth',error.message)
@@ -51,28 +54,23 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket): void {
     const userId = client.data?.user?.user?.user_id?.toString();
+    const userName =  client.data?.user?.user?.user_name?.toString();
     if (userId) {
       this.usersMap.delete(userId);
-      console.log(`${client.data.user.user.user_name} disconnected: ${client.id}`);
-    }
-  }
-
-  @SubscribeMessage('create-chat-room')
-  async handleChatRoom(client: Socket, dto: CreatePrivateChatDto): Promise<void> {
-    const chat = await this.hobbeChatService.createChat(client.data.user, dto);
-    if (!chat.message) {
-      client.emit('chat-room-created', `You have added ${dto.name} to the chat.`);
-      this.notifyUser(dto.friendId, 'chat-room-invited', `${client.data.user.user.user_name} added you to a chat.`);
-    } else {
-      client.emit('chat-room-created', `You have already added ${dto.name} to the chat.`);
+      console.log(`${userName} disconnected: ${client.id}`);
+      this.broadcastUserStatus(userName, false);
     }
   }
 
 
-   notifyUser(userId: string, event: string, message: string): void {
+   notifyUser(userId: string, event: string, message: any): void {
     const socketId = this.usersMap.get(userId);
     if (socketId) {
       this.server.to(socketId).emit(event, message);
     }
+  }
+
+  private broadcastUserStatus(userId: string, isOnline: boolean) {
+    this.server.emit('user-status', { userId, isOnline });
   }
 }

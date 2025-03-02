@@ -28,6 +28,7 @@ import { ChatRepositoryImpl } from 'src/infrastructure/persistance/repository/ho
 import { ChatMemberRepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/chat-member.repository.impl';
 import { MessageGateway } from 'src/application/services/hobbe-chat/socket-io/message.gateway';
 import { MessageService } from 'src/application/services/hobbe-chat/socket-io/message-service/message-service';
+import { ChatGateway } from 'src/application/services/hobbe-chat/socket-io/chat.gateway';
 
 
 
@@ -62,6 +63,7 @@ import { MessageService } from 'src/application/services/hobbe-chat/socket-io/me
       HobbeChatService,
       MessageService,
       SocketGateway,
+      ChatGateway,
       MessageGateway,
 
        { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
