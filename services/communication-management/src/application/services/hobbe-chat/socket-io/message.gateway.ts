@@ -19,15 +19,19 @@ export class MessageGateway {
     private readonly messageService:MessageService,
     private readonly socketGateway:SocketGateway,
   ){}
-  @SubscribeMessage('send-message')
+  @SubscribeMessage('sendMessage')
   async handleMessage(client: Socket,createMessageDto : CreateMessageDto){
     const res = await this.messageService.sendMessage(client.data.user,createMessageDto);
     if (res) {
       client.emit('message-sent',res);
-      this.socketGateway.notifyUser(res.message.receiver.userId, 'message-delivered', `${client.data.user.user.user_name} sent new message.`);
-    }
-    // this.server.emit('message', res);
+      this.socketGateway.notifyUser(res.message.receiver.userId, 'message-delivered', res);
+    }    
   }
 
-  
+
+  @SubscribeMessage('getPrivateMessages')
+  async handlePrivateMessagse(client: Socket,chatId : string){
+    const res = await this.messageService.getPrivateMessages(client.data.user,chatId.toString());
+    client.emit('chat-history',res);   
+  }
 }
