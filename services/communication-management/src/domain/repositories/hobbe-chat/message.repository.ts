@@ -3,6 +3,7 @@ import { CreateMessageDto } from "src/presentation/dto/hobbe-chat/create-message
 
 export interface MessageRepository {
   sendMessage(user: string, createMessageDto: CreateMessageDto): Promise<Message>;
+  findOne(id:string):Promise<Message | null>
   getChatMessages(chatId: string): Promise<Message[]>;
   softDeleteMessage(messageId: string): Promise<void>;
 }

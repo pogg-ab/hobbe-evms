@@ -12,6 +12,6 @@ export class CreatePrivateChatDto{
     friendId: string;
 
     @ApiProperty({ description: "Friend Name", example: "Mohamed Ali"})
-    @IsNotEmpty()
+    // @IsNotEmpty()
     name: string;
 }

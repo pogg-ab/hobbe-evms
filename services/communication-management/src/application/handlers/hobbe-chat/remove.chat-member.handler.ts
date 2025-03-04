@@ -7,6 +7,6 @@ export class RemoveChatMemberHandler implements ICommandHandler<RemoveChatMember
   constructor(private readonly chatMemberService: ChatMemberService) {}
 
   async execute(command: RemoveChatMemberCommand): Promise<void> {
-    await this.chatMemberService.removeMember(command.chatId, command.userId);
+    await this.chatMemberService.removeMember(command.chat, command.user);
   }
 }

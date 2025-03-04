@@ -8,6 +8,7 @@ import { Injectable } from '@nestjs/common';
 import { MessageService } from './message-service/message-service';
 import { CreateMessageDto } from 'src/presentation/dto/hobbe-chat/create-message.dto';
 import { SocketGateway } from './socket.gateway';
+import { Chat } from 'src/domain/entities/hobbe-chat/chat.entity';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 @Injectable()
@@ -24,14 +25,14 @@ export class MessageGateway {
     const res = await this.messageService.sendMessage(client.data.user,createMessageDto);
     if (res) {
       client.emit('message-sent',res);
-      this.socketGateway.notifyUser(res.message.receiver.userId, 'message-delivered', res);
-    }    
+      // this.socketGateway.notifyUser(res.message.receiver.userId, 'message-delivered', res);
+    } 
   }
 
 
   @SubscribeMessage('getPrivateMessages')
-  async handlePrivateMessagse(client: Socket,chatId : string){
-    const res = await this.messageService.getPrivateMessages(client.data.user,chatId.toString());
+  async handlePrivateMessagse(client: Socket,chat : Chat){
+    const res = await this.messageService.getPrivateMessages(client.data.user,chat);
     client.emit('chat-history',res);   
   }
 }

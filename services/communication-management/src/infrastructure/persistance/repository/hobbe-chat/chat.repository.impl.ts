@@ -4,17 +4,20 @@ import { Chat } from 'src/domain/entities/hobbe-chat/chat.entity';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ChatMember } from 'src/domain/entities/hobbe-chat/chat-member.entity';
 
 @Injectable()
 export class ChatRepositoryImpl implements ChatRepository {
   constructor(
     @InjectRepository(Chat)
     private readonly chatRepo: Repository<Chat>,
+    @InjectRepository(ChatMember)
+    private readonly chatMemberRepo: Repository<ChatMember>,
   ) {}
 
   async create(type: string, name?: string): Promise<Chat> {
     const chat = this.chatRepo.create({ type, name });
-    return this.chatRepo.save(chat);
+    return await this.chatRepo.save(chat);
   }
 
   async updateLastMessage(
@@ -28,7 +31,10 @@ export class ChatRepositoryImpl implements ChatRepository {
   }
 
   async findById(chatId: string): Promise<Chat | null> {
-    return await this.chatRepo.findOne({ where: { id: chatId },relations: ['members'], });
+    return await this.chatRepo.findOne({
+      where: { id: chatId },
+      relations: ['members'],
+    });
   }
 
   async findPrivateChat(
@@ -51,15 +57,16 @@ export class ChatRepositoryImpl implements ChatRepository {
     return await this.chatRepo
       .createQueryBuilder('chat')
       .leftJoin('chat.members', 'chatMember')
-      .leftJoin('chat.members', 'friend', 'friend.userId != :userId', { userId })
+      .leftJoin('chat.members', 'friend', 'friend.userId != :userId', {
+        userId,
+      })
       .where('chatMember.userId = :userId', { userId })
       .leftJoinAndSelect('chat.lastMessage', 'lastMessage')
-      .addSelect('friend.userName', 'friend')
+      // .addSelect('friend.userName', 'friend')
       .addSelect('chatMember.unreadCount', 'unreadMessages')
       .orderBy('chat.updatedAt', 'DESC')
       .getRawMany();
   }
-  
 
   async softDeleteChat(chatId: string): Promise<void> {
     await this.chatRepo.update(chatId, { deletedAt: new Date() });

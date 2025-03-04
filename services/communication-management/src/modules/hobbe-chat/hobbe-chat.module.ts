@@ -29,13 +29,17 @@ import { ChatMemberRepositoryImpl } from 'src/infrastructure/persistance/reposit
 import { MessageGateway } from 'src/application/services/hobbe-chat/socket-io/message.gateway';
 import { MessageService } from 'src/application/services/hobbe-chat/socket-io/message-service/message-service';
 import { ChatGateway } from 'src/application/services/hobbe-chat/socket-io/chat.gateway';
+import { ChatUserService } from 'src/application/services/hobbe-chat/socket-io/user-service/chat-user-service';
+import { CHAT_USER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-user.repository.token';
+import { ChatUserRepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/chat-user.repository.impl';
+import { ChatUser } from 'src/domain/entities/hobbe-chat/chat-user.entity';
 
 
 
 @Module({
   imports: [
     CqrsModule, 
-    TypeOrmModule.forFeature([Chat, ChatMember,Message]),
+    TypeOrmModule.forFeature([ChatUser, Chat, ChatMember,Message]),
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '60s' },
@@ -61,11 +65,14 @@ import { ChatGateway } from 'src/application/services/hobbe-chat/socket-io/chat.
 
       // Hobbe chat services
       HobbeChatService,
+      ChatUserService,
       MessageService,
       SocketGateway,
+    
       ChatGateway,
       MessageGateway,
 
+       { provide: CHAT_USER_REPOSITORY_TOKEN, useClass: ChatUserRepositoryImpl },
        { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
        { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
       ],

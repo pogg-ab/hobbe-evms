@@ -9,8 +9,6 @@ import { MESSAGE_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/mes
 @QueryHandler(GetChatMessagesQuery)
 export class GetChatMessagesHandler implements IQueryHandler<GetChatMessagesQuery> {
   constructor(
-   
-
     private readonly messageService: MessageService
   ) {}
 

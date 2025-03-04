@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DeleteMessageCommand } from 'src/application/commands/hobbe-chat/delete-message.command';
 import { GetChatMessagesQuery } from 'src/application/queries/hobbe-chat/get-chat-messages-query';
+import { ChatUser } from 'src/domain/entities/hobbe-chat/chat-user.entity';
+import { Chat } from 'src/domain/entities/hobbe-chat/chat.entity';
 import { Message } from 'src/domain/entities/hobbe-chat/message.entity';
 import { ChatMemberRepository } from 'src/domain/repositories/hobbe-chat/chat-member.repository';
 import { CHAT_MEMBER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-member.repository.token';
@@ -21,28 +23,28 @@ export class MessageService {
     private readonly chatMemberRepo: ChatMemberRepository,
   ) {}
 
-  async sendMessage(user: string, createMessageDto: CreateMessageDto):Promise<any> {
+  async sendMessage(user: ChatUser, createMessageDto: CreateMessageDto):Promise<any> {
     const chat = await this.chatRepo.findById(createMessageDto.chatId);
     if (!chat) {
-      throw new NotFoundException('Chat not found');
+      return new NotFoundException('Chat not found');
     }
-     const message =  await this.messageRepo.sendMessage(user, createMessageDto);
+     const message =  await this.messageRepo.sendMessage(user.id, createMessageDto);
      await this.chatRepo.updateLastMessage(chat.id, message.id);
-     await this.chatMemberRepo.incrementUnreadCount(chat.id, message.senderId);
-     return {message}
+     await this.chatMemberRepo.incrementUnreadCount(chat, user);
+     return message
   }
 
   async deleteMessage(messageId: string) {
     return this.messageRepo.softDeleteMessage(messageId);
   }
 
-  async getChatMessages(user:string,chatId: string): Promise<Message[]> {
-    const chat = await this.chatRepo.findById(chatId);
+  async getChatMessages(user:ChatUser, chat: Chat): Promise<Message[]> {
+    const getChat = await this.chatRepo.findById(chat.id);
     if (!chat) {
       throw new NotFoundException('Chat not found');
     }
-    const messages = await this.messageRepo.getChatMessages(chatId);
-    await this.chatMemberRepo.resetUnreadCount(chatId, user);
+    const messages = await this.messageRepo.getChatMessages(chat.id);
+    await this.chatMemberRepo.resetUnreadCount(chat, user);
     return messages;
   }
 }
