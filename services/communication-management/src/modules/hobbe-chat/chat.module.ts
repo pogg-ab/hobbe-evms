@@ -16,12 +16,15 @@ import { GetUserChatsHandler } from 'src/application/handlers/hobbe-chat/get-use
 import { DeleteChatHandler } from 'src/application/handlers/hobbe-chat/delete-chat-handler';
 import { AddChatMemberHandler } from 'src/application/handlers/hobbe-chat/add-chat-member.handler';
 import { SocketGateway } from 'src/application/services/hobbe-chat/socket-io/socket.gateway';
+import { CHAT_USER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-user.repository.token';
+import { ChatUserRepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/chat-user.repository.impl';
+import { ChatUser } from 'src/domain/entities/hobbe-chat/chat-user.entity';
 
 
 @Module({
   imports: [
     
-    TypeOrmModule.forFeature([Chat, ChatMember]),
+    TypeOrmModule.forFeature([ChatUser,Chat, ChatMember]),
     CqrsModule,  // Add this line to import CqrsModule
   ],
   providers: [
@@ -30,6 +33,7 @@ import { SocketGateway } from 'src/application/services/hobbe-chat/socket-io/soc
     GetUserChatsHandler,
     AddChatMemberHandler,
     DeleteChatHandler,
+    { provide: CHAT_USER_REPOSITORY_TOKEN, useClass: ChatUserRepositoryImpl },
     { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
     { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
   ],

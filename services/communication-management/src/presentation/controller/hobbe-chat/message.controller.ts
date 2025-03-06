@@ -4,6 +4,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation } from '@nestjs/swagger';
 import { DeleteMessageCommand } from 'src/application/commands/hobbe-chat/delete-message.command';
 import { SendMessageCommand } from 'src/application/commands/hobbe-chat/send-message.command';
 import { GetChatMessagesQuery } from 'src/application/queries/hobbe-chat/get-chat-messages-query';
+import { Chat } from 'src/domain/entities/hobbe-chat/chat.entity';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { CreateMessageDto } from 'src/presentation/dto/hobbe-chat/create-message.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
@@ -34,10 +35,10 @@ export class MessageController {
    */
   @Get(':chatId')
   async getMessages(
-    @Param('chatId') chatId: string,
+    @Param('chatId') chat: Chat,
     @CurrentUserId() user: any,  
   ) {
-    return this.queryBus.execute(new GetChatMessagesQuery(user.user.user_id.toString(),chatId));
+    return this.queryBus.execute(new GetChatMessagesQuery(user.user.user_id.toString(),chat));
   }
 
   /**

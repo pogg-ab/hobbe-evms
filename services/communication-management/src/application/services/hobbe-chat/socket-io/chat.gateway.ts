@@ -38,14 +38,16 @@ async handleChatRoom(client: Socket, dto: CreatePrivateChatDto): Promise<void> {
   try {
     const { user } = client.data;
     const chat = await this.hobbeChatService.createChat(user, dto);
+    console.dir(chat,{depth:null});
+    
     
     if (!chat.isExisting) {
-      const creator = {message: `You have successfully added ${dto.name} to the chat.`, chatId:chat.id}
+      const creator = {message: `New Chat Room Created.`, chat}
       const receiver = {message: `${user.user.user_name} has invited you to chat with him .`, chatId:chat.id}
       client.emit('chat-room-created', creator);
       this.socketGateway.notifyUser(dto.friendId, 'chat-room-invited', receiver);
     } else {
-      const msg = {message: `Chat with ${dto.name} already exists. `, chatId:chat.id}
+      const msg = {message: `Chat with ${dto.friendId} already exists. `, chatId:chat.id}
       client.emit('chat-room-created',msg );
     }
   } catch (error) {

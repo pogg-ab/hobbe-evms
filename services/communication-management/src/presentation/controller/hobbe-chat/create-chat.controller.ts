@@ -44,7 +44,7 @@ export class ChatController {
   }
 
   @Get(':chatId/members')
-  async getChatMembers(@Param('chatId') chatId: string): Promise<any[]> {
-    return this.chatService.getChatMembers(chatId);
+  async getChatMembers(@Param('chatId') chat: Chat): Promise<any[]> {
+    return this.chatService.getChatMembers(chat);
   }
 }

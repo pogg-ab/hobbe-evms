@@ -1,25 +1,37 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Chat } from './chat.entity';
+import { ChatUser } from './chat-user.entity';
 
 @Entity()
 export class ChatMember {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-  @Column()
-  userId: string;
+    @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+    @Index()
+    joinedAt: Date;
 
-  @Column()
-  userName: string;
+    @Column({ type: 'int', default: 0 })
+    unreadCount: number;
 
-  @Column()
-  chatId: string;
+    // Consider adding these if you need reverse lookups
+    @Column()
+    userId: string;  // Explicit column for easier querying
 
-  @Column({type:'int', default: 0 })
-  unreadCount: number;
+    @Column()
+    chatId: string;  // Explicit column for easier querying
 
-  @ManyToOne(() => Chat, (chat) => chat.members, { onDelete: 'CASCADE' })
-  chat: Chat;
+    @ManyToOne(() => ChatUser, (user) => user.chatMembers)
+    @JoinColumn({ name: 'userId' })
+    @Index('idx_chatmember_userid')
+    user: ChatUser;
 
+    @ManyToOne(() => Chat, (chat) => chat.members, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'chatId' })
+    @Index('idx_chatmember_chatid')
+    chat: Chat;
 
+    // Optional: Add status if members can be active/inactive
+    @Column({ type: 'boolean', default: true })
+    isActive?: boolean;
 }

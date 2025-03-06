@@ -3,14 +3,13 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  SubscribeMessage,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { Inject, Injectable } from '@nestjs/common';
 import { UserValidationService } from 'src/application/services/hobbe-chat/user-validation.service';
 import { HobbeChatService } from './chat-service/hobbe-chat-service';
-import { CreatePrivateChatDto } from 'src/presentation/dto/hobbe-chat/create-chat.dto';
+import { ChatUserService } from './user-service/chat-user-service';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 @Injectable()
@@ -24,6 +23,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     @Inject(UserValidationService) private readonly userValidationService: UserValidationService,
     private readonly hobbeChatService: HobbeChatService,
+    private readonly chatUserService: ChatUserService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -40,7 +40,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.user = validatedUser;
 
       // console.dir(this.usersMap, { depth: null });
-
+      console.log(this.chatUserService.chatUser(userId));
+      
       const chats = await this.hobbeChatService.getUserChats(userId);
       const userName =  client.data?.user?.user?.user_name?.toString();
 

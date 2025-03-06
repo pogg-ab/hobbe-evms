@@ -10,10 +10,15 @@ import { CHAT_MEMBER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat
 import { AddChatMemberDto } from 'src/presentation/dto/hobbe-chat/add-chat-member.dto';
 import { CreatePrivateChatDto } from 'src/presentation/dto/hobbe-chat/create-chat.dto';
 import { randomInt } from 'crypto';
+import { ChatUserRepository } from 'src/domain/repositories/hobbe-chat/chat-user.repository';
+import { CHAT_USER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-user.repository.token';
+import { ChatUser } from 'src/domain/entities/hobbe-chat/chat-user.entity';
 
 @Injectable()
 export class ChatService {
   constructor(
+    @Inject(CHAT_USER_REPOSITORY_TOKEN)
+    private readonly chatUserRepo: ChatUserRepository,
     @Inject(CHAT_REPOSITORY_TOKEN)
     private readonly chatRepo: ChatRepository,
     @Inject(CHAT_MEMBER_REPOSITORY_TOKEN)
@@ -27,11 +32,11 @@ export class ChatService {
     if (createChatDto.friendId) {
       const existingChat = await this.chatRepo.findPrivateChat(chat_user, createChatDto.friendId);
       if (existingChat) {
-        const member = await this.getSingleChatMember(existingChat.id,createChatDto.friendId);
-        if(member){
-          member.userName = createChatDto.name;
-          await this.updateChatMember(member); 
-        }
+        // const member = await this.getSingleChatMember(existingChat,createChatDto.friendId);
+        // if(member){
+        //   member.userName = createChatDto.name;
+        //   await this.updateChatMember(member); 
+        // }
         return { ...existingChat, isExisting:true};
       }
        
@@ -41,12 +46,16 @@ export class ChatService {
 
 
     const chat = await this.chatRepo.create("private",'@user' + randomInt(1000000000, 9999999999));
-    await this.chatMemberRepo.addMember(chat.id,chat_user,chat_user_name);
+    const chatUser = await this.chatUserRepo.chatUser(chat_user);
+    await this.chatMemberRepo.addMember(chat,chatUser);
 
     if (createChatDto.friendId) {
-      await this.chatMemberRepo.addMember(chat.id, createChatDto.friendId,createChatDto.name);
+      const chatUser = await this.chatUserRepo.chatUser(createChatDto.friendId);
+      await this.chatMemberRepo.addMember(chat, chatUser);
     }
-    return chat;
+
+    const members = await this.chatMemberRepo.getChatMembers(chat);
+    return {...chat, members:members};
    
   }
 
@@ -67,40 +76,41 @@ export class ChatService {
     return chat;
   }
 
-  async getChatMembers(chatId: string): Promise<any[]> {
-    const members = await this.chatMemberRepo.getChatMembers(chatId);
+  async getChatMembers(chat: Chat): Promise<any[]> {
+    const members = await this.chatMemberRepo.getChatMembers(chat);
     if (!members.length) {
       throw new NotFoundException('No members found for this chat');
     }
     return members;
   }
 
-  async getSingleChatMember(chatId: string,userId:string): Promise<ChatMember | null> {
-    const member = await this.chatMemberRepo.getSingleChatMember(chatId,userId);
+  async getSingleChatMember(chat: Chat, user: ChatUser): Promise<ChatMember | null> {
+    const member = await this.chatMemberRepo.getSingleChatMember(chat,user);
     if (!member) {
       throw new NotFoundException('No members found for this chat');
     }
     return member;
   }
 
-  async updateChatMember(chatMember: ChatMember): Promise<ChatMember> {
-    return this.chatMemberRepo.updateUserName(chatMember);
-  }
+  // async updateChatMember(chat: ChatMember): Promise<ChatMember> {
+  //   return this.chatMemberRepo.updateUserName(chatMember);
+  // }
 
   async addChatMember(addChatMemberDto:AddChatMemberDto): Promise<ChatMember> {
      const chat  =  await this.chatRepo.findById(addChatMemberDto.chatId);
+     const user  =  await this.chatUserRepo.chatUser(addChatMemberDto.chatId);
      if(!chat){
        throw new NotFoundException('Chat not found');
      }
-    return this.chatMemberRepo.addMember(addChatMemberDto.chatId, addChatMemberDto.userName, addChatMemberDto.userId);
+    return this.chatMemberRepo.addMember(chat,user);
   }
 
-  async removeChatMember(chatId: string, userId: string): Promise<void> {
-    const member = await this.chatMemberRepo.findMember(chatId, userId);
+  async removeChatMember(chat: Chat, user: ChatUser): Promise<void> {
+    const member = await this.chatMemberRepo.findMember(chat, user);
     if (!member) {
       throw new NotFoundException('Member not found in this chat');
     }
-    await this.chatMemberRepo.removeMember(chatId, userId);
+    await this.chatMemberRepo.removeMember(chat, user);
   }
 
   async softDeleteChat(chatId: string): Promise<any> {
