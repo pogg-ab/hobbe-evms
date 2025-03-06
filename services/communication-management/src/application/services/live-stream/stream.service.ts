@@ -61,7 +61,7 @@ export class StreamService {
     }
   }
 
-  async startStream(streamId: string, filePath: string): Promise<{ success: boolean; message: string; data: Stream | null }> {
+  async startStream(streamId: string, source: string | { filePath?: string; cameraDevice?: string }): Promise<{ success: boolean; message: string; data: Stream | null }> {
     try {
       const stream = await this.streamRepository.findById(streamId);
       if (!stream) {
@@ -78,7 +78,17 @@ export class StreamService {
       await this.streamRepository.update(stream);
 
       const rtmpUrl = stream.url;
-      await this.startStreamFromFile(filePath, rtmpUrl, streamId);
+
+      if (typeof source === 'string') {
+        await this.startStreamFromFile(source, rtmpUrl, streamId);
+      } else if (source.filePath) {
+        await this.startStreamFromFile(source.filePath, rtmpUrl, streamId);
+      } else if (source.cameraDevice) {
+        await this.startStreamFromCamera(rtmpUrl, streamId, source.cameraDevice);
+      } else {
+        throw new Error('Invalid source provided. Must be either filePath or cameraDevice.');
+      }
+
       this.nodeMediaService.startStream(rtmpUrl, streamId);
 
       return {
@@ -94,6 +104,7 @@ export class StreamService {
       };
     }
   }
+
 
   async stopStream(
     streamId: string,
@@ -188,20 +199,99 @@ export class StreamService {
     inputFilePath: string,
     rtmpUrl: string,
     streamId: string
-  ): Promise<void> {
+  ): Promise<{ success: boolean; message: string; data?: { streamId: string; rtmpUrl: string } }> {
     try {
-      console.log(`Starting stream from file: ${inputFilePath} to ${rtmpUrl}`);
+      console.log(`Starting stream from file: ${inputFilePath} to ${rtmpUrl} for stream ID: ${streamId}`);
 
       if (!fs.existsSync(inputFilePath)) {
-        throw new Error(`File not found: ${inputFilePath}`);
+        const errorMessage = `File not found: ${inputFilePath}`;
+        console.error(errorMessage);
+        return {
+          success: false,
+          message: errorMessage,
+        };
       }
 
-      await this.fluentFFmpegService.streamFileToRtmp(inputFilePath, rtmpUrl, streamId);
+      const streamStatus = await this.fluentFFmpegService.streamFileToRtmp(inputFilePath, rtmpUrl, streamId);
+      if (streamStatus.status === 'stopped') {
+        console.log(`Stream ID: ${streamId} is stopped, stopping any active stream before starting.`);
+        await this.stopStream(streamId);
+      }
 
-      console.log(`Stream started successfully from file: ${inputFilePath}`);
+      console.log(`Stream started successfully from file: ${inputFilePath} for stream ID: ${streamId}`);
+      return {
+        success: true,
+        message: `Stream started successfully for stream ID: ${streamId}`,
+        data: { streamId, rtmpUrl },
+      };
     } catch (error) {
-      console.error(`Failed to start stream from file: ${error.message}`);
-      throw error;
+      console.error(`Failed to start stream from file: ${inputFilePath} for stream ID: ${streamId}: ${error.message}`);
+      return {
+        success: false,
+        message: `Failed to start stream: ${error.message}`,
+      };
     }
   }
+
+  async startStreamFromCamera(rtmpUrl: string, streamId: string, cameraDevice?: string): Promise<{ success: boolean; message: string; data?: { streamId: string; rtmpUrl: string } }> {
+    try {
+      console.log(`Starting stream to RTMP URL: ${rtmpUrl} for stream ID: ${streamId}`);
+
+      const stream = await this.streamRepository.findById(streamId);
+      if (stream && stream.status === 'active') {
+        console.log(`Stream ID: ${streamId} is active, stopping the current stream before starting a new one.`);
+        await this.stopStream(streamId);
+      }
+
+      let selectedCamera = cameraDevice;
+      if (!selectedCamera) {
+        const availableCameras = await this.getCameraDevices();
+        if (availableCameras.length > 0) {
+          selectedCamera = availableCameras[0].deviceId;
+          console.log(`Selected camera device: ${availableCameras[0].label}`);
+        } else {
+          throw new Error('No camera devices found');
+        }
+      }
+
+      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(selectedCamera, rtmpUrl, streamId);
+
+      if (streamStatus.status === 'started') {
+        console.log(`Stream started successfully for stream ID: ${streamId}`);
+        return {
+          success: true,
+          message: `Stream started successfully for stream ID: ${streamId}`,
+          data: { streamId, rtmpUrl },
+        };
+      } else {
+        console.error(`Failed to start stream for stream ID: ${streamId}`);
+        return {
+          success: false,
+          message: `Failed to start stream: ${streamStatus.message}`,
+        };
+      }
+    } catch (error) {
+      console.error(`Failed to start stream from camera for stream ID: ${streamId}: ${error.message}`);
+      return {
+        success: false,
+        message: `Failed to start stream: ${error.message}`,
+      };
+    }
+  }
+
+  async getCameraDevices(): Promise<{ deviceId: string; label: string }[]> {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.filter(device => device.kind === 'videoinput').map(device => ({
+        deviceId: device.deviceId,
+        label: device.label || 'Unknown Camera',
+      }));
+    } catch (error) {
+      console.error('Error getting camera devices:', error);
+      return [];
+    }
+  }
+
+
+
 }

@@ -52,10 +52,23 @@ export class StreamController {
     @Param('id') streamId: string,
     @Body() startStreamDto: StartStreamDto,
   ) {
-    const { filePath } = startStreamDto;
-    return this.commandBus.execute(
-      new StartStreamCommand(streamId, filePath),
-    );
+    const { source } = startStreamDto;
+
+    try {
+      const result = await this.commandBus.execute(new StartStreamCommand(streamId, source));
+
+      return {
+        success: true,
+        message: `Stream ${streamId} started successfully`,
+        data: result.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to start stream: ${error.message}`,
+        data: null,
+      };
+    }
   }
 
   @Post(':id/stop')

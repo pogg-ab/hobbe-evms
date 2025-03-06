@@ -29,7 +29,6 @@ import { ChapaModule } from './modules/payment-methods/chapa/chapa.module';
     WiseModule,
     ChapaModule,
   ],
-  controllers: [AppController],
-  providers: [AppService,KafkaConsumerService],
+  providers: [AppService, KafkaConsumerService],
 })
-export class AppModule {}
+export class AppModule { }
