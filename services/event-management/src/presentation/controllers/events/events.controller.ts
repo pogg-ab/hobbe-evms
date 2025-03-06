@@ -40,6 +40,7 @@ import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
 import { FindEventsByUsersFavoriteQuery } from 'src/application/queries/favorite/find-events-by-users-favorite.query';
 import { GetEventRemainingTimeQuery } from 'src/application/queries/events/get-event-remaining-time.query';
 import { GetEventsByStatusQuery } from 'src/application/queries/events/get-events-by-status.query';
+import { GetEventsByDateRnage } from 'src/presentation/dtos/events/get-event-by-date-range.dto';
 
 @ApiTags('Events')
 @Controller('events')
@@ -135,6 +136,7 @@ export class EventsController {
   }
 
   @ApiOperation({ description: 'Get Events By  Daterange' })
+  @ApiBody({type:GetEventsByDateRnage})
   @HttpCode(200)
   @Post('date-range')
   async findByDateRange(
@@ -190,7 +192,7 @@ export class EventsController {
   async search(
     @Param('keyword') keyword: string,
     @Query('page') page: number = 1, // Default value for page if not provided
-    @Query('limit') limit: number = 10, // Default value for limit if not provided
+    @Query('limit') limit: number = 5, // Default value for limit if not provided
   ): Promise<{
     events: Events[] | null;
     total: number;
