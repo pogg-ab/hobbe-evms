@@ -21,12 +21,13 @@ export class MessageRepositoryImpl implements MessageRepository {
   }
 
   async findOne(id: string): Promise<Message | null> {
-    return await this.messageRepo.findOne(
+    const data  = await this.messageRepo.findOne(
       {
         where: { id: id },
         relations: ['chat.members'],
       }
     );
+    return data;
   }
 
   async getChatMessages(chatId: string): Promise<Message[]> {

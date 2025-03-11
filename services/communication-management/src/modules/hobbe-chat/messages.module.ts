@@ -16,21 +16,27 @@ import { Chat } from 'src/domain/entities/hobbe-chat/chat.entity';
 import { ChatMemberRepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/chat-member.repository.impl';
 import { CHAT_MEMBER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-member.repository.token';
 import { ChatMember } from 'src/domain/entities/hobbe-chat/chat-member.entity';
+import { E2EE_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/e2ee/e2ee.repository.token';
+import { E2EERepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/e2ee.repository.impl';
+import { E2eeService } from 'src/application/services/hobbe-chat/e2ee/e2ee.service';
+import { E2EE } from 'src/domain/entities/hobbe-chat/e2ee.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Message,Chat,ChatMember]),
+    TypeOrmModule.forFeature([Message,Chat,ChatMember,E2EE]),
     CqrsModule, // ✅ Add this
   ],
   controllers: [MessageController],
   providers: [
     MessageService,
+    E2eeService,
     SendMessageHandler,
     GetChatMessagesHandler,
     DeleteMessageHandler,
      { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
      { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
      { provide: MESSAGE_REPOSITORY_TOKEN, useClass: MessageRepositoryImpl },
+     { provide: E2EE_REPOSITORY_TOKEN, useClass: E2EERepositoryImpl },
   ],
   exports: [MESSAGE_REPOSITORY_TOKEN],
 })

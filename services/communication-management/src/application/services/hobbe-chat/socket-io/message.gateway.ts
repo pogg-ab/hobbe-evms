@@ -25,7 +25,12 @@ export class MessageGateway {
     const res = await this.messageService.sendMessage(client.data.user,createMessageDto);
     if (res) {
       client.emit('message-sent',res);
-      // this.socketGateway.notifyUser(res.message.receiver.userId, 'message-delivered', res);
+      const senderId: string = res.senderId;
+      const receiverId: string = res.chat.members
+          .filter((member: any) => member.userId !== senderId)
+          .map((member: any) => member.userId);
+          
+      this.socketGateway.notifyUser (receiverId, 'message-delivered', res);
     } 
   }
 

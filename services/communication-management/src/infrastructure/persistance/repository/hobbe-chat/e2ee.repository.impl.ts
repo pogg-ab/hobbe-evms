@@ -53,9 +53,11 @@ export class E2EERepositoryImpl implements IE2EERepository{
             throw error;
         }
     }
-    async getPublicKey(user_id: string):Promise<{publicKey:string} | null>{        
+    async getPublicKey(userId: string):Promise<{publicKey:string} | null>{    
         const keyPair =  await this.e2eeRepository.findOne({
-            where:{user:user_id}
+            where: {
+                user: Equal(userId)  // Use Equal operator for the relation
+            },
         });
         if(!keyPair){
             return null;
@@ -63,9 +65,11 @@ export class E2EERepositoryImpl implements IE2EERepository{
         return {publicKey:keyPair.public_key};
     }
 
-    async getPrivateKey(user_id: string):Promise<{privateKey:string}| null>{
+    async getPrivateKey(userId: string):Promise<{privateKey:string}| null>{
         const keyPair =  await this.e2eeRepository.findOne({
-            where:{user:user_id}
+            where: {
+                user: Equal(userId)  // Use Equal operator for the relation
+            },
         });
         if(!keyPair){
             return null;
