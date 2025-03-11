@@ -1,5 +1,6 @@
-import { Entity, PrimaryColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToMany, OneToOne, JoinColumn } from 'typeorm';
 import { ChatMember } from './chat-member.entity';
+import { E2EE } from './e2ee.entity';
 
 @Entity('chat-users')
 export class ChatUser {
@@ -26,4 +27,10 @@ export class ChatUser {
 
   @OneToMany(() => ChatMember, (chatMember) => chatMember.user)
   chatMembers: ChatMember[];
+
+
+  @OneToOne(() => E2EE, (e2ee) => e2ee.user)
+  key: E2EE;
+
+  
 }
