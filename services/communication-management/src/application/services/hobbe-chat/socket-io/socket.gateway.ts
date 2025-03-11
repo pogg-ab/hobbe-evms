@@ -67,7 +67,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 
    notifyUser(userId: string, event: string, message: any): void {
-    const socketId = this.usersMap.get(userId);
+    const socketId = this.usersMap.get(userId.toString());
     if (socketId) {
       this.server.to(socketId).emit(event, message);
     }
