@@ -33,12 +33,14 @@ import { ChatUserService } from 'src/application/services/hobbe-chat/socket-io/u
 import { CHAT_USER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-user.repository.token';
 import { ChatUserRepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/chat-user.repository.impl';
 import { ChatUser } from 'src/domain/entities/hobbe-chat/chat-user.entity';
+import { E2EEModule } from './e2ee/e2ee.module';
 
 
 
 @Module({
   imports: [
     CqrsModule, 
+    E2EEModule,
     TypeOrmModule.forFeature([ChatUser, Chat, ChatMember,Message]),
     JwtModule.register({
       secret: process.env.JWT_SECRET,
