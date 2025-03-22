@@ -24,6 +24,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(UserValidationService) private readonly userValidationService: UserValidationService,
     private readonly hobbeChatService: HobbeChatService,
     private readonly chatUserService: ChatUserService,
+
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -40,8 +41,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.user = validatedUser;
 
       // console.dir(this.usersMap, { depth: null });
-      console.log(this.chatUserService.chatUser(userId));
+      // console.log(this.chatUserService.chatUser(userId));
       
+      await this.chatUserService.chatUser(userId);
       const chats = await this.hobbeChatService.getUserChats(userId);
       const userName =  client.data?.user?.user?.user_name?.toString();
 
@@ -65,7 +67,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 
    notifyUser(userId: string, event: string, message: any): void {
-    const socketId = this.usersMap.get(userId);
+    const socketId = this.usersMap.get(userId.toString());
     if (socketId) {
       this.server.to(socketId).emit(event, message);
     }
