@@ -25,10 +25,10 @@ import { HobbeChatModule } from './modules/hobbe-chat/hobbe-chat.module';
     CqrsModule,
     // ChatModule,
     // MessageModule,
-    // EmailModule,
-    // SmsModule,
-    // PushNotificationModule,
-    // StreamModule,
+    EmailModule,
+    SmsModule,
+    PushNotificationModule,
+    StreamModule,
     HobbeChatModule
   ],
 })

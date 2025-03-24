@@ -39,9 +39,9 @@ import { E2EEModule } from './e2ee/e2ee.module';
 
 @Module({
   imports: [
-    CqrsModule, 
+    CqrsModule,
     E2EEModule,
-    TypeOrmModule.forFeature([ChatUser, Chat, ChatMember,Message]),
+    TypeOrmModule.forFeature([ChatUser, Chat, ChatMember, Message]),
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '60s' },
@@ -56,35 +56,24 @@ import { E2EEModule } from './e2ee/e2ee.module';
     ChatModule,
     ChatMemberModule,
     MessageModule
-],
+  ],
   controllers: [],
-   
-    providers: [ 
-      KafkaProducerService,
-      UserValidationService,
-      JwtStrategy,
 
+  providers: [
+    KafkaProducerService,
+    UserValidationService,
+    JwtStrategy,
+    HobbeChatService,
+    ChatUserService,
+    MessageService,
+    SocketGateway,
 
-      // Hobbe chat services
-      HobbeChatService,
-      ChatUserService,
-      MessageService,
-      SocketGateway,
-    
-      ChatGateway,
-      MessageGateway,
+    ChatGateway,
+    MessageGateway,
 
-       { provide: CHAT_USER_REPOSITORY_TOKEN, useClass: ChatUserRepositoryImpl },
-       { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
-       { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
-      ],
+    { provide: CHAT_USER_REPOSITORY_TOKEN, useClass: ChatUserRepositoryImpl },
+    { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
+    { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
+  ],
 })
-export class HobbeChatModule {
-
-  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) { }
-
-  async onModuleInit() {
-    this.client.subscribeToResponseOf('validateUser');
-    await this.client.connect();
-  }
-}
+export class HobbeChatModule { }

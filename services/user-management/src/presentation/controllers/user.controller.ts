@@ -49,8 +49,8 @@ export class UserController {
     }
 
     @Get()
-    @ApiBearerAuth('access-token')
-    @UseGuards(JwtAuthGuard)
+    // @ApiBearerAuth('access-token')
+    // @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: 'Get all users' })
     @ApiResponse({
         status: 200,
