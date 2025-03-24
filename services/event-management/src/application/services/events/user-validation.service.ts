@@ -6,12 +6,12 @@ import { firstValueFrom } from 'rxjs';
 export class UserValidationService {
   constructor(
     @Inject('KAFKA_PRODUCER') private readonly eventClient: ClientKafka,
-  ) {}
+  ) { }
 
   async validateUser(payload: any): Promise<any> {
     try {
       const response = await firstValueFrom(
-        this.eventClient.send('validateUser', payload),
+        this.eventClient.send('validateEventUser', payload),
       );
 
 
