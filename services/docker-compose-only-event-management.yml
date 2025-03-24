@@ -1,12 +1,12 @@
 version: "1.0"
 
 services:
-  communication-management:
+  user-management:
     build:
-      context: ./communication-management
+      context: ./user-management
       dockerfile: Dockerfile
     ports:
-      - "4003:4003"
+      - "4000:4000"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432

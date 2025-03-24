@@ -26,7 +26,7 @@ import { VerifyOtpDto } from '../dtos/verify-otp.dto';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })
@@ -202,6 +202,10 @@ export class AuthController {
 
   @MessagePattern('validateUser')
   async validateJWT(@Payload() payload: any): Promise<any> {
+    return await this.authService.validateJwt(payload);
+  }
+  @MessagePattern('validateEventUser')
+  async validateEventJWT(@Payload() payload: any): Promise<any> {
     return await this.authService.validateJwt(payload);
   }
 }
