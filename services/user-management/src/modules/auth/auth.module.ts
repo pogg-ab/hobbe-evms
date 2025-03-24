@@ -70,6 +70,7 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
         const client = new ClientKafka(kafkaConfig.options);
         try {
           await client.connect();
+          client.subscribeToResponseOf('validateUser');
           return client;
         } catch (error) {
           console.error('Error connecting to Kafka:', error);

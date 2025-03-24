@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 export class UserValidationService {
   constructor(
     @Inject('KAFKA_PRODUCER') private readonly eventClient: ClientKafka,
-  ) {}
+  ) { }
 
   async validateUser(payload: any): Promise<any> {
     try {
@@ -32,5 +32,9 @@ export class UserValidationService {
         'Error occurred during Kafka communication, please check the logs for more details.',
       );
     }
+  }
+  async onModuleInit() {
+    this.eventClient.subscribeToResponseOf('validateUser');
+    await this.eventClient.connect();
   }
 }

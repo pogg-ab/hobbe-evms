@@ -63,9 +63,6 @@ import { E2EEModule } from './e2ee/e2ee.module';
     KafkaProducerService,
     UserValidationService,
     JwtStrategy,
-
-
-    // Hobbe chat services
     HobbeChatService,
     ChatUserService,
     MessageService,
@@ -79,12 +76,4 @@ import { E2EEModule } from './e2ee/e2ee.module';
     { provide: CHAT_MEMBER_REPOSITORY_TOKEN, useClass: ChatMemberRepositoryImpl },
   ],
 })
-export class HobbeChatModule {
-
-  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) { }
-
-  async onModuleInit() {
-    this.client.subscribeToResponseOf('validateUser');
-    await this.client.connect();
-  }
-}
+export class HobbeChatModule { }
