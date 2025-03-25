@@ -43,10 +43,10 @@ export class MessageService {
       this.e2eeService.getPrivateKey(user.id),
     ]);
 
-    message.content = this.decryptMessage(message.content, message.senderId, user.id, currentUserPrivateKey.privateKey.toString(), friendPrivateKey.privateKey.toString());
+    message.content = this.e2eeService.decryptMessage(message.content, message.senderId, user.id, currentUserPrivateKey.privateKey.toString(), friendPrivateKey.privateKey.toString());
     
-    chat.messages.forEach(msg => {
-      msg.content = this.decryptMessage(msg.content, msg.senderId, user.id, currentUserPrivateKey.privateKey.toString(), friendPrivateKey.privateKey.toString());
+    message.chat.messages.forEach(msg => {
+      msg.content = this.e2eeService.decryptMessage(msg.content, msg.senderId, user.id, currentUserPrivateKey.privateKey.toString(), friendPrivateKey.privateKey.toString());
     });
 
     return message;
@@ -67,10 +67,5 @@ export class MessageService {
 
   private getReceiverId(members: any[], userId: string): string {
     return members.find(member => member.userId !== userId)?.userId;
-  }
-
-  private decryptMessage(content: string, senderId: string, userId: string, userPrivateKey: string, friendPrivateKey: string): string {
-    const privateKey = senderId === userId ? friendPrivateKey : userPrivateKey;
-    return this.e2eeService.decrypt(privateKey, content);
   }
 }

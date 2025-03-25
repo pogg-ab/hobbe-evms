@@ -72,4 +72,9 @@ export class E2eeService {
     const decrypted = crypto.privateDecrypt(privateKey, buffer);
     return decrypted.toString('utf8');
   }
+
+ decryptMessage(content: string, senderId: string, userId: string, userPrivateKey: string, friendPrivateKey: string): string {
+    const privateKey = senderId === userId ? friendPrivateKey : userPrivateKey;
+    return this.decrypt(privateKey, content);
+  }
 }
