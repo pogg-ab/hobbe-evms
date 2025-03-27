@@ -1,4 +1,4 @@
-import { createMap, forMember, mapFrom, Mapper } from '@automapper/core';
+import { createMap, forMember, ignore, mapFrom, Mapper } from '@automapper/core';
 import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
 import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
@@ -19,7 +19,7 @@ export class SpecialGuestProfile extends AutomapperProfile {
         SpecialGuest,
         forMember(
           (destination) => destination.guest_user_id,
-          mapFrom((src) => src.guest_user_id),
+          mapFrom((src) => src.guest_user_id[0])
         ),
         forMember(
           (destination) => destination.event_id,

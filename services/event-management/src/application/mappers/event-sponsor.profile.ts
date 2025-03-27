@@ -19,7 +19,7 @@ export class EventSponsorProfile extends AutomapperProfile {
         EventSponsor,
         forMember(
           (destination) => destination.sponsor_user_id,
-          mapFrom((src) => src.sponsor_user_id),
+          mapFrom((src) => src.sponsor_user_id[0]),
         ),
         forMember(
           (destination) => destination.event_id,

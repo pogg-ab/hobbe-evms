@@ -1,6 +1,6 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventSponsor } from 'src/domain/entities/event-sponsor.entity';
 import { IEventSponsorRepository } from 'src/domain/repositories/event-sponsor/event-sponsor.repository';
 import { EVENT_SPONSOR_REPOSITORY_TOKEN } from 'src/domain/repositories/event-sponsor/event-sponsor.repository.token';
@@ -20,19 +20,51 @@ export class EventSponsorService {
 
   async create(
     createEventSponsorDto: CreateEventSponsorDto,
-  ): Promise<EventSponsor> {
-    const event = await this.eventRepository.findOne(
-      createEventSponsorDto.event_id,
-    );
+    user: any
+  ): Promise<any> {
+    const { event_id, sponsor_user_id } = createEventSponsorDto;
+
+    const event = await this.eventRepository.findOne(event_id.toString());
     if (!event) {
-      throw new Error('Event not found');
+      throw new NotFoundException('Event not found');
     }
-    const eventSponsor = this.mapper.map(
-      createEventSponsorDto,
-      CreateEventSponsorDto,
-      EventSponsor,
+
+    let eventSponsors: EventSponsor[] = [];
+    try {
+      eventSponsors = await this.eventSponsorRepository.findByEventId(event_id.toString());
+    } catch (error) {
+      if (error instanceof HttpException && error.getStatus() === HttpStatus.NOT_FOUND) {
+        eventSponsors = [];
+      } else {
+        throw error;
+      }
+    }
+
+    const isAlreadyConnected = sponsor_user_id.some(id =>
+      eventSponsors.some(sponsor => sponsor.sponsor_user_id === id)
     );
-    return this.eventSponsorRepository.create(eventSponsor);
+    if (isAlreadyConnected) {
+      throw new ConflictException('One or more sponsors are already connected to the event.');
+    }
+
+    const eventSponsorsToCreate = sponsor_user_id.map(id => {
+      return this.mapper.map(
+        { ...createEventSponsorDto, sponsor_user_id: [id] },
+        CreateEventSponsorDto,
+        EventSponsor
+      );
+    });
+
+    const createdSponsors = await Promise.all(
+      eventSponsorsToCreate.map(eventSponsor =>
+        this.eventSponsorRepository.create(eventSponsor, user)
+      )).then(results => results);
+
+    return {
+      success: true,
+      message: `Successfully added ${sponsor_user_id.length} sponsor(s) to the event`,
+      data: createdSponsors
+    };
   }
 
   async findAll(): Promise<EventSponsor[]> {
