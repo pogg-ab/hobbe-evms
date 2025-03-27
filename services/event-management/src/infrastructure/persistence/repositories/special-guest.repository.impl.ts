@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ConflictException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
 import { ISpecialGuestRepository } from 'src/domain/repositories/special-guest/special-guest.repository';
@@ -13,21 +13,42 @@ export class SpecialGuestRepositoryImpl implements ISpecialGuestRepository {
   ) { }
 
   async create(
-    createSpecialGuestDto: CreateSpecialGuestDto, user: any
+    createSpecialGuest: SpecialGuest, user: any
   ): Promise<SpecialGuest> {
-    const newSpecialGuest = this.specialGuestRepository.create(createSpecialGuestDto)
-    newSpecialGuest.created_by = user
-    return this.specialGuestRepository.save(newSpecialGuest);
+    try {
+
+      const newSpecialGuest = this.specialGuestRepository.create(createSpecialGuest);
+      newSpecialGuest.created_by = user;
+      return await this.specialGuestRepository.save(newSpecialGuest);
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+
+      if (error.code === '23505') {
+        throw new ConflictException('Duplicate guest entry');
+      }
+
+      if (error.name === 'EntityNotFound') {
+        throw new NotFoundException('Related event or user not found');
+      }
+
+      throw new InternalServerErrorException('Failed to create special guest');
+
+    }
   }
 
   async findAll(): Promise<SpecialGuest[]> {
-    return this.specialGuestRepository.find();
+    return this.specialGuestRepository.find({
+      relations: ['event_id']
+    });
   }
 
   async findOne(id: string): Promise<SpecialGuest | null> {
     try {
       const specialGuest = await this.specialGuestRepository.findOne({
         where: { special_guest_id: id },
+        relations: ['event_id']
       });
 
       if (!specialGuest) {
@@ -53,6 +74,7 @@ export class SpecialGuestRepositoryImpl implements ISpecialGuestRepository {
     try {
       const specialGuests = await this.specialGuestRepository
         .createQueryBuilder('specialGuest')
+        .leftJoinAndSelect('specialGuest.event_id', 'event')
         .where('specialGuest.event_id = :eventId', { eventId: eventId.toString() })
         .getMany();
 

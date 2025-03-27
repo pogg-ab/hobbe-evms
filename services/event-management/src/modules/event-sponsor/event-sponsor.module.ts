@@ -7,6 +7,7 @@ import { EventSponsorCommandHandler } from 'src/application/handlers/event-spons
 import { DeleteEventSponsorCommandHandler } from 'src/application/handlers/event-sponsor/delete-event-sponsor.handler';
 import { GetAllEventSponsorsQueryHandler } from 'src/application/handlers/event-sponsor/find-all-event-sponsors.handler';
 import { EventSponsorFindByIdQueryHandler } from 'src/application/handlers/event-sponsor/find-event-sponsor-by-id.handler';
+import { FindEventSponsorsByEventIdQueryHandler } from 'src/application/handlers/event-sponsor/find-event-sponsors-by-event-id.handler';
 import { UpdatedEventSponsorCommandHandler } from 'src/application/handlers/event-sponsor/update-event-sponsor.handler';
 import { EventSponsorProfile } from 'src/application/mappers/event-sponsor.profile';
 import { EventSponsorService } from 'src/application/services/event-sponsor/event-sponsor.service';
@@ -35,6 +36,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     EventSponsorFindByIdQueryHandler,
     UpdatedEventSponsorCommandHandler,
     DeleteEventSponsorCommandHandler,
+    FindEventSponsorsByEventIdQueryHandler,
     {
       provide: EVENT_SPONSOR_REPOSITORY_TOKEN,
       useClass: EventSponsorRepositoryImpl,
@@ -46,4 +48,4 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
   ],
   exports: [EVENT_SPONSOR_REPOSITORY_TOKEN],
 })
-export class EventSponsorModule {}
+export class EventSponsorModule { }

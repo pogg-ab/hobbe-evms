@@ -16,11 +16,15 @@ import { SpecialGuestController } from 'src/presentation/controllers/special-gue
 import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
 import { SPECIAL_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/special-guest/special-guest.repository.token';
 import { FindSpecialGuestsByEventIdQueryHandler } from 'src/application/handlers/special-guest/find-special-guests-by-event-id.handler';
+import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
+import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
+import { Events } from 'src/domain/entities/events.entity';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 
 @Module({
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([SpecialGuest]),
+    TypeOrmModule.forFeature([SpecialGuest, Events]),
     CqrsModule,
   ],
   controllers: [SpecialGuestController],
@@ -33,9 +37,14 @@ import { FindSpecialGuestsByEventIdQueryHandler } from 'src/application/handlers
     SpecialGuestFindByIdQueryHandler,
     UpdatedSpecialGuestCommandHandler,
     DeleteSpecialGuestCommandHandler,
+    CreateTicketsDto,
     {
       provide: SPECIAL_GUEST_REPOSITORY_TOKEN,
       useClass: SpecialGuestRepositoryImpl,
+    },
+    {
+      provide: CREATE_EVENT_REPOSITORY_TOKEN,
+      useClass: EventRepositoryEmpl,
     },
   ],
   exports: [SPECIAL_GUEST_REPOSITORY_TOKEN],

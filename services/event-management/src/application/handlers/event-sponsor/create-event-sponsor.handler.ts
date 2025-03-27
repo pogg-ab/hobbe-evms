@@ -5,12 +5,11 @@ import { EventSponsor } from 'src/domain/entities/event-sponsor.entity';
 
 @CommandHandler(EventSponsorCommand)
 export class EventSponsorCommandHandler
-  implements ICommandHandler<EventSponsorCommand>
-{
-  constructor(private readonly eventSponsorService: EventSponsorService) {}
+  implements ICommandHandler<EventSponsorCommand> {
+  constructor(private readonly eventSponsorService: EventSponsorService) { }
 
   async execute(command: EventSponsorCommand): Promise<EventSponsor> {
-    const { createEventSponsorDto } = command;
-    return this.eventSponsorService.create(createEventSponsorDto);
+    const { createEventSponsorDto, user } = command;
+    return this.eventSponsorService.create(createEventSponsorDto, user);
   }
 }

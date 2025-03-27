@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsUUID, IsString } from 'class-validator';
+import { IsNotEmpty, IsUUID, IsString, IsArray } from 'class-validator';
 import { SponsorshipType } from 'src/domain/entities/event-sponsor.entity';
 
 export class CreateEventSponsorDto {
@@ -12,12 +12,13 @@ export class CreateEventSponsorDto {
   event_id: string;
 
   @ApiProperty({
-    description: 'ID of the sponsor user',
-    example: 'bb616810-b518-4028-8f9b-b1f2a4e5861b',
+    description: 'Array of sponsor user IDs',
+    example: ['bb616810-b518-4028-8f9b-b1f2a4e5861b', 'c2d7f125-29d7-47e7-bfdb-2bc7cc5c9653'],
   })
   @IsNotEmpty()
-  @IsUUID()
-  sponsor_user_id: string;
+  @IsArray()
+  @IsUUID('4', { each: true })
+  sponsor_user_id: string[];
 
   @ApiProperty({
     description: 'Type of sponsorship (e.g., gold, silver, bronze)',
