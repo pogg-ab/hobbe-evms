@@ -59,7 +59,7 @@ import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/g
     }),
     ClientsModule.register([
       {
-        name: 'KAFKA_PRODUCER',
+        name: 'KAFKA_VALIDATE_USER_SERVICE',
         transport: kafkaProducerConfig.transport,
         options: kafkaProducerConfig.options,
       },
@@ -108,7 +108,7 @@ import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/g
   ],
 })
 export class EventsModule {
-  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) { }
+  constructor(@Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka) { }
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateEventUser');

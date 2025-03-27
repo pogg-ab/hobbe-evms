@@ -25,6 +25,8 @@ import { UserID } from 'src/domain/value-objects/user-id.value-object';
 import { UpdateUserCommand } from 'src/application/commands/user/update-user.command';
 import { SearchUsersQuery } from 'src/application/queries/user/search-users.query';
 import { SearchFilters } from '../dtos/search-filters.dto';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { UserService } from 'src/application/services/user.service';
 
 @ApiTags('Users')
 @Controller('users')
@@ -32,6 +34,7 @@ export class UserController {
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
+        private readonly userService: UserService
     ) { }
 
 
@@ -132,5 +135,19 @@ export class UserController {
         @Query('limit') limit: number,
     ): Promise<User[]> {
         return this.queryBus.execute(new SearchUsersQuery(query, filters, page, limit));
+    }
+
+    @MessagePattern('get-user-info')
+    async handleGetUserInfo(@Payload() payload: any) {
+        try {
+            if (!payload.userIds || !Array.isArray(payload.userIds)) {
+                throw new BadRequestException('Invalid user IDs format');
+            }
+
+            return await this.userService.getUserInfo(payload.userIds);
+        } catch (error) {
+            console.error('Error in getUserInfo message handler:', error);
+            throw error;
+        }
     }
 }

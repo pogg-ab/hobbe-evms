@@ -68,6 +68,36 @@ export class UserService {
         return user;
     }
 
+    async getUserInfo(userIds: string[]): Promise<Record<string, any>> {
+        if (!userIds || userIds.length === 0) {
+            return {};
+        }
+
+        const userInfoMap: Record<string, any> = {};
+        const errors: string[] = [];
+
+        await Promise.all(
+            userIds.map(async (userId) => {
+                try {
+                    const user = await this.findUserById(userId);
+                    if (user) {
+                        userInfoMap[userId] = user;
+                    }
+                } catch (error) {
+                    errors.push(`Failed to fetch user ${userId}: ${error.message}`);
+                }
+            })
+        );
+
+        if (errors.length > 0) {
+            console.warn('Partial errors fetching user info:', errors);
+        }
+
+        return userInfoMap;
+    }
+
+
+
     async findAllUsers(page: number, limit: number): Promise<any | null> {
         return await this.userRepository.findAllUsers(page, limit);
     }
@@ -180,7 +210,6 @@ export class UserService {
         const salt = await bcrypt.genSalt(10);
         return await bcrypt.hash(password, salt);
     }
-
 
     private async updateSocialMedia(
         organizationalAccount: OrganizationalAccount,

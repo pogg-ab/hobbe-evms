@@ -1,12 +1,14 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { ConflictException, HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
 import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { ISpecialGuestRepository } from 'src/domain/repositories/special-guest/special-guest.repository';
 import { SPECIAL_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/special-guest/special-guest.repository.token';
 import { CreateSpecialGuestDto } from 'src/presentation/dtos/special-guest/create-special-guest.dto';
+import { UserInfoService } from '../user-info/user-info.service';
 
 @Injectable()
 export class SpecialGuestService {
@@ -16,6 +18,7 @@ export class SpecialGuestService {
     @Inject(CREATE_EVENT_REPOSITORY_TOKEN)
     private readonly eventRepository: IEventRepository,
     @InjectMapper() private readonly mapper: Mapper,
+    private readonly userInfoService: UserInfoService,
   ) { }
 
   async create(
@@ -69,15 +72,76 @@ export class SpecialGuestService {
   }
 
   async findAll(): Promise<SpecialGuest[]> {
-    return this.specialGuestRepository.findAll();
+    const specialGuests = await this.specialGuestRepository.findAll();
+
+    if (specialGuests.length === 0) {
+      return specialGuests;
+    }
+
+    const userIds = [...new Set(specialGuests.map(guest => guest.guest_user_id))];
+
+    try {
+      const userInfoResponse = await this.userInfoService.getUserInfo(userIds);
+
+      return specialGuests.map(guest => ({
+        ...guest,
+        userInfo: userInfoResponse[guest.guest_user_id] || null,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch user info:', error);
+      return specialGuests.map(guest => ({
+        ...guest,
+        userInfo: null,
+      }));
+    }
   }
 
-  async findOne(id: string): Promise<SpecialGuest | null> {
-    return this.specialGuestRepository.findOne(id);
+  async findOne(id: string): Promise<any | null> {
+    const specialGuest = await this.specialGuestRepository.findOne(id);
+
+    if (!specialGuest) {
+      return null;
+    }
+
+    try {
+      const userInfoResponse = await this.userInfoService.getUserInfo([specialGuest.guest_user_id]);
+
+      return {
+        ...specialGuest,
+        userInfo: userInfoResponse[specialGuest.guest_user_id] || null,
+      };
+    } catch (error) {
+      console.error('Failed to fetch user info:', error);
+      return {
+        ...specialGuest,
+        userInfo: null,
+      };
+    }
   }
 
   async findByEventId(eventId: string): Promise<SpecialGuest[]> {
-    return this.specialGuestRepository.findByEventId(eventId);
+    const specialGuests = await this.specialGuestRepository.findByEventId(eventId);
+
+    if (specialGuests.length === 0) {
+      return specialGuests;
+    }
+
+    const userIds = [...new Set(specialGuests.map(guest => guest.guest_user_id))];
+
+    try {
+      const userInfoResponse = await this.userInfoService.getUserInfo(userIds);
+
+      return specialGuests.map(guest => ({
+        ...guest,
+        userInfo: userInfoResponse[guest.guest_user_id] || null,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch user info:', error);
+      return specialGuests.map(guest => ({
+        ...guest,
+        userInfo: null,
+      }));
+    }
   }
 
   async update(

@@ -7,6 +7,7 @@ import { EVENT_SPONSOR_REPOSITORY_TOKEN } from 'src/domain/repositories/event-sp
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { CreateEventSponsorDto } from 'src/presentation/dtos/event-sponsor/create-event-sponsor.dto';
+import { UserInfoService } from '../user-info/user-info.service';
 
 @Injectable()
 export class EventSponsorService {
@@ -16,6 +17,7 @@ export class EventSponsorService {
     @Inject(CREATE_EVENT_REPOSITORY_TOKEN)
     private readonly eventRepository: IEventRepository,
     @InjectMapper() private readonly mapper: Mapper,
+    private readonly userInfoService: UserInfoService,
   ) { }
 
   async create(
@@ -68,15 +70,75 @@ export class EventSponsorService {
   }
 
   async findAll(): Promise<EventSponsor[]> {
-    return this.eventSponsorRepository.findAll();
+    const eventSponsors = await this.eventSponsorRepository.findAll();
+
+    if (eventSponsors.length === 0) {
+      return eventSponsors;
+    }
+
+    const userIds = [...new Set(eventSponsors.map(sponsor => sponsor.sponsor_user_id))];
+
+    try {
+      const userInfoResponse = await this.userInfoService.getUserInfo(userIds);
+
+      return eventSponsors.map(sponsor => ({
+        ...sponsor,
+        userInfo: userInfoResponse[sponsor.sponsor_user_id] || null,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch sponsor info:', error);
+      return eventSponsors.map(sponsor => ({
+        ...sponsor,
+        userInfo: null,
+      }));
+    }
   }
 
-  async findOne(id: string): Promise<EventSponsor | null> {
-    return this.eventSponsorRepository.findOne(id);
+  async findOne(id: string): Promise<any | null> {
+    const eventSponsor = await this.eventSponsorRepository.findOne(id);
+
+    if (!eventSponsor) {
+      return null;
+    }
+
+    try {
+      const userInfoResponse = await this.userInfoService.getUserInfo([eventSponsor.sponsor_user_id]);
+      return {
+        ...eventSponsor,
+        userInfo: userInfoResponse[eventSponsor.sponsor_user_id] || null,
+      };
+    } catch (error) {
+      console.error('Failed to fetch sponsor info:', error);
+      return {
+        ...eventSponsor,
+        userInfo: null,
+      };
+    }
   }
 
   async findByEventId(eventId: string): Promise<EventSponsor[]> {
-    return this.eventSponsorRepository.findByEventId(eventId);
+    const eventSponsors = await this.eventSponsorRepository.findByEventId(eventId);
+
+    if (eventSponsors.length === 0) {
+      return eventSponsors;
+    }
+
+    const userIds = [...new Set(eventSponsors.map(sponsor => sponsor.sponsor_user_id))];
+
+    try {
+      const userInfoResponse = await this.userInfoService.getUserInfo(userIds);
+
+      return eventSponsors.map(sponsor => ({
+        ...sponsor,
+        userInfo: userInfoResponse[sponsor.sponsor_user_id] || null,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch sponsor info:', error);
+      return eventSponsors.map(sponsor => ({
+        ...sponsor,
+        userInfo: null,
+      }));
+    }
   }
 
   async update(
