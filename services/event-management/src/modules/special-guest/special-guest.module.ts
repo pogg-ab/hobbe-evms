@@ -20,16 +20,30 @@ import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/ev
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
 import { Events } from 'src/domain/entities/events.entity';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { UserInfoService } from 'src/application/services/user-info/user-info.service';
+import { ClientsModule } from '@nestjs/microservices';
+import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
+import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
 
 @Module({
   imports: [
     AutomapperModule,
     TypeOrmModule.forFeature([SpecialGuest, Events]),
+    ClientsModule.registerAsync([
+      {
+        name: 'KAFKA_USER_SERVICE',
+        useFactory: async () => ({
+          transport: kafkaUserInfoConfig.transport,
+          options: kafkaUserInfoConfig.options,
+        }),
+      },
+    ]),
     CqrsModule,
   ],
   controllers: [SpecialGuestController],
   providers: [
     SpecialGuestService,
+    UserInfoService,
     SpecialGuestProfile,
     SpecialGuestCommandHandler,
     GetAllSpecialGuestsQueryHandler,
