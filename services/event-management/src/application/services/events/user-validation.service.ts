@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class UserValidationService {
   constructor(
-    @Inject('KAFKA_PRODUCER') private readonly eventClient: ClientKafka,
+    @Inject('KAFKA_VALIDATE_USER_SERVICE') private readonly eventClient: ClientKafka,
   ) { }
 
   async validateUser(payload: any): Promise<any> {

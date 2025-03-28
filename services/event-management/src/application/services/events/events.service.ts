@@ -16,6 +16,7 @@ import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto'
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { DataSource } from 'typeorm';
+import { UserInfoService } from '../user-info/user-info.service';
 
 @Injectable()
 export class EventsService {
@@ -30,7 +31,9 @@ export class EventsService {
     private readonly kafkaProducerService: KafkaProducerService,
     private readonly socket: SocketIo,
     private dataSource: DataSource,
-  ) {}
+    private readonly userInfoService: UserInfoService,
+
+  ) { }
 
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
     const mappedEvent = this.mapper.map(
@@ -115,10 +118,29 @@ export class EventsService {
         );
 
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, id);
+      try {
+        const userInfoResponse = await this.userInfoService.getUserInfo([event.user_id]);
+        const enrichedEvent = {
+          ...event,
+          organizerInfo: userInfoResponse[event.user_id] || null,
+          ticketsCount: allTicketsCounter
+        };
 
-      await queryRunner.commitTransaction();
+        await queryRunner.commitTransaction();
+        return enrichedEvent;
+      } catch (userInfoError) {
+        console.error('Failed to fetch organizer info:', userInfoError);
+        const fallbackEvent = {
+          ...event,
+          organizerInfo: null,
+          ticketsCount: allTicketsCounter
+        };
 
-      return event;
+        await queryRunner.commitTransaction();
+        return fallbackEvent;
+      }
+
+
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

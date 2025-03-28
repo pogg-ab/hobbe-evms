@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EventSponsor } from 'src/domain/entities/event-sponsor.entity';
 import { IEventSponsorRepository } from 'src/domain/repositories/event-sponsor/event-sponsor.repository';
@@ -13,10 +13,13 @@ export class EventSponsorRepositoryImpl implements IEventSponsorRepository {
   ) { }
 
   async create(
-    createEventSponsorDto: CreateEventSponsorDto,
+    createEventSponsor: EventSponsor,
+    user: any
   ): Promise<EventSponsor> {
     try {
-      return this.eventSponsorRepository.save(createEventSponsorDto);
+      const newEventSponsor = this.eventSponsorRepository.create(createEventSponsor);
+      newEventSponsor.created_by = user;
+      return await this.eventSponsorRepository.save(newEventSponsor);
     } catch (error) {
       if (error.code === '23505') {
         throw new HttpException(
@@ -24,6 +27,7 @@ export class EventSponsorRepositoryImpl implements IEventSponsorRepository {
           HttpStatus.BAD_REQUEST,
         );
       }
+
       throw new HttpException(
         `Error creating Event Sponsor: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -32,13 +36,16 @@ export class EventSponsorRepositoryImpl implements IEventSponsorRepository {
   }
 
   async findAll(): Promise<EventSponsor[]> {
-    return this.eventSponsorRepository.find();
+    return this.eventSponsorRepository.find({
+      relations: ['event_id']
+    });
   }
 
   async findOne(id: string): Promise<EventSponsor | null> {
     try {
       const eventSponsor = await this.eventSponsorRepository.findOne({
         where: { event_sponsor_id: id },
+        relations: ['event_id']
       });
 
       if (!eventSponsor) {
@@ -58,18 +65,19 @@ export class EventSponsorRepositoryImpl implements IEventSponsorRepository {
 
   async findByEventId(eventId: string): Promise<EventSponsor[]> {
     try {
-      const eventSponsors = await this.eventSponsorRepository.find({
-        where: { event_id: eventId },
-      });
 
-      if (!eventSponsors.length) {
-        throw new HttpException(
-          `No Event Sponsors found for Event ID ${eventId}`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
+      const eventSponsors = await this.eventSponsorRepository
+        .createQueryBuilder('eventSponsor')
+        .leftJoinAndSelect('eventSponsor.event_id', 'event')
+        .where('eventSponsor.event_id = :eventId', { eventId: eventId.toString() })
+        .getMany();
+
       return eventSponsors;
+
     } catch (error) {
+      if (error instanceof HttpException || error instanceof NotFoundException) {
+        throw error;
+      }
       throw new HttpException(
         `Error fetching Event Sponsors for Event ID ${eventId}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,

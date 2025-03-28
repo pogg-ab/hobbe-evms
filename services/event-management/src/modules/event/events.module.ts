@@ -43,6 +43,8 @@ import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositori
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/get-events-by-status.handler';
+import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
+import { UserInfoService } from 'src/application/services/user-info/user-info.service';
 
 
 @Module({
@@ -59,9 +61,18 @@ import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/g
     }),
     ClientsModule.register([
       {
-        name: 'KAFKA_PRODUCER',
+        name: 'KAFKA_VALIDATE_USER_SERVICE',
         transport: kafkaProducerConfig.transport,
         options: kafkaProducerConfig.options,
+      },
+    ]),
+    ClientsModule.registerAsync([
+      {
+        name: 'KAFKA_USER_SERVICE',
+        useFactory: async () => ({
+          transport: kafkaUserInfoConfig.transport,
+          options: kafkaUserInfoConfig.options,
+        }),
       },
     ]),
     TypeOrmModule.forFeature([Events, Tickets, ParticipantHasTicket]),
@@ -75,6 +86,7 @@ import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/g
   providers: [
     EventsService,
     CreateTicketsDto,
+    UserInfoService,
     CreateEventCommandHandler,
     KafkaProducerService,
     UpdateEventsCommandHandler,
@@ -108,7 +120,7 @@ import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/g
   ],
 })
 export class EventsModule {
-  constructor(@Inject('KAFKA_PRODUCER') private client: ClientKafka) { }
+  constructor(@Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka) { }
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateEventUser');

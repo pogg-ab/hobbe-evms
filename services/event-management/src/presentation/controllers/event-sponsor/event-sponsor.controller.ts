@@ -18,6 +18,7 @@ import { GetAllEventSponsors } from 'src/application/queries/event-sponsor/find-
 import { EventSponsorFindById } from 'src/application/queries/event-sponsor/find-event-sponsor-by-id.query';
 import { FindEventSponsorsByEventIdQuery } from 'src/application/queries/event-sponsor/find-event-sponsors-by-event-id.query';
 import { EventSponsor } from 'src/domain/entities/event-sponsor.entity';
+import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { CreateEventSponsorDto } from 'src/presentation/dtos/event-sponsor/create-event-sponsor.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
@@ -40,8 +41,9 @@ export class EventSponsorController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   async create(
     @Body() createEventSponsorDto: CreateEventSponsorDto,
+    @CurrentUserId() user: any,
   ): Promise<EventSponsor> {
-    const command = new EventSponsorCommand(createEventSponsorDto);
+    const command = new EventSponsorCommand(createEventSponsorDto, user.user.user_id.toString());
     return await this.commandBus.execute(command);
   }
 

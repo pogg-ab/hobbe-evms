@@ -16,16 +16,34 @@ import { SpecialGuestController } from 'src/presentation/controllers/special-gue
 import { SpecialGuest } from 'src/domain/entities/special-guest.entity';
 import { SPECIAL_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/special-guest/special-guest.repository.token';
 import { FindSpecialGuestsByEventIdQueryHandler } from 'src/application/handlers/special-guest/find-special-guests-by-event-id.handler';
+import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
+import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
+import { Events } from 'src/domain/entities/events.entity';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { UserInfoService } from 'src/application/services/user-info/user-info.service';
+import { ClientsModule } from '@nestjs/microservices';
+import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
+import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
 
 @Module({
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([SpecialGuest]),
+    TypeOrmModule.forFeature([SpecialGuest, Events]),
+    ClientsModule.registerAsync([
+      {
+        name: 'KAFKA_USER_SERVICE',
+        useFactory: async () => ({
+          transport: kafkaUserInfoConfig.transport,
+          options: kafkaUserInfoConfig.options,
+        }),
+      },
+    ]),
     CqrsModule,
   ],
   controllers: [SpecialGuestController],
   providers: [
     SpecialGuestService,
+    UserInfoService,
     SpecialGuestProfile,
     SpecialGuestCommandHandler,
     GetAllSpecialGuestsQueryHandler,
@@ -33,9 +51,14 @@ import { FindSpecialGuestsByEventIdQueryHandler } from 'src/application/handlers
     SpecialGuestFindByIdQueryHandler,
     UpdatedSpecialGuestCommandHandler,
     DeleteSpecialGuestCommandHandler,
+    CreateTicketsDto,
     {
       provide: SPECIAL_GUEST_REPOSITORY_TOKEN,
       useClass: SpecialGuestRepositoryImpl,
+    },
+    {
+      provide: CREATE_EVENT_REPOSITORY_TOKEN,
+      useClass: EventRepositoryEmpl,
     },
   ],
   exports: [SPECIAL_GUEST_REPOSITORY_TOKEN],
