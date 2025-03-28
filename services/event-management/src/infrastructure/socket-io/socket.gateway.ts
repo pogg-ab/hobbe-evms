@@ -1,12 +1,22 @@
 import { Injectable } from "@nestjs/common";
-import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 
 import { Socket, Server } from "socket.io";
 
-@WebSocketGateway(4011, { cors: { origin: "*" } })
+@WebSocketGateway({ cors: { origin: '*' } })
 @Injectable()
-export class SocketIo {
+export class SocketIo implements OnGatewayConnection, OnGatewayDisconnect {
+   
     @WebSocketServer() server: Server;
+
+     handleConnection(client: Socket): void {
+        console.log(`Client connected: ${client.id}`);
+    }
+
+    handleDisconnect(client: Socket): void {
+        console.log(`Client connected: ${client.id}`);
+
+        }
 
     @SubscribeMessage('likeCounters')
     handleAllEventLikesCounter(@MessageBody() message: any) {

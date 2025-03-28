@@ -111,7 +111,11 @@ export class EventsService {
         throw new NotFoundException(`Event with id ${id} not found.`);
       }
 
-      const allTicketsCounter = await this.ticketRepository.countAllTicketsForEvent(queryRunner.manager, id);
+      const allTicketsCounter =
+        await this.ticketRepository.countAllTicketsForEvent(
+          queryRunner.manager,
+          id,
+        );
 
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, id);
       try {
@@ -145,7 +149,10 @@ export class EventsService {
     }
   }
 
-  private async notifyLiveTicketPurchaseCounter(allTicketsCounter: any, eventId: string): Promise<void> {
+  private async notifyLiveTicketPurchaseCounter(
+    allTicketsCounter: any,
+    eventId: string,
+  ): Promise<void> {
     this.socket.handleLiveTicketPurchaseCounter({
       event_id: eventId,
       totalTickets: allTicketsCounter,
