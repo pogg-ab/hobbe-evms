@@ -10,7 +10,7 @@ export const kafkaConfig: KafkaOptions = {
     } as KafkaConfig,
     consumer: {
       groupId: 'auth-consumer-group',
-      sessionTimeout: 30000, // Increase session timeout
+      sessionTimeout: 3000000, // Increase session timeout
       heartbeatInterval: 3000, // Adjust heartbeat interval
       groupInstanceId: 'consumer-1', // Enable static group membership
     } as ConsumerConfig,
