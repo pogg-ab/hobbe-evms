@@ -101,6 +101,8 @@ export class EventsService {
   }
 
   async findOne(id: string): Promise<Events | null> {
+    const SERVICE_CHARGE_RATE = 0.03;
+    const SALES_TAX_RATE = 0.10;
     const queryRunner = this.dataSource.createQueryRunner();
 
     try {
@@ -118,10 +120,34 @@ export class EventsService {
         );
 
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, id);
+      const calculatePricing = (price: number | null) => {
+        if (!price) return null;
+
+        const basePrice = parseFloat((price / (1 + SERVICE_CHARGE_RATE + SALES_TAX_RATE)).toFixed(1));
+        const serviceCharge = parseFloat((basePrice * SERVICE_CHARGE_RATE).toFixed(1));
+        const salesTax = parseFloat((basePrice * SALES_TAX_RATE).toFixed(1));
+
+        return {
+          basePrice,
+          serviceCharge,
+          salesTax,
+          totalPrice: price,
+          serviceChargeRate: (SERVICE_CHARGE_RATE * 100).toFixed(1) + '%',
+          salesTaxRate: (SALES_TAX_RATE * 100).toFixed(1) + '%',
+        };
+      };
+
+      // Calculate pricing for all ticket types
+      const ticketPricing = {
+        regular: event.ticket_heading?.price ? calculatePricing(event.ticket_heading.price) : null,
+        vip: event.ticket_heading?.vip_price ? calculatePricing(event.ticket_heading.vip_price) : null,
+        vvip: event.ticket_heading?.vvip_price ? calculatePricing(event.ticket_heading.vvip_price) : null,
+      };
       try {
         const userInfoResponse = await this.userInfoService.getUserInfo([event.user_id]);
         const enrichedEvent = {
           ...event,
+          pricing: ticketPricing,
           organizerInfo: userInfoResponse[event.user_id] || null,
           ticketsCount: allTicketsCounter
         };
@@ -132,6 +158,7 @@ export class EventsService {
         console.error('Failed to fetch organizer info:', userInfoError);
         const fallbackEvent = {
           ...event,
+          pricing: ticketPricing,
           organizerInfo: null,
           ticketsCount: allTicketsCounter
         };
