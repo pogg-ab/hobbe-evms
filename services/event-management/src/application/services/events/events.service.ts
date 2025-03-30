@@ -142,23 +142,6 @@ export class EventsService {
         regular: event.ticket_heading?.price ? calculatePricing(event.ticket_heading.price) : null,
         vip: event.ticket_heading?.vip_price ? calculatePricing(event.ticket_heading.vip_price) : null,
         vvip: event.ticket_heading?.vvip_price ? calculatePricing(event.ticket_heading.vvip_price) : null,
-        ticketHeadingInfo: event.ticket_heading ? {
-          name: event.ticket_heading.name,
-          description: event.ticket_heading.description,
-          schedule: event.ticket_heading.schedule,
-          quantity: event.ticket_heading.quantity,
-          min_order: event.ticket_heading.min_order,
-          max_order: event.ticket_heading.max_order,
-          vip_quantity: event.ticket_heading.vip_quantity,
-          vip_min_order: event.ticket_heading.vip_min_order,
-          vip_max_order: event.ticket_heading.vip_max_order,
-          vvip_quantity: event.ticket_heading.vvip_quantity,
-          vvip_min_order: event.ticket_heading.vvip_min_order,
-          vvip_max_order: event.ticket_heading.vvip_max_order,
-          sales_start: event.ticket_heading.sales_start,
-          sales_end: event.ticket_heading.sales_end,
-          status: event.ticket_heading.status
-        } : null
       };
       try {
         const userInfoResponse = await this.userInfoService.getUserInfo([event.user_id]);
