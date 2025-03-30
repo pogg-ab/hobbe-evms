@@ -130,7 +130,6 @@ export class TicketsController {
 
   }> {
     const event = await this.queryBus.execute(new GetEventsByIdQuery(event_id));
-    console.log(event)
     const ticket_heading_id = event.ticket_heading.id;
     return await this.queryBus.execute(new FindTicketByHeadingQuery(ticket_heading_id));
   }

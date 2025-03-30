@@ -101,6 +101,8 @@ export class EventsService {
   }
 
   async findOne(id: string): Promise<Events | null> {
+    const SERVICE_CHARGE_RATE = 0.03;
+    const SALES_TAX_RATE = 0.10;
     const queryRunner = this.dataSource.createQueryRunner();
 
     try {
@@ -118,10 +120,51 @@ export class EventsService {
         );
 
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, id);
+      const calculatePricing = (price: number | null) => {
+        if (!price) return null;
+
+        const basePrice = parseFloat((price / (1 + SERVICE_CHARGE_RATE + SALES_TAX_RATE)).toFixed(1));
+        const serviceCharge = parseFloat((basePrice * SERVICE_CHARGE_RATE).toFixed(1));
+        const salesTax = parseFloat((basePrice * SALES_TAX_RATE).toFixed(1));
+
+        return {
+          basePrice,
+          serviceCharge,
+          salesTax,
+          totalPrice: price,
+          serviceChargeRate: (SERVICE_CHARGE_RATE * 100).toFixed(1) + '%',
+          salesTaxRate: (SALES_TAX_RATE * 100).toFixed(1) + '%',
+        };
+      };
+
+      // Calculate pricing for all ticket types
+      const ticketPricing = {
+        regular: event.ticket_heading?.price ? calculatePricing(event.ticket_heading.price) : null,
+        vip: event.ticket_heading?.vip_price ? calculatePricing(event.ticket_heading.vip_price) : null,
+        vvip: event.ticket_heading?.vvip_price ? calculatePricing(event.ticket_heading.vvip_price) : null,
+        ticketHeadingInfo: event.ticket_heading ? {
+          name: event.ticket_heading.name,
+          description: event.ticket_heading.description,
+          schedule: event.ticket_heading.schedule,
+          quantity: event.ticket_heading.quantity,
+          min_order: event.ticket_heading.min_order,
+          max_order: event.ticket_heading.max_order,
+          vip_quantity: event.ticket_heading.vip_quantity,
+          vip_min_order: event.ticket_heading.vip_min_order,
+          vip_max_order: event.ticket_heading.vip_max_order,
+          vvip_quantity: event.ticket_heading.vvip_quantity,
+          vvip_min_order: event.ticket_heading.vvip_min_order,
+          vvip_max_order: event.ticket_heading.vvip_max_order,
+          sales_start: event.ticket_heading.sales_start,
+          sales_end: event.ticket_heading.sales_end,
+          status: event.ticket_heading.status
+        } : null
+      };
       try {
         const userInfoResponse = await this.userInfoService.getUserInfo([event.user_id]);
         const enrichedEvent = {
           ...event,
+          pricing: ticketPricing,
           organizerInfo: userInfoResponse[event.user_id] || null,
           ticketsCount: allTicketsCounter
         };
@@ -132,6 +175,7 @@ export class EventsService {
         console.error('Failed to fetch organizer info:', userInfoError);
         const fallbackEvent = {
           ...event,
+          pricing: ticketPricing,
           organizerInfo: null,
           ticketsCount: allTicketsCounter
         };
