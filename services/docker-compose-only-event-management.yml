@@ -1,12 +1,12 @@
 version: "1.0"
 
 services:
-  user-management:
+  event-management:
     build:
-      context: ./user-management
+      context: ./event-management
       dockerfile: Dockerfile
     ports:
-      - "4000:4000"
+      - "4001:4001"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
