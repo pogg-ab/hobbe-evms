@@ -43,7 +43,7 @@ export class AuthService {
     private readonly userWithAccountRepository: IUserRepository,
     private readonly messageProducerService: MessageProducerService,
     private readonly notificationConfigService: NotificationConfigService,
-  ) {}
+  ) { }
 
   async validateUser(user_name: string, password: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
@@ -289,6 +289,10 @@ export class AuthService {
   }
 
   private createPasswordResetEmail(recipient: string, token: string): any {
+    const resetLink = `${process.env.WEB_RESET_LINK}?token=${encodeURIComponent(token)}`;
+    const appDeepLink = `${process.env.APP_DEEP_LINK}?token=${encodeURIComponent(token)}`;
+    const fallbackLink = resetLink;
+    const redirectLink = `${process.env.API_BASE_URL}/app?token=${encodeURIComponent(token)}`;
     const email = {
       recipient: recipient,
       subject: 'Password Reset Request',
@@ -298,7 +302,15 @@ export class AuthService {
             <p>Dear ${recipient},</p>
             <p>We have received a request to reset your password for your Hobbe EVMS account. If you did not make this request, please ignore this email.</p>
             <p>To reset your password, please click the button below:</p>
-            <p><a href="hobbe_evms_app://reset-password?token=${token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Your Password</a></p>
+            <div style="margin: 20px 0;">
+              <a href="${redirectLink}" 
+                 style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+                Reset Your Password in App
+              </a>
+              <p>If the app doesn't open, <a href="${redirectLink}">try again</a> (it will fall back to web).</p>
+            </div>
+
+            
             <p>The reset link will expire at <strong>${new Date(new Date().getTime() + 60 * 60 * 1000).toUTCString()}</strong>. If you do not reset your password by this time, the link will no longer be valid.</p>
             <p>If you have any trouble, feel free to contact our support team for assistance.</p>
             <br>
