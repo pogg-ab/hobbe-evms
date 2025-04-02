@@ -100,6 +100,20 @@ export class EventsService {
     return this.createEventRepository.findAll(page, limit);
   }
 
+  async findAllByAuth(
+    user: string,
+    page: number,
+    limit: number,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    console.log('user', user);
+    return this.createEventRepository.findAllByAuth(user, page, limit);
+  }
+
   async findOne(id: string): Promise<Events | null> {
     const queryRunner = this.dataSource.createQueryRunner();
 

@@ -32,128 +32,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-  // async findAll(
-  //   page: number,
-  //   limit: number,
-  // ): Promise<{
-  //   events: Events[] | null;
-  //   total: number;
-  //   page: number;
-  //   limit: number;
-  // }> {
-  //   const offset = (page - 1) * limit;
-
-  //   // Use QueryBuilder to handle pagination
-  //   // const [events, total] = await this.eventRepository
-  //   //   .createQueryBuilder('event') // 'event' is the alias for your table/entity
-  //   //   .skip(offset) // Number of rows to skip
-  //   //   .take(limit) // Number of rows to fetch
-  //   //   .orderBy('event.event_start_date', 'DESC')
-  //   //   .getManyAndCount(); // Fetch entities and total count
-
-  //   const [events, total] = await this.eventRepository
-  //   .createQueryBuilder('event')
-  //   .leftJoinAndSelect('event.promocodes', 'promocode')
-  //   // .leftJoinAndSelect('event.bank_accounts', 'bank_account')
-  //   .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
-  //   .leftJoinAndSelect('event.bookings', 'bookings')
-  //   .leftJoin('ticket_heading.tickets', 'ticket') // Join tickets
-  //   // .leftJoin('bookings.participants', 'participant') // Join participants if needed
-  //   .loadRelationCountAndMap('event.likes', 'event.likes')
-  //   .loadRelationCountAndMap('event.share', 'event.shares')
-  //   .loadRelationCountAndMap('event.comments', 'event.comments')
-  //   .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
-  //   .loadRelationCountAndMap('event.bookings', 'event.bookings')
-  //   .skip((page - 1) * limit) // Offset for pagination
-  //   .take(limit) // Limit per page
-  //   .getManyAndCount(); // Get paginated results and total count
-
-  //     // Fetch booked ticket counts for each event
-  // const updatedEvents = await Promise.all(
-  //   events.map(async (event) => {
-  //     const bookedTicketCount = await this.eventRepository
-  //       .createQueryBuilder('event')
-  //       .leftJoin('event.ticket_heading', 'ticket_heading')
-  //       .leftJoin('ticket_heading.tickets', 'ticket')
-  //       .select('COUNT(ticket.id)', 'count')
-  //       .where('event.id = :id', { id: event.id })
-  //       .andWhere('ticket.status = :status', { status: 'Booked' })
-  //       .getRawOne();
-
-  //     return { ...event, soldOutTickets: parseInt(bookedTicketCount.count, 10) };
-  //   })
-  // );
-
-  //   return { events, total, page, limit };
-  // }
-
-  // async findAll( 
-  //   page: number,
-  //   limit: number,
-  // ): Promise<{
-  //   events: Events[] | null;
-  //   total: number;
-  //   page: number;
-  //   limit: number;
-  // }> {
-  //   const offset = (page - 1) * limit;
-  
-  //   // Main query to fetch events with necessary joins and counts
-  //   const [events, total] = await this.eventRepository
-  //     .createQueryBuilder('event')
-  //     .leftJoinAndSelect('event.promocodes', 'promocode')
-  //     .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
-  //     .leftJoinAndSelect('event.likes', 'likes')
-  //     // .leftJoinAndSelect('event.bookings', 'bookings')
-  //     .leftJoin('ticket_heading.tickets', 'ticket')
-  //     .loadRelationCountAndMap('event.likesCount', 'event.likes')
-  //     .loadRelationCountAndMap('event.shareCount', 'event.shares')
-  //     .loadRelationCountAndMap('event.commentsCount', 'event.comments')
-  //     .loadRelationCountAndMap('event.totalTicketCount', 'ticket_heading.tickets')
-  //     .loadRelationCountAndMap('event.bookingsCount', 'event.bookings')
-  //     .orderBy('event.event_start_date', 'DESC') // Ensures consistent pagination
-  //     .skip(offset)
-  //     .take(limit)
-  //     .cache(30000000)
-  //     .getManyAndCount();
-  
-  //   if (events.length === 0) {
-  //     return { events: [], total, page, limit };
-  //   }
-  
-  //   // Single query to get booked tickets count for all fetched events
-  //   const eventIds = events.map(event => event.id);
-  //   const bookedCounts = await this.eventRepository
-  //     .createQueryBuilder('event')
-  //     .leftJoin('event.ticket_heading', 'ticket_heading')
-  //     .leftJoin(
-  //       'ticket_heading.tickets', 
-  //       'ticket', 
-  //       'ticket.status = :status', 
-  //       { status: 'Booked' }
-  //     )
-  //     .select('event.id', 'eventId')
-  //     .addSelect('COUNT(ticket.id)', 'soldOutTickets')
-  //     .where('event.id IN (:...eventIds)', { eventIds })
-  //     .groupBy('event.id')
-  //     .cache(30000000)
-  //     .getRawMany();
-  
-  //   // Map event IDs to their booked ticket counts
-  //   const bookedCountsMap = new Map(
-  //     bookedCounts.map(bc => [bc.eventId, parseInt(bc.soldOutTickets, 10)])
-  //   );
-  
-  //   // Merge booked counts into events
-  //   const updatedEvents = events.map(event => ({
-  //     ...event,
-  //     soldOutTickets: bookedCountsMap.get(event.id) || 0,
-  //   }));
-  
-  //   return { events: updatedEvents, total, page, limit };
-  // }
-
-  async findAll(
+  async findAll( 
     page: number,
     limit: number,
   ): Promise<{
@@ -164,114 +43,80 @@ export class EventRepositoryEmpl implements IEventRepository {
   }> {
     const offset = (page - 1) * limit;
 
-    // Main query with optimized joins and subqueries
-    const queryBuilder = this.eventRepository
+    const [events, total] = await this.eventRepository
       .createQueryBuilder('event')
-      // Select only necessary fields from Events
-      .select([
-        'event.id',
-        'event.user_id',
-        'event.title',
-        'event.thumbnail',
-        'event.cover_image',
-        'event.event_type',
-        'event.isPaid',
-        'event.hasPromocode',
-        'event.description',
-        'event.location',
-        'event.latitude',
-        'event.longitude',
-        'event.privacy',
-        'event.status',
-        'event.event_start_date',
-        'event.event_end_date',
-        'event.created_by',
-        'event.update_by',
-        'event.created_at',
-        'event.updated_at',
-        'event.categories',
-      ])
-      // Eagerly load only critical relations with selected fields
-      .leftJoinAndSelect('event.promocodes', 'promocode', 'promocode.status = :promoStatus', {
-        promoStatus: 'Active', // Example: filter active promocodes
-      })
-      .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
-      // Use subqueries for counts instead of loading full relations
-      .addSelect(subQuery => 
-        subQuery
-          .select('COUNT(like.id)', 'likesCount')
-          .from('like', 'like')
-          .where('like.event_id = event.id'),
-        'likesCount'
-      )
-      .addSelect(subQuery => 
-        subQuery
-          .select('COUNT(share.id)', 'shareCount')
-          .from('event_share', 'share')
-          .where('share.event_id = event.id'),
-        'shareCount'
-      )
-      .addSelect(subQuery => 
-        subQuery
-          .select('COUNT(comment.id)', 'commentsCount')
-          .from('comments', 'comment')
-          .where('comment.event_id = event.id'),
-        'commentsCount'
-      )
-      // .addSelect(subQuery => 
-      //   subQuery
-      //     .select('COUNT(booking.id)', 'bookingsCount')
-      //     .from('ticket_booking', 'booking')
-      //     .where('booking.event_id = event.id'),
-      //   'bookingsCount'
-      // )
-      .addSelect(subQuery => 
-        subQuery
-          .select('COUNT(ticket.id)', 'totalTicketCount')
-          .from('tickets', 'ticket')
-          .leftJoin('ticket.ticket_heading_id', 'th')
-          .where('th.id = ticket_heading.id'),
-        'totalTicketCount'
-      )
-      .addSelect(subQuery => 
-        subQuery
-          .select('COUNT(ticket.id)', 'soldOutTickets')
-          .from('tickets', 'ticket')
-          .leftJoin('ticket.ticket_heading_id', 'th')
-          .where('th.id = ticket_heading.id AND ticket.status = :ticketStatus', { ticketStatus: 'Booked' }),
-        'soldOutTickets'
-      )
-      // Pagination and ordering
-      .orderBy('event.event_start_date', 'DESC')
+      .loadRelationCountAndMap('event.likes', 'event.likes')
+      .loadRelationCountAndMap('event.favorites', 'event.favorites')
+      .loadRelationCountAndMap('event.share', 'event.shares')
+      .loadRelationCountAndMap('event.comments', 'event.comments')
+      .loadRelationCountAndMap('event.bookings', 'event.bookings')
+      .orderBy('event.event_start_date', 'DESC') 
       .skip(offset)
-      .take(limit);
-
-    // Execute query with caching
-    const [events, total] = await queryBuilder
-      .cache(`events_page_${page}_limit_${limit}`, 30000) // Cache for 30 seconds, specific key
+      .take(limit)
+      .cache(30000)
       .getManyAndCount();
-
-    // Handle empty result
-    if (!events.length) {
+    if (events.length === 0) {
       return { events: [], total, page, limit };
     }
-
-    // Transform result to match your expected structure
-    const formattedEvents = events.map(event => ({
-      ...event,
-      likesCount: parseInt(event.likes as any, 10) || 0,
-      shareCount: parseInt(event.shares as any, 10) || 0,
-      commentsCount: parseInt(event.comments as any, 10) || 0,
-      bookingsCount: parseInt(event.bookings as any, 10) || 0,
-      totalTicketCount: parseInt(event.tickets as any, 10) || 0,
-      soldOutTickets: parseInt(event.bookings as any, 10) || 0,
-      // Ensure nested objects are properly typed if needed
-      promocodes: event.promocodes || [],
-      ticket_heading: event.ticket_heading || null,
-    }));
-
-    return { events: formattedEvents, total, page, limit };
+  
+    return { events, total, page, limit };
   }
+
+
+  async findAllByAuth(
+    user: string, 
+    page: number, 
+    limit: number
+  ): Promise<{
+    events: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const offset = (page - 1) * limit;
+  
+    // Fetch the user's liked events
+    const likedEventIds = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('event.likes', 'like')
+      .where('like.user_id = :userId', { userId: user })
+      .select('event.id')
+      .getRawMany();
+    
+    const likedEventIdsSet = new Set(likedEventIds.map((e) => e.event_id));
+  
+    // Now fetch all events and add the likedByUser flag based on likedEventIdsSet
+    const [events, total] = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.likes', 'like', 'like.user_id = :userId', { userId: user })
+      .loadRelationCountAndMap('event.likes', 'event.likes')
+      .loadRelationCountAndMap('event.favorites', 'event.favorites')
+      .loadRelationCountAndMap('event.shares', 'event.shares')
+      .loadRelationCountAndMap('event.comments', 'event.comments')
+      .loadRelationCountAndMap('event.bookings', 'event.bookings')
+      .addSelect([
+        // This ensures we know if the user liked the event without needing a separate set
+        '(CASE WHEN like.user_id IS NOT NULL THEN true ELSE false END) AS isLiked'
+      ])
+      .orderBy('event.event_start_date', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .cache(30000)
+      .getManyAndCount();
+  
+    // Add the likedByUser flag
+    const eventsWithLikeStatus = events.map(event => ({
+      ...event,
+      isLiked: likedEventIdsSet.has(event.id), // Check if the event is in the user's liked set
+    }));
+  
+    return { events: eventsWithLikeStatus, total, page, limit };
+  }
+  
+  
+  
+
+  
 
 
   async findOneEventOnly(id: string): Promise<Events | null> {
