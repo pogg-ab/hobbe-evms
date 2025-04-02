@@ -70,7 +70,7 @@ export class ChatService {
   async getUserChats(userId: string): Promise<Chat[]> {
     const chats = await this.chatRepo.getUserChats(userId);
     if (!chats.length) {
-      throw new NotFoundException('No chats found for this user');
+      return [];
     }
   
     for (const chat of chats) {

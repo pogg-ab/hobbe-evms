@@ -11,7 +11,7 @@ export class UserValidationService {
   async validateUser(payload: any): Promise<any> {
     try {
       const response = await firstValueFrom(
-        this.eventClient.send('validateCommunicationUser', payload),
+        this.eventClient.send('validateUser', payload),
       );
 
 
