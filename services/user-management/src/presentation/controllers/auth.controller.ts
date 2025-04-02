@@ -330,7 +330,7 @@ export class AuthController {
                 const startTime = Date.now();
                 
                 if (config.isMobile) {
-                    const opened = window.open(config.deepLink, '_blank');
+                    const opened = window.open(config.webLink, '_blank');
                     
                     setTimeout(() => {
                       if (!opened || opened.closed || typeof opened.closed === 'undefined') {
