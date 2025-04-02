@@ -27,13 +27,12 @@ import { ResendOtpDto } from '../dtos/resend-otp.dto';
 import { VerifyOtpDto } from '../dtos/verify-otp.dto';
 import { Request, Response } from 'express';
 import { createHash } from 'crypto';
+import { log } from 'console';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
-  private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
-
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })
   @ApiBody({ type: AuthDto })
@@ -215,124 +214,5 @@ export class AuthController {
     return await this.authService.validateJwt(payload);
   }
 
-  @Get('app')
-  async handlePasswordReset(
-    @Query('token') token: string,
-    @Res() res: Response,
-    @Req() req: Request,
-    @Headers('user-agent') userAgent: string
-  ) {
-    if (!this.validateToken(token)) {
-      return res.status(400).send('Invalid or expired token');
-    }
-
-    const clientIp = this.getClientIp(req);
-    const platform = this.detectPlatform(userAgent || '');
-    const encodedToken = encodeURIComponent(token);
-
-    this.logRedirectAttempt(clientIp, token, platform);
-
-    const redirectHtml = this.buildRedirectPage(encodedToken, platform);
-    res.setHeader('Content-Type', 'text/html');
-    res.send(redirectHtml);
-  }
-
-  private validateToken(token: string): boolean {
-    return token && this.VALID_TOKEN_REGEX.test(token);
-  }
-
-  private getClientIp(req: Request): string {
-    return (
-      req.ip ||
-      req.connection?.remoteAddress ||
-      req.socket?.remoteAddress ||
-      req.headers['x-forwarded-for']?.toString() ||
-      'unknown'
-    );
-  }
-
-  private detectPlatform(userAgent: string): 'ios' | 'android' | 'desktop' {
-    const ua = userAgent.toLowerCase();
-    if (ua.includes('iphone') || ua.includes('ipad')) return 'ios';
-    if (ua.includes('android')) return 'android';
-    return 'desktop';
-  }
-
-  private logRedirectAttempt(ip: string, token: string, platform: string) {
-    const hashedIp = createHash('sha256').update(ip).digest('hex');
-    console.log(`Redirect attempt`, {
-      hashedIp,
-      tokenHash: createHash('sha256').update(token).digest('hex').substring(0, 8),
-      platform,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  private buildRedirectPage(token: string, platform: string): string {
-    const deepLink = `${process.env.APP_DEEP_LINK}?token=${token}`;
-    const webLink = `${process.env.WEB_RESET_LINK}?token=${token}`;
-    const appStoreLink = platform === 'ios'
-      ? process.env.IOS_APP_STORE_LINK
-      : process.env.ANDROID_PLAY_STORE_LINK;
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redirecting to Hobbe EVMS</title>
-  <script>
-    function tryDeepLink() {
-      const isMobile = ${platform !== 'desktop'};
-      if (isMobile) {
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = '${deepLink}';
-        document.body.appendChild(iframe);
-        setTimeout(() => {
-          window.location.href = '${webLink}';
-        }, 1500);
-      } else {
-        window.location.href = '${webLink}';
-      }
-    }
-    document.addEventListener('DOMContentLoaded', tryDeepLink);
-  </script>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 2rem; }
-    .spinner { 
-      border: 4px solid rgba(0,0,0,0.1); 
-      border-radius: 50%; 
-      border-top: 4px solid #3498db;
-      width: 40px; height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 2rem auto;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .btn { 
-      display: inline-block;
-      padding: 10px 20px;
-      margin: 10px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .web-btn { background: #3498db; color: white; }
-    .app-btn { background: white; color: #3498db; border: 2px solid #3498db; }
-  </style>
-</head>
-<body>
-  <div class="spinner"></div>
-  <h2>Taking you to Hobbe EVMS...</h2>
-  <div style="margin-top: 2rem;">
-    <a href="${webLink}" class="btn web-btn">Continue in Browser</a>
-    ${platform !== 'desktop' ?
-        `<a href="${appStoreLink}" class="btn app-btn">Get Mobile App</a>` : ''}
-  </div>
-</body>
-</html>
-  `;
-  }
 }
 

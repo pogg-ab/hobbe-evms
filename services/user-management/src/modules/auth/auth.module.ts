@@ -24,6 +24,7 @@ import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repo
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { Follower } from 'src/domain/entities/follower.entity';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { DeepLinkController } from 'src/presentation/controllers/deep-link.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -78,6 +79,6 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
       },
     },
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, DeepLinkController],
 })
 export class AuthModule { }
