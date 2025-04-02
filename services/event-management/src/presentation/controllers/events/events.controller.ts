@@ -41,6 +41,8 @@ import { FindEventsByUsersFavoriteQuery } from 'src/application/queries/favorite
 import { GetEventRemainingTimeQuery } from 'src/application/queries/events/get-event-remaining-time.query';
 import { GetEventsByStatusQuery } from 'src/application/queries/events/get-events-by-status.query';
 import { GetEventsByDateRnage } from 'src/presentation/dtos/events/get-event-by-date-range.dto';
+import { GetAllEventsByAuthQuery } from 'src/application/queries/events/get-all-events-by-auth.query';
+import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/get-all-events-by-auth.handler';
 
 @ApiTags('Events')
 @Controller('events')
@@ -53,10 +55,11 @@ export class EventsController {
   /*
      Get All Events
   */
-  @ApiOperation({ description: 'Get All Events' })
+  @ApiOperation({ description: 'Gust Get All Events' })
+
   @HttpCode(200)
-  @Get()
-  async findAll(
+  @Get('get-events-as-gust')
+  async findAllAsGust(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<{
@@ -65,7 +68,29 @@ export class EventsController {
     page: number;
     limit: number;
   }> {
+    // get all events as gust
     return await this.queryBus.execute(new GetAllEventsQuery(page, limit));
+  }
+
+  @ApiOperation({ description: 'Get All Events' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get()
+  async findAll(
+    @CurrentUserId() user: any,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const userId = user.user.user_id.toString();
+    console.log('USER', userId);
+    return await this.queryBus.execute(new GetAllEventsByAuthQuery(userId,page, limit));
   }
 
   /*
