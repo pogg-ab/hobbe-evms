@@ -45,6 +45,7 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
 import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/get-events-by-status.handler';
 import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
 import { UserInfoService } from 'src/application/services/user-info/user-info.service';
+import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/get-all-events-by-auth.handler';
 
 
 @Module({
@@ -95,6 +96,7 @@ import { UserInfoService } from 'src/application/services/user-info/user-info.se
     GetEventsByIdQueryHandler,
     GetEventRemainingTimeQueryHandler,
     FindEventsByUserQueryHandler,
+    GetAllEventsByAuthQueryHandler,
     GetEventsByCategoryQueryHandler,
     GetEventsByLocationQueryHandler,
     GetEventsByStatusQueryHandler,
