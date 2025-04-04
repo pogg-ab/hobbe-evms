@@ -42,15 +42,18 @@ export class EventRepositoryEmpl implements IEventRepository {
     limit: number;
   }> {
     const offset = (page - 1) * limit;
+    const currentDate = new Date().toISOString(); // outputs in UTC
+
 
     const [events, total] = await this.eventRepository
       .createQueryBuilder('event')
+      .where('event.event_end_date >= :currentDate', { currentDate })
       .loadRelationCountAndMap('event.likes', 'event.likes')
       .loadRelationCountAndMap('event.favorites', 'event.favorites')
       .loadRelationCountAndMap('event.share', 'event.shares')
       .loadRelationCountAndMap('event.comments', 'event.comments')
       .loadRelationCountAndMap('event.bookings', 'event.bookings')
-      .orderBy('event.event_start_date', 'DESC') 
+      .orderBy('event.event_start_date', 'DESC')
       .skip(offset)
       .take(limit)
       .cache(30000)
@@ -74,6 +77,8 @@ export class EventRepositoryEmpl implements IEventRepository {
     limit: number;
   }> {
     const offset = (page - 1) * limit;
+    const currentDate = new Date().toISOString(); // outputs in UTC
+
   
     // Fetch the user's liked events
     const likedEventIds = await this.eventRepository
@@ -88,6 +93,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     // Now fetch all events and add the likedByUser flag based on likedEventIdsSet
     const [events, total] = await this.eventRepository
       .createQueryBuilder('event')
+      .where('event.event_end_date >= :currentDate', { currentDate })
       .leftJoinAndSelect('event.likes', 'like', 'like.user_id = :userId', { userId: user })
       .loadRelationCountAndMap('event.likes', 'event.likes')
       .loadRelationCountAndMap('event.favorites', 'event.favorites')
@@ -150,29 +156,29 @@ export class EventRepositoryEmpl implements IEventRepository {
   }
   async findOne(id: string): Promise<Events | null> {
     const event = await this.eventRepository
-      .createQueryBuilder('event')
-      .leftJoinAndSelect('event.promocodes', 'promocode')
-      // .leftJoinAndSelect('event.bank_accounts', 'bank_account')
-      .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
-      .leftJoinAndSelect('event.bookings', 'bookings')
-      .leftJoin('ticket_heading.tickets', 'ticket') // Join tickets
-      // .leftJoin('bookings.participants', 'participant') // Join tickets
-      .loadRelationCountAndMap('event.likes', 'event.likes')
-      .loadRelationCountAndMap('event.share', 'event.shares')
-      .loadRelationCountAndMap('event.comments', 'event.comments')
-      .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
-      .loadRelationCountAndMap('event.bookings', 'event.bookings')
-      .where('event.id = :id', { id })
-      .getOne();
-
-    if (!event) {
-      throw new HttpException(
-        `Event with ID ${id} not found`,
-        HttpStatus.NOT_FOUND,
-      );
+    .createQueryBuilder('event')
+    .leftJoinAndSelect('event.promocodes', 'promocode')
+    .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
+    .leftJoinAndSelect('event.bookings', 'bookings')
+    .leftJoin('ticket_heading.tickets', 'ticket')
+    .loadRelationCountAndMap('event.likes', 'event.likes')
+    .loadRelationCountAndMap('event.share', 'event.shares')
+    .loadRelationCountAndMap('event.comments', 'event.comments')
+    .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
+    .loadRelationCountAndMap('event.bookings', 'event.bookings')
+    .addSelect(subQuery => {
+      return subQuery
+        .select(`json_agg(bank_accounts)`)
+        .from('bank_accounts', 'bank_accounts')
+        .where('bank_accounts.event_id = event.id::varchar');
+    }, 'bank_accounts')
+    .where('event.id = :id', { id })
+    .getRawAndEntities();
+  
+    if (!event.entities[0]) {
+      throw new HttpException(`Event with ID ${id} not found`, HttpStatus.NOT_FOUND);
     }
-
-
+    
     const bookedTicketCount = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoin('event.ticket_heading', 'ticket_heading')
@@ -181,10 +187,14 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('event.id = :id', { id })
       .andWhere('ticket.status = :status', { status: 'Booked' })
       .getRawOne();
-
-    const my_event = { ...event, soldOutTickets: parseInt(bookedTicketCount.count, 10) };
-
-
+    
+      const my_event = {
+        ...event.entities[0],
+        bank_accounts: event.raw[0].bank_accounts ?? [],
+        soldOutTickets: parseInt(bookedTicketCount.count, 10),
+      };
+      
+    
     return my_event;
   }
 
