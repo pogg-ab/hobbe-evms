@@ -30,6 +30,7 @@ import { ITicketsHeadingRepository } from 'src/domain/repositories/tickets/ticke
 import { CREATE_TICKET_HEADING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets-heading.repository.token';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
@@ -60,7 +61,9 @@ export class TicketBookingService {
     private readonly bookingHasPaymentRepository: IBookingHasPaymentRepository,
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
-    private readonly socket: SocketIo
+    private readonly socket: SocketIo,
+    // private readonly kafkaProducerService: KafkaProducerService,
+    
   ) { }
 
   async create(

@@ -110,7 +110,6 @@ export class EventsService {
     page: number;
     limit: number;
   }> {
-    console.log('user', user);
     return this.createEventRepository.findAllByAuth(user, page, limit);
   }
 
