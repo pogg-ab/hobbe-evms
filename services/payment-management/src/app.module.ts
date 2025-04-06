@@ -7,10 +7,11 @@ import { classes } from '@automapper/classes';
 import { AutomapperModule } from '@automapper/nestjs';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { CqrsModule } from '@nestjs/cqrs';
-import { BankAccountRepositoryImpl } from './infrastructure/persistence/repositories/bank-account.repository.impl';
 import { BankAccountsModule } from './modules/bank-accounts/bank-account.module';
 import { WiseModule } from './modules/payment-methods/wise/wise.module';
 import { ChapaModule } from './modules/payment-methods/chapa/chapa.module';
+import { ChapaSDKService } from './application/services/payment-methods/chapa/chapa-sdk.service';
+import { KafkaProducerService } from './infrastructure/kafka/kafka.producer.servicce';
 
 @Module({
   imports: [
@@ -29,6 +30,10 @@ import { ChapaModule } from './modules/payment-methods/chapa/chapa.module';
     WiseModule,
     ChapaModule,
   ],
-  providers: [AppService, KafkaConsumerService],
+  providers: [
+    AppService, 
+    KafkaConsumerService,
+    KafkaProducerService,
+  ],
 })
 export class AppModule { }

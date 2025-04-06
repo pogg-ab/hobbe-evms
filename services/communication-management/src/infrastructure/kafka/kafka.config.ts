@@ -8,6 +8,6 @@ export const kafkaProducerConfig: KafkaOptions = {
       clientId: 'auth-producer',
       brokers: [process.env.KAFKA_BROKER],
     } as KafkaConfig,
-    producer: { allowAutoTopicCreation: false },
+    producer: { allowAutoTopicCreation: true },
   },
 };

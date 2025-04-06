@@ -30,6 +30,7 @@ import { ITicketsHeadingRepository } from 'src/domain/repositories/tickets/ticke
 import { CREATE_TICKET_HEADING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets-heading.repository.token';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
+import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
@@ -62,9 +63,8 @@ export class TicketBookingService {
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
     private readonly socket: SocketIo,
-    // private readonly kafkaProducerService: KafkaProducerService,
-    
-  ) { }
+    private readonly kafkaProducerService: KafkaProducerService,
+  ) {}
 
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
@@ -194,8 +194,6 @@ export class TicketBookingService {
         user,
       );
 
-
-
       if (createTicketBookingDto.hasPromocode) {
         let promocode = null;
         promocode = await this.promocodeRepository.findByCode(
@@ -269,7 +267,7 @@ export class TicketBookingService {
       }
 
       if (createTicketBookingDto.hasPayment) {
-        await this.bookingHasPaymentRepository.create(
+        const payment_info = await this.bookingHasPaymentRepository.create(
           queryRunner.manager,
           createdBooking.booking_id,
           createTicketBookingDto.payment_method,
@@ -288,7 +286,7 @@ export class TicketBookingService {
           queryRunner.manager,
           selectedTickets[i].id,
           status,
-          user
+          user,
         );
 
         await this.participantHasTicketRepository.create(
@@ -299,11 +297,27 @@ export class TicketBookingService {
           user,
         );
       }
-      const allTicketsCounter = await this.ticketRepository.countAllTicketsForEvent(queryRunner.manager, eventId);
-
+      const allTicketsCounter =
+        await this.ticketRepository.countAllTicketsForEvent(
+          queryRunner.manager,
+          eventId,
+        );
 
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, eventId);
+      await this.kafkaProducerService.produce({
+        topic: 'payment_info_sent',
+        messages: [
+          {
+            value: JSON.stringify({
+              ...createdBooking,
+              amount: calculatedPrice,
+            }),
+          },
+        ],
+      });
 
+      
+      
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -313,7 +327,10 @@ export class TicketBookingService {
     }
   }
 
-  private async notifyLiveTicketPurchaseCounter(allTicketsCounter: any, eventId: string): Promise<void> {
+  private async notifyLiveTicketPurchaseCounter(
+    allTicketsCounter: any,
+    eventId: string,
+  ): Promise<void> {
     this.socket.handleLiveTicketPurchaseCounter({
       event_id: eventId,
       totalTickets: allTicketsCounter,

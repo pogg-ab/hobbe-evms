@@ -18,6 +18,7 @@ import { ParticipantHasTicketRepositoryImpl } from 'src/infrastructure/persisten
 import { GetUserTicketsQueryHandler } from 'src/application/handlers/tickets/get-user-tickets.query-handler';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 
 @Module({
 
@@ -36,6 +37,7 @@ import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
     GetUserTicketsQueryHandler,
     TicketsFindByIdQueryHandler,
     TicketsFindByHeadingQueryHandler,
+    
     {
       provide: TICKETS_LIST_REPOSITORY_TOKEN,
       useClass: TicketsRepositoryEmpl,

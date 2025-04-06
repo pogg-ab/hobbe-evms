@@ -53,7 +53,9 @@ export class CreateTicketsHeadingDto {
   @IsNotEmpty()
   vip_min_order: number;
 
-
+  @ApiProperty({ description: 'VIP Tickets Min Order', example: 1 })
+  @IsNotEmpty()
+  vip_max_order: number;
 
 // VVIP TICKETS
 
