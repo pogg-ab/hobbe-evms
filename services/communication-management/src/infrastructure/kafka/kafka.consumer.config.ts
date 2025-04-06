@@ -5,11 +5,11 @@ export const kafkaConsumerConfig: KafkaOptions = {
   transport: Transport.KAFKA,
   options: {
     client: {
-      clientId: 'message-consumer',
+      clientId: 'comunication-user-validation-consumer',
       brokers: [process.env.KAFKA_BROKER],
     } as KafkaConfig,
     consumer: {
-      groupId: 'message-consumer-group',
+      groupId: 'comunication-message-consumer-group',
     } as ConsumerConfig,
   },
 };

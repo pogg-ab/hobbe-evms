@@ -31,7 +31,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const token = client.handshake.auth.token || client.handshake.query.token;
       if (!token) throw new Error('No token provided');
-
       const payload = await this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
       const validatedUser = await this.userValidationService.validateUser(payload);
       if (!validatedUser) throw new Error('User validation failed');
@@ -40,15 +39,14 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.usersMap.set(userId, client.id);
       client.data.user = validatedUser;
 
-      // console.dir(this.usersMap, { depth: null });
-      // console.log(this.chatUserService.chatUser(userId));
+      
       
       await this.chatUserService.chatUser(userId);
       const chats = await this.hobbeChatService.getUserChats(userId);
       const userName =  client.data?.user?.user?.user_name?.toString();
 
       this.broadcastUserStatus(userName, true);
-      client.emit('chat', chats);
+      // client.emit('chat', chats);
     } catch (error) {
       client.emit('auth',error.message)
       client.disconnect();
