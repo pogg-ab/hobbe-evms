@@ -74,8 +74,9 @@ export class TicketBookingController {
       user.user.user_id.toString(),
     );
     const ticketBooking = await this.commandBus.execute(command);
-
+   
     const paymentLink = await this.getPaymentLinkWithTimeout();
+    // const paymentLink = createTicketBookingDto.hasPromocode ?  await this.getPaymentLinkWithTimeout() : null;
     return {
       message: 'Ticket Booking created successfully',
       ticketBooking,
@@ -205,7 +206,7 @@ export class TicketBookingController {
     const paymentLinkPromise = new Promise<string>((resolve, reject) => {
       // Success handler
       paymentLinkEmitter.on('received', (link: string) => {
-        console.log('Received paymentLink:', link);
+        // console.log('Received paymentLink:', link);
         resolve(link);
       });
   
