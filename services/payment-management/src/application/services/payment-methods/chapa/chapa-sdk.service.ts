@@ -68,7 +68,6 @@ export class ChapaSDKService {
       });
 
       return await this.paymentRepository.verifyChapaPayment(txRef,response.data.data.charge)
-      return response.data;
     } catch (error) {
       console.error('Error verifying payment:', error.response?.data);
       throw new Error('Failed to verify payment');

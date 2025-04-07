@@ -19,6 +19,17 @@ export class KafkaConsumerService implements OnApplicationShutdown{
         this.consumers.push(consumer);
      }
 
+     async paymentStatusConsumer(topics:ConsumerSubscribeTopics, config:ConsumerRunConfig){
+        const consumer = this.kafka.consumer({
+            groupId:'payment_status',
+            allowAutoTopicCreation: true,
+        });
+        await consumer.connect();
+        await consumer.subscribe(topics);
+        await consumer.run(config);
+        this.consumers.push(consumer);
+     }
+
      async onApplicationShutdown() {
          for(const consumer of this.consumers){
             await consumer.disconnect();

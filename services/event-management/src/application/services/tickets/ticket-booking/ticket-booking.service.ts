@@ -42,6 +42,8 @@ export class TicketBookingService {
   constructor(
     @Inject(CREATE_TICKET_BOOKING_REPOSITORY_TOKEN)
     private readonly ticketBookingRepository: ITicketBookingRepository,
+    @Inject(CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN)
+    private readonly BookingHasPaymentRepository: IBookingHasPaymentRepository,
     @Inject(CREATE_TICKET_REPOSITORY_TOKEN)
     private readonly ticketRepository: ITicketsRepository,
     @Inject(CREATE_EVENT_REPOSITORY_TOKEN)
@@ -64,6 +66,7 @@ export class TicketBookingService {
     private dataSource: DataSource,
     private readonly socket: SocketIo,
     private readonly kafkaProducerService: KafkaProducerService,
+    private readonly kafkaConsumerService: KafkaConsumerService,
   ) {}
 
   async create(
@@ -267,7 +270,7 @@ export class TicketBookingService {
       }
 
       if (createTicketBookingDto.hasPayment) {
-        const payment_info = await this.bookingHasPaymentRepository.create(
+         await this.bookingHasPaymentRepository.create(
           queryRunner.manager,
           createdBooking.booking_id,
           createTicketBookingDto.payment_method,
@@ -425,5 +428,18 @@ export class TicketBookingService {
     ticket.status = 'ATTENDED';
 
     return null;
+  }
+
+
+  async onModuleInit(){
+    await this.kafkaConsumerService.paymentStatusConsumer(
+      { topics: ['payment_status'] },
+      {
+        eachMessage: async ({ message }) => {
+          const status = JSON.parse(message.value.toString());
+          console.dir(status);
+        },
+      },
+    );
   }
 }

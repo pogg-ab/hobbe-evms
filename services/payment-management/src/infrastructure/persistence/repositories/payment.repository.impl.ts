@@ -5,8 +5,10 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { promises } from "dns";
 import { Payments } from "src/domain/entities/payments.entity";
 import { IPaymentsRepository } from "src/domain/repositories/payments/payments.repository";
+import { KafkaProducerService } from "src/infrastructure/kafka/kafka.producer.servicce";
 import { CreatePaymentDto } from "src/presentation/dtos/payments/create-payments.dto";
 import { Repository } from "typeorm";
+
 
 
 @Injectable()
@@ -14,6 +16,8 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
     constructor(
         @InjectRepository(Payments)
         private paymentRepository: Repository<Payments>,
+        private readonly kafkaProducerService: KafkaProducerService,
+        
     ){}
     async create(createPaymentDto: CreatePaymentDto): Promise<Payments> {
         try {
@@ -52,7 +56,7 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           }
         }
     
-    async verifyChapaPayment(tx_ref:string,charge:string):Promise<Payments>{
+    async verifyChapaPayment(tx_ref:string,charge:string):Promise<void>{
       try {
         const paymentToBeVerify = await this.findOneChapa(tx_ref);
   
@@ -60,7 +64,12 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
        paymentToBeVerify.payment_status = "success";
        paymentToBeVerify.charge = charge;
   
-        return await this.paymentRepository.save(paymentToBeVerify);
+       const paymentStatus =  await this.paymentRepository.save(paymentToBeVerify);
+       await this.kafkaProducerService.produce({
+        topic: 'payment_status',
+        messages: [{ value: JSON.stringify(paymentToBeVerify) }],
+      });   
+      
       } catch (error) {
         throw new HttpException(
           `Error updating bank account: ${error.message}`,
