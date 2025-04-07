@@ -30,6 +30,8 @@ import { ITicketsHeadingRepository } from 'src/domain/repositories/tickets/ticke
 import { CREATE_TICKET_HEADING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets-heading.repository.token';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
+import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
@@ -40,6 +42,8 @@ export class TicketBookingService {
   constructor(
     @Inject(CREATE_TICKET_BOOKING_REPOSITORY_TOKEN)
     private readonly ticketBookingRepository: ITicketBookingRepository,
+    @Inject(CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN)
+    private readonly BookingHasPaymentRepository: IBookingHasPaymentRepository,
     @Inject(CREATE_TICKET_REPOSITORY_TOKEN)
     private readonly ticketRepository: ITicketsRepository,
     @Inject(CREATE_EVENT_REPOSITORY_TOKEN)
@@ -60,8 +64,10 @@ export class TicketBookingService {
     private readonly bookingHasPaymentRepository: IBookingHasPaymentRepository,
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
-    private readonly socket: SocketIo
-  ) { }
+    private readonly socket: SocketIo,
+    private readonly kafkaProducerService: KafkaProducerService,
+    private readonly kafkaConsumerService: KafkaConsumerService,
+  ) {}
 
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
@@ -191,8 +197,6 @@ export class TicketBookingService {
         user,
       );
 
-
-
       if (createTicketBookingDto.hasPromocode) {
         let promocode = null;
         promocode = await this.promocodeRepository.findByCode(
@@ -266,7 +270,7 @@ export class TicketBookingService {
       }
 
       if (createTicketBookingDto.hasPayment) {
-        await this.bookingHasPaymentRepository.create(
+         await this.bookingHasPaymentRepository.create(
           queryRunner.manager,
           createdBooking.booking_id,
           createTicketBookingDto.payment_method,
@@ -285,7 +289,7 @@ export class TicketBookingService {
           queryRunner.manager,
           selectedTickets[i].id,
           status,
-          user
+          user,
         );
 
         await this.participantHasTicketRepository.create(
@@ -296,11 +300,27 @@ export class TicketBookingService {
           user,
         );
       }
-      const allTicketsCounter = await this.ticketRepository.countAllTicketsForEvent(queryRunner.manager, eventId);
-
+      const allTicketsCounter =
+        await this.ticketRepository.countAllTicketsForEvent(
+          queryRunner.manager,
+          eventId,
+        );
 
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, eventId);
+      await this.kafkaProducerService.produce({
+        topic: 'payment_info_sent',
+        messages: [
+          {
+            value: JSON.stringify({
+              ...createdBooking,
+              amount: calculatedPrice,
+            }),
+          },
+        ],
+      });
 
+      
+      
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -310,7 +330,10 @@ export class TicketBookingService {
     }
   }
 
-  private async notifyLiveTicketPurchaseCounter(allTicketsCounter: any, eventId: string): Promise<void> {
+  private async notifyLiveTicketPurchaseCounter(
+    allTicketsCounter: any,
+    eventId: string,
+  ): Promise<void> {
     this.socket.handleLiveTicketPurchaseCounter({
       event_id: eventId,
       totalTickets: allTicketsCounter,
@@ -405,5 +428,18 @@ export class TicketBookingService {
     ticket.status = 'ATTENDED';
 
     return null;
+  }
+
+
+  async onModuleInit(){
+    await this.kafkaConsumerService.paymentStatusConsumer(
+      { topics: ['payment_status'] },
+      {
+        eachMessage: async ({ message }) => {
+          const status = JSON.parse(message.value.toString());
+          console.dir(status);
+        },
+      },
+    );
   }
 }

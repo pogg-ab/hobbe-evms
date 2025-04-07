@@ -89,7 +89,6 @@ export class EventsController {
     limit: number;
   }> {
     const userId = user.user.user_id.toString();
-    console.log('USER', userId);
     return await this.queryBus.execute(new GetAllEventsByAuthQuery(userId,page, limit));
   }
 

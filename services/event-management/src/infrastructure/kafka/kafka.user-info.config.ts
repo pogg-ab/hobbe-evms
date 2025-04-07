@@ -5,11 +5,11 @@ export const kafkaUserInfoConfig: KafkaOptions = {
     transport: Transport.KAFKA,
     options: {
         client: {
-            clientId: 'user-info-service',
+            clientId: 'event-user-info-service',
             brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
         } as KafkaConfig,
         consumer: {
-            groupId: 'user-info-consumer',
+            groupId: 'event-user-info-consumer',
             allowAutoTopicCreation: true,
         },
         producer: {

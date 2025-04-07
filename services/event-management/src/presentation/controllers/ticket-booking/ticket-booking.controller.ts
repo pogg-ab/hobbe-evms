@@ -22,11 +22,14 @@ import { FindTicketBookingsByTicketBuyerQuery } from 'src/application/queries/ti
 import { GetAllTicketBookingsQuery } from 'src/application/queries/tickets/get-all-ticket-bookings.query';
 import { GetTicketBookingByIdQuery } from 'src/application/queries/tickets/get-ticket-booking-by-id.query';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
+import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 import { MarkTicketAsAttendedDto } from 'src/presentation/dtos/tickets/mark-ticket-as-attended.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
+import { EventEmitter } from 'events';
+
 
 @ApiTags('Ticket Booking')
 @Controller('ticket-booking')
@@ -34,6 +37,8 @@ export class TicketBookingController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly kafkaConsumerService: KafkaConsumerService,
+
   ) { }
 
   @ApiOperation({ description: 'Get All Ticket Bookings' })
@@ -63,17 +68,22 @@ export class TicketBookingController {
   async createTicketBooking(
     @Body() createTicketBookingDto: CreateTicketBookingDto,
     @CurrentUserId() user: any,
-  ): Promise<{ message: string; ticketBooking: TicketBooking }> {
+  ): Promise<{ message: string; ticketBooking: TicketBooking,paymentLink:any }> {
     const command = new CreateTicketBookingCommand(
       createTicketBookingDto,
       user.user.user_id.toString(),
     );
-    const createdTicketBooking = await this.commandBus.execute(command);
+    const ticketBooking = await this.commandBus.execute(command);
+   
+    const paymentLink = await this.getPaymentLinkWithTimeout();
+    // const paymentLink = createTicketBookingDto.hasPromocode ?  await this.getPaymentLinkWithTimeout() : null;
     return {
       message: 'Ticket Booking created successfully',
-      ticketBooking: createdTicketBooking,
+      ticketBooking,
+      paymentLink
     };
   }
+  
 
   @ApiOperation({ description: 'Get Ticket Booking By ID' })
   @HttpCode(200)
@@ -186,5 +196,48 @@ export class TicketBookingController {
     return {
       message: `Ticket successfully marked as ATTENDED (scanned by ${scannedBy}).`,
     };
+  }
+
+
+  private async getPaymentLinkWithTimeout(timeoutMs: number = 10000): Promise<string> {
+    const paymentLinkEmitter = new EventEmitter();
+  
+    // Create promise for payment link
+    const paymentLinkPromise = new Promise<string>((resolve, reject) => {
+      // Success handler
+      paymentLinkEmitter.on('received', (link: string) => {
+        // console.log('Received paymentLink:', link);
+        resolve(link);
+      });
+  
+      // Timeout handler
+      setTimeout(() => {
+        reject(new Error('Payment link not received in time'));
+      }, timeoutMs);
+    });
+  
+    // Start consuming Kafka messages
+    this.startKafkaPaymentLinkConsumer(paymentLinkEmitter);
+  
+    return paymentLinkPromise;
+  }
+
+  private startKafkaPaymentLinkConsumer(emitter: EventEmitter): void {
+    this.kafkaConsumerService.paymentLinkConsume(
+      { topics: ['payment_link'] },
+      {
+        eachMessage: async ({ message }) => {
+          const value = message.value?.toString();
+          if (!value) return;
+  
+          try {
+            const paymentLink = JSON.parse(value);
+            emitter.emit('received', paymentLink);
+          } catch (error) {
+            console.error('Failed to parse payment link:', error);
+          }
+        },
+      }
+    );
   }
 }

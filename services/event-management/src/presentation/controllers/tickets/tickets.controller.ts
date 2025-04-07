@@ -23,6 +23,7 @@ import { RolesGuard } from 'src/presentation/guards/roles.guard';
 
 @Controller('tickets')
 @ApiTags('Tickets')
+@ApiBearerAuth('access-token')
 export class TicketsController {
   constructor(
     private readonly commandBus: CommandBus,

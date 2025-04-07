@@ -11,7 +11,7 @@ export class HobbeChatService {
     private readonly queryBus: QueryBus) {}
 
   async getUserChats( user: string) {
-    return this.queryBus.execute(new GetUserChatsQuery(user));
+    return await this.queryBus.execute(new GetUserChatsQuery(user));
   }
   
   async createChat(user:any, createPrivateChatDto: CreatePrivateChatDto) {    
