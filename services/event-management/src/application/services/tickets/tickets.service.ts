@@ -46,12 +46,39 @@ export class TicketsService {
     ticket_heading_id: string,
     tickets_type?: string,
     status?: string
-
   ): Promise<{
-    tickets: Tickets[] | null;
-
+    tickets: any[] | null;
   }> {
-    return this.createTicketsRepository.findAllByTicketsHeading(ticket_heading_id, tickets_type, status);
+    const SERVICE_CHARGE_RATE = 0.03; // 3% service charge
+    const SALES_TAX_RATE = 0.10;
+
+    const tickets = await this.createTicketsRepository.findAllByTicketsHeading(
+      ticket_heading_id,
+      tickets_type,
+      status
+    );
+
+    if (!tickets) return { tickets: null };
+
+    const ticketsWithCalculations = tickets.tickets.map(ticket => {
+      const totalTicketPrice = ticket.price;
+
+      const ticketPrice = parseFloat((totalTicketPrice / (1 + SERVICE_CHARGE_RATE + SALES_TAX_RATE)).toFixed(1));
+      const serviceCharge = parseFloat((ticketPrice * SERVICE_CHARGE_RATE).toFixed(1));
+      const salesTax = parseFloat((ticketPrice * SALES_TAX_RATE).toFixed(1));
+
+      return {
+        ...ticket,
+        price: ticketPrice,
+        serviceCharge,
+        salesTax,
+        totalPrice: totalTicketPrice,
+        serviceChargeRate: (SERVICE_CHARGE_RATE * 100).toFixed(1) + '%',
+        salesTaxRate: (SALES_TAX_RATE * 100).toFixed(1) + '%',
+      };
+    });
+
+    return { tickets: ticketsWithCalculations };
   }
 
 
@@ -65,12 +92,29 @@ export class TicketsService {
     return this.createTicketsRepository.findAllByTicketsHeading(event_id);
   }
 
-  async findOne(id: string): Promise<Tickets | null> {
+  async findOne(id: string): Promise<any | null> {
+    const SERVICE_CHARGE_RATE = 0.03;
+    const SALES_TAX_RATE = 0.10;
+
     const ticket = await this.createTicketsRepository.findOne(id);
     if (!ticket) {
       throw new NotFoundException(`Event with id ${id} not found.`);
     }
-    return ticket;
+
+    const totalTicketPrice = ticket.price;
+    const ticketPrice = parseFloat((totalTicketPrice / (1 + SERVICE_CHARGE_RATE + SALES_TAX_RATE)).toFixed(1));
+    const serviceCharge = parseFloat((ticketPrice * SERVICE_CHARGE_RATE).toFixed(1));
+    const salesTax = parseFloat((ticketPrice * SALES_TAX_RATE).toFixed(1));
+
+    return {
+      ...ticket,
+      price: ticketPrice,
+      serviceCharge,
+      salesTax,
+      totalPrice: totalTicketPrice,
+      serviceChargeRate: (SERVICE_CHARGE_RATE * 100).toFixed(1) + '%',
+      salesTaxRate: (SALES_TAX_RATE * 100).toFixed(1) + '%',
+    };
   }
 
   async findByCategory(
@@ -88,6 +132,8 @@ export class TicketsService {
     let total: number = 0;
 
     const groupTickets = (tickets: ParticipantHasTicket[]) => {
+      const SERVICE_CHARGE_RATE = 0.03; // 3% service charge
+      const SALES_TAX_RATE = 0.10;
       return (Array.isArray(tickets) ? tickets : []).reduce((acc, ticket) => {
         const eventObject = ticket.ticket_id.event_id;
         const event = JSON.stringify(eventObject);
@@ -97,15 +143,29 @@ export class TicketsService {
           acc[eventId] = {
             event: eventObject,
             tickets: [],
+            totalPrice: 0,
+            totalServiceCharge: 0,
+            totalSalesTax: 0,
           };
         }
+
+        const totalTicketPrice = ticket.ticket_id.price;
+
+        const ticketPrice = parseFloat((totalTicketPrice / (1 + SERVICE_CHARGE_RATE + SALES_TAX_RATE)).toFixed(1));
+        const serviceCharge = parseFloat((ticketPrice * SERVICE_CHARGE_RATE).toFixed(1));
+        const salesTax = parseFloat((ticketPrice * SALES_TAX_RATE).toFixed(1));
 
         acc[eventId].tickets.push({
           ticket_id: ticket.ticket_id.id,
           ticket_no: ticket.ticket_id.ticket_no,
           type: ticket.ticket_id.type,
           status: ticket.ticket_id.status,
-          price: ticket.ticket_id.price,
+          price: ticketPrice,
+          serviceCharge: serviceCharge,
+          salesTax: salesTax,
+          totalPrice: totalTicketPrice,
+          serviceChargeRate: (SERVICE_CHARGE_RATE * 100).toFixed(1) + '%',
+          salesTaxRate: (SALES_TAX_RATE * 100).toFixed(1) + '%',
           hasPromcode: ticket.ticket_id.hasPromcode,
           participant_id: ticket.participant_id,
           qr_code: ticket.ticket_id.qr_code,

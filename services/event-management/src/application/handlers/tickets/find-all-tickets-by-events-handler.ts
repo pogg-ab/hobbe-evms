@@ -6,16 +6,16 @@ import { Tickets } from "src/domain/entities/tickets.entity";
 
 @QueryHandler(FindTicketByEventsQuery)
 
-export class TicketsFindByHeadingQueryHandler implements IQueryHandler<FindTicketByEventsQuery>{
+export class TicketsFindByHeadingQueryHandler implements IQueryHandler<FindTicketByEventsQuery> {
     constructor(
-        private readonly ticketsService : TicketsService
-    ){}
+        private readonly ticketsService: TicketsService
+    ) { }
     execute(query: FindTicketByEventsQuery): Promise<{
         tickets: Tickets[] | null
-      }> {
-      const { event_id} = query;
-      return this.ticketsService.findAllByTicketsEvents(event_id);
+    }> {
+        const { event_id } = query;
+        return this.ticketsService.findAllByTicketsEvents(event_id);
     }
-    
+
 }
 
