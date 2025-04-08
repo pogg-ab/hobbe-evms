@@ -11,7 +11,9 @@ export class KafkaConsumerService implements OnApplicationShutdown{
      async paymentLinkConsume(topics:ConsumerSubscribeTopics, config:ConsumerRunConfig){
         const consumer = this.kafka.consumer({
             groupId:'payment_link',
-            allowAutoTopicCreation: true,
+            sessionTimeout: 30000,         // default is 30000ms
+            heartbeatInterval: 3000,  
+            allowAutoTopicCreation: false,
         });
         await consumer.connect();
         await consumer.subscribe(topics);

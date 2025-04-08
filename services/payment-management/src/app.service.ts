@@ -58,12 +58,11 @@ export class AppService {
         eachMessage: async ({ message }) => {
           const value = message.value?.toString();
           if (!value) return;
-    
-          const { event_id, booking_id, amount } = JSON.parse(value);
-    
+          const { event_id, booking_id, amount,user_id } = JSON.parse(value);
           const paymentLink = await this.chapaSdkService.paymentInit({
             event_id,
             booking_id,
+            user_id,
             amount,
             currency: 'ETB',
             phone_number: '0900123456',

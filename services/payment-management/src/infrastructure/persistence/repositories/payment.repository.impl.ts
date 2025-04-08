@@ -22,7 +22,6 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
     async create(createPaymentDto: CreatePaymentDto): Promise<Payments> {
         try {
             const newPayment = this.paymentRepository.create(createPaymentDto);
-          
             const payment = await this.paymentRepository.save(newPayment);
             return payment;
           } catch (error) {
