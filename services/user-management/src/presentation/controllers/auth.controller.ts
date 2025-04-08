@@ -233,7 +233,7 @@ export class AuthController {
 
     this.logRedirectAttempt(clientIp, token, platform);
 
-    const redirectHtml = this.buildRedirectPage(encodedToken, platform);
+    const redirectHtml = this.buildResetPasswordPage(token);
     res.setHeader('Content-Type', 'text/html');
     res.send(redirectHtml);
   }
@@ -269,141 +269,368 @@ export class AuthController {
     });
   }
 
-  private removePrefixFromDeepLink(url) {
-    if (url && url.startsWith('http://89.117.37.84:4000/auth/')) {
-      return url.replace('http://89.117.37.84:4000/auth/', '');
-    }
-    return url;
-  }
-
-  private buildRedirectPage(token: string, platform: string): string {
-    const deepLinkWithPrefix = `${process.env.APP_DEEP_LINK}?token=${token}`;
-    const webLink = `${process.env.WEB_RESET_LINK}?token=${token}`;
-    const appStoreLink = platform === 'ios'
-      ? process.env.IOS_APP_STORE_LINK
-      : process.env.ANDROID_PLAY_STORE_LINK;
-
-    const deepLink = this.removePrefixFromDeepLink(deepLinkWithPrefix);
+  private buildResetPasswordPage(token: string): string {
+    const apiBaseUrl = process.env.API_BASE_URL || 'http://89.117.37.84:4000/auth';
+    const apiEndpoint = `${apiBaseUrl}/password-reset`;
+    const loginUrl = `${apiBaseUrl.replace('/auth', '')}/login`;
 
     return `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirecting to Hobbe EVMS</title>
-    <script>
-        (function() {
-            const config = {
-                deepLink: '${deepLink}',
-                webLink: '${webLink}',
-                appStoreLink: '${appStoreLink}',
-                timeout: 1500,
-                isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
-                platform: '${platform}'
-            };
-
-            const elements = {
-                spinner: document.querySelector('.spinner'),
-                message: document.querySelector('.message'),
-                heading: document.querySelector('.heading'),
-                webButton: document.querySelector('.web-btn'),
-                appButton: document.querySelector('.app-btn')
-            };
-
-            function showElement(el) {
-                if (el) el.style.display = 'block';
-            }
-
-            function hideElement(el) {
-                if (el) el.style.display = 'none';
-            }
-
-            function updateMessage(text) {
-                if (elements.message) {
-                    elements.message.textContent = text;
-                    showElement(elements.message);
-                }
-            }
-
-            function attemptDeepLinkRedirect() {
-                const startTime = Date.now();
-                
-                if (config.isMobile) {
-                    const opened = window.open(config.webLink, '_blank');
-                    
-                    setTimeout(() => {
-                      if (!opened || opened.closed || typeof opened.closed === 'undefined') {
-                            updateMessage('App not found. Redirecting to browser...');
-                            window.location.href = config.webLink;
-                        }
-                    }, config.timeout);
-                } else {
-                    window.location.href = config.webLink;
-                }
-            }
-
-            function init() {
-                hideElement(elements.message);
-                if (config.platform === 'desktop') {
-                    hideElement(elements.appButton);
-                }
-                
-                if (elements.webButton) {
-                    elements.webButton.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        window.location.href = config.webLink;
-                    });
-                }
-                
-                if (elements.appButton) {
-                    elements.appButton.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        window.location.href = config.appStoreLink;
-                    });
-                }
-                
-                attemptDeepLinkRedirect();
-            }
-
-            document.addEventListener('DOMContentLoaded', init);
-        })();
-    </script>
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ${apiBaseUrl}; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>Reset Your Password | Hobbe EVMS</title>
     <style>
-      body { font-family: Arial, sans-serif; text-align: center; padding: 2rem; }
-      .spinner { 
-        border: 4px solid rgba(0,0,0,0.1); 
-        border-radius: 50%; 
-        border-top: 4px solid #3498db;
-        width: 40px; height: 40px;
-        animation: spin 1s linear infinite;
-        margin: 2rem auto;
-      }
-      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      .btn { 
-        display: inline-block;
-        padding: 10px 20px;
-        margin: 10px;
-        border-radius: 5px;
-        text-decoration: none;
-        font-weight: bold;
-      }
-      .web-btn { background: #3498db; color: white; }
-      .app-btn { background: white; color: #3498db; border: 2px solid #3498db; }
-      .message { font-size: 16px; margin-top: 1rem; }
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --error: #ef233c;
+            --success: #4cc9f0;
+            --text: #2b2d42;
+            --light: #f8f9fa;
+            --border: #dee2e6;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .reset-card {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo img {
+            height: 42px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            transition: all 0.2s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #adb5bd;
+            font-size: 1.1rem;
+        }
+        
+        .password-strength {
+            height: 4px;
+            background: var(--border);
+            margin-top: 0.75rem;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .strength-meter {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+        }
+        
+        .requirements {
+            margin-top: 0.75rem;
+            font-size: 0.8125rem;
+        }
+        
+        .requirement {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.375rem;
+            color: #6c757d;
+        }
+        
+        .requirement i {
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 0.875rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn:disabled {
+            background-color: #adb5bd;
+            cursor: not-allowed;
+        }
+        
+        .alert {
+            padding: 0.875rem 1rem;
+            border-radius: 8px;
+            margin-top: 1.25rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+        
+        .alert-success {
+            background-color: rgba(76, 201, 240, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(76, 201, 240, 0.2);
+        }
+        
+        .alert-error {
+            background-color: rgba(239, 35, 60, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 35, 60, 0.2);
+        }
     </style>
-  </head>
-  <body>
-    <div class="spinner"></div>
-    <h2>Taking you to Hobbe EVMS...</h2>
-    <div class="message" style="display: none;"></div>
-    <div style="margin-top: 2rem;">
-      <a href="${webLink}" class="btn web-btn">Continue in Browser</a>
-      ${platform !== 'desktop' ?
-        `<a href="${appStoreLink}" class="btn app-btn">Get Mobile App</a>` : ''}
+</head>
+<body>
+    <div class="reset-card">
+        <div class="logo">
+            <img src="https://via.placeholder.com/150x50?text=Hobbe+EVMS" alt="Hobbe EVMS Logo">
+        </div>
+        
+        <h1>Create New Password</h1>
+        
+        <form id="resetForm">
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <div class="input-wrapper">
+                    <input type="password" id="newPassword" name="newPassword" required 
+                           placeholder="Enter your new password" autocomplete="new-password">
+                    <span class="password-toggle" id="toggleNewPassword">👁</span>
+                </div>
+                <div class="password-strength">
+                    <div class="strength-meter" id="strengthMeter"></div>
+                </div>
+                <div class="requirements" id="passwordRequirements">
+                    <div class="requirement"><span id="lengthIcon">✖</span> At least 8 characters</div>
+                    <div class="requirement"><span id="uppercaseIcon">✖</span> At least 1 uppercase letter</div>
+                    <div class="requirement"><span id="numberIcon">✖</span> At least 1 number</div>
+                    <div class="requirement"><span id="specialIcon">✖</span> At least 1 special character</div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <div class="input-wrapper">
+                    <input type="password" id="confirmPassword" name="confirmPassword" required 
+                           placeholder="Confirm your new password" autocomplete="new-password">
+                    <span class="password-toggle" id="toggleConfirmPassword">👁</span>
+                </div>
+                <div id="confirmMessage" class="requirements"></div>
+            </div>
+            
+            <button type="submit" class="btn" id="submitBtn" disabled>Reset Password</button>
+            
+            <div id="message" class="alert"></div>
+        </form>
     </div>
-  </body>
-  </html>
+
+    <script>
+        document.getElementById('toggleNewPassword').addEventListener('click', function() {
+            togglePassword('newPassword', this);
+        });
+        
+        document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+            togglePassword('confirmPassword', this);
+        });
+        
+        function togglePassword(fieldId, toggleElement) {
+            const input = document.getElementById(fieldId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggleElement.textContent = '👁️‍🗨️';
+            } else {
+                input.type = 'password';
+                toggleElement.textContent = '👁';
+            }
+        }
+        
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            const requirements = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                number: /[0-9]/.test(password),
+                special: /[^A-Za-z0-9]/.test(password)
+            };
+            
+            Object.keys(requirements).forEach(key => {
+                const icon = document.getElementById(key + 'Icon');
+                if (requirements[key]) {
+                    icon.textContent = '✓';
+                    icon.style.color = '#4cc9f0';
+                    strength++;
+                } else {
+                    icon.textContent = '✖';
+                    icon.style.color = '#ef233c';
+                }
+            });
+            
+            const meter = document.getElementById('strengthMeter');
+            const percent = strength * 25;
+            meter.style.width = percent + '%';
+            
+            if (percent < 50) {
+                meter.style.backgroundColor = '#ef233c';
+            } else if (percent < 100) {
+                meter.style.backgroundColor = '#f8961e';
+            } else {
+                meter.style.backgroundColor = '#4cc9f0';
+            }
+            
+            return strength === 4;
+        }
+        
+        function validateForm() {
+            const password = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const confirmMessage = document.getElementById('confirmMessage');
+            
+            const isStrong = checkPasswordStrength(password);
+            const passwordsMatch = password === confirmPassword;
+            
+            if (confirmPassword.length > 0) {
+                confirmMessage.innerHTML = passwordsMatch 
+                    ? '<span style="color:#4cc9f0">✓ Passwords match</span>' 
+                    : '<span style="color:#ef233c">✖ Passwords do not match</span>';
+            } else {
+                confirmMessage.textContent = '';
+            }
+            
+            submitBtn.disabled = !(isStrong && passwordsMatch);
+        }
+        
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('message');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            messageDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('${apiEndpoint}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        newPassword: password,
+                        token: '${token}',
+                        confirmPassword: confirmPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to reset password');
+                }
+                
+                messageDiv.className = 'alert alert-success';
+                messageDiv.textContent = data.message || 'Password reset successfully!';
+                messageDiv.style.display = 'block';
+                
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+                
+                setTimeout(() => {
+                    window.location.href = '${loginUrl}';
+                }, 3000);
+                
+            } catch (error) {
+                messageDiv.className = 'alert alert-error';
+                messageDiv.textContent = error.message || 'An error occurred while resetting your password';
+                messageDiv.style.display = 'block';
+                console.error('Error:', error);
+            } finally {
+                submitBtn.textContent = 'Reset Password';
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('newPassword').addEventListener('input', validateForm);
+            document.getElementById('confirmPassword').addEventListener('input', validateForm);
+            document.getElementById('resetForm').addEventListener('submit', handleSubmit);
+            
+            validateForm();
+        });
+    </script>
+</body>
+</html>
     `;
   }
 
