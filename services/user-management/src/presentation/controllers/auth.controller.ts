@@ -27,6 +27,7 @@ import { ResendOtpDto } from '../dtos/resend-otp.dto';
 import { VerifyOtpDto } from '../dtos/verify-otp.dto';
 import { Request, Response } from 'express';
 import { createHash } from 'crypto';
+import { log } from 'console';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -268,71 +269,144 @@ export class AuthController {
     });
   }
 
+  private removePrefixFromDeepLink(url) {
+    if (url && url.startsWith('http://89.117.37.84:4000/auth/')) {
+      return url.replace('http://89.117.37.84:4000/auth/', '');
+    }
+    return url;
+  }
+
   private buildRedirectPage(token: string, platform: string): string {
-    const deepLink = `${process.env.APP_DEEP_LINK}?token=${token}`;
+    const deepLinkWithPrefix = `${process.env.APP_DEEP_LINK}?token=${token}`;
     const webLink = `${process.env.WEB_RESET_LINK}?token=${token}`;
     const appStoreLink = platform === 'ios'
       ? process.env.IOS_APP_STORE_LINK
       : process.env.ANDROID_PLAY_STORE_LINK;
 
+    const deepLink = this.removePrefixFromDeepLink(deepLinkWithPrefix);
+
     return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redirecting to Hobbe EVMS</title>
-  <script>
-    function tryDeepLink() {
-      const isMobile = ${platform !== 'desktop'};
-      if (isMobile) {
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = '${deepLink}';
-        document.body.appendChild(iframe);
-        setTimeout(() => {
-          window.location.href = '${webLink}';
-        }, 1500);
-      } else {
-        window.location.href = '${webLink}';
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting to Hobbe EVMS</title>
+    <script>
+        (function() {
+            const config = {
+                deepLink: '${deepLink}',
+                webLink: '${webLink}',
+                appStoreLink: '${appStoreLink}',
+                timeout: 1500,
+                isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
+                platform: '${platform}'
+            };
+
+            const elements = {
+                spinner: document.querySelector('.spinner'),
+                message: document.querySelector('.message'),
+                heading: document.querySelector('.heading'),
+                webButton: document.querySelector('.web-btn'),
+                appButton: document.querySelector('.app-btn')
+            };
+
+            function showElement(el) {
+                if (el) el.style.display = 'block';
+            }
+
+            function hideElement(el) {
+                if (el) el.style.display = 'none';
+            }
+
+            function updateMessage(text) {
+                if (elements.message) {
+                    elements.message.textContent = text;
+                    showElement(elements.message);
+                }
+            }
+
+            function attemptDeepLinkRedirect() {
+                const startTime = Date.now();
+                
+                if (config.isMobile) {
+                    const opened = window.open(config.webLink, '_blank');
+                    
+                    setTimeout(() => {
+                      if (!opened || opened.closed || typeof opened.closed === 'undefined') {
+                            updateMessage('App not found. Redirecting to browser...');
+                            window.location.href = config.webLink;
+                        }
+                    }, config.timeout);
+                } else {
+                    window.location.href = config.webLink;
+                }
+            }
+
+            function init() {
+                hideElement(elements.message);
+                if (config.platform === 'desktop') {
+                    hideElement(elements.appButton);
+                }
+                
+                if (elements.webButton) {
+                    elements.webButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.location.href = config.webLink;
+                    });
+                }
+                
+                if (elements.appButton) {
+                    elements.appButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.location.href = config.appStoreLink;
+                    });
+                }
+                
+                attemptDeepLinkRedirect();
+            }
+
+            document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; padding: 2rem; }
+      .spinner { 
+        border: 4px solid rgba(0,0,0,0.1); 
+        border-radius: 50%; 
+        border-top: 4px solid #3498db;
+        width: 40px; height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 2rem auto;
       }
-    }
-    document.addEventListener('DOMContentLoaded', tryDeepLink);
-  </script>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 2rem; }
-    .spinner { 
-      border: 4px solid rgba(0,0,0,0.1); 
-      border-radius: 50%; 
-      border-top: 4px solid #3498db;
-      width: 40px; height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 2rem auto;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .btn { 
-      display: inline-block;
-      padding: 10px 20px;
-      margin: 10px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .web-btn { background: #3498db; color: white; }
-    .app-btn { background: white; color: #3498db; border: 2px solid #3498db; }
-  </style>
-</head>
-<body>
-  <div class="spinner"></div>
-  <h2>Taking you to Hobbe EVMS...</h2>
-  <div style="margin-top: 2rem;">
-    <a href="${webLink}" class="btn web-btn">Continue in Browser</a>
-    ${platform !== 'desktop' ?
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      .btn { 
+        display: inline-block;
+        padding: 10px 20px;
+        margin: 10px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+      }
+      .web-btn { background: #3498db; color: white; }
+      .app-btn { background: white; color: #3498db; border: 2px solid #3498db; }
+      .message { font-size: 16px; margin-top: 1rem; }
+    </style>
+  </head>
+  <body>
+    <div class="spinner"></div>
+    <h2>Taking you to Hobbe EVMS...</h2>
+    <div class="message" style="display: none;"></div>
+    <div style="margin-top: 2rem;">
+      <a href="${webLink}" class="btn web-btn">Continue in Browser</a>
+      ${platform !== 'desktop' ?
         `<a href="${appStoreLink}" class="btn app-btn">Get Mobile App</a>` : ''}
-  </div>
-</body>
-</html>
-  `;
+    </div>
+  </body>
+  </html>
+    `;
   }
+
+
 }
 

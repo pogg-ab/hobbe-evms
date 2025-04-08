@@ -35,6 +35,7 @@ import { CREATE_TICKET_HEADING_REPOSITORY_TOKEN } from 'src/domain/repositories/
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
 import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { BookingHasPaymentRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-payment.repository.impl';
 import { BookingHasPromocodeRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-promocode.repository.impl';
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
 import { ParticipantHasTicketRepositoryImpl } from 'src/infrastructure/persistence/repositories/participant-has-ticket.repository.impl';
@@ -120,7 +121,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     },
     {
       provide: CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN,
-      useClass: BookingHasPromocodeRepositoryImpl,
+      useClass: BookingHasPaymentRepositoryImpl,
     },
   ],
 })

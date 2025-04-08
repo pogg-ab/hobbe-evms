@@ -68,13 +68,13 @@ export class TicketBookingController {
   async createTicketBooking(
     @Body() createTicketBookingDto: CreateTicketBookingDto,
     @CurrentUserId() user: any,
-  ): Promise<{ message: string; ticketBooking: TicketBooking,paymentLink:any }> {
+  ): Promise<{ message: string; ticketBooking: TicketBooking, paymentLink: any }> {
     const command = new CreateTicketBookingCommand(
       createTicketBookingDto,
       user.user.user_id.toString(),
     );
     const ticketBooking = await this.commandBus.execute(command);
-   
+
     const paymentLink = await this.getPaymentLinkWithTimeout();
     // const paymentLink = createTicketBookingDto.hasPromocode ?  await this.getPaymentLinkWithTimeout() : null;
     return {
@@ -83,7 +83,7 @@ export class TicketBookingController {
       paymentLink
     };
   }
-  
+
 
   @ApiOperation({ description: 'Get Ticket Booking By ID' })
   @HttpCode(200)
@@ -201,7 +201,7 @@ export class TicketBookingController {
 
   private async getPaymentLinkWithTimeout(timeoutMs: number = 10000): Promise<string> {
     const paymentLinkEmitter = new EventEmitter();
-  
+
     // Create promise for payment link
     const paymentLinkPromise = new Promise<string>((resolve, reject) => {
       // Success handler
@@ -209,16 +209,16 @@ export class TicketBookingController {
         // console.log('Received paymentLink:', link);
         resolve(link);
       });
-  
+
       // Timeout handler
       setTimeout(() => {
         reject(new Error('Payment link not received in time'));
       }, timeoutMs);
     });
-  
+
     // Start consuming Kafka messages
     this.startKafkaPaymentLinkConsumer(paymentLinkEmitter);
-  
+
     return paymentLinkPromise;
   }
 
@@ -229,7 +229,7 @@ export class TicketBookingController {
         eachMessage: async ({ message }) => {
           const value = message.value?.toString();
           if (!value) return;
-  
+
           try {
             const paymentLink = JSON.parse(value);
             emitter.emit('received', paymentLink);

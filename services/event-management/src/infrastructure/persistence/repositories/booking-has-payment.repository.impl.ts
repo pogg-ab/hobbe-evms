@@ -7,14 +7,13 @@ import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class BookingHasPaymentRepositoryImpl
-  implements IBookingHasPaymentRepository
-{
+  implements IBookingHasPaymentRepository {
   constructor(
     @InjectRepository(BookingHasPayment)
     private bookingHasPaymentRepository: Repository<BookingHasPayment>,
     @InjectRepository(TicketBooking)
     private ticketBookingRepository: Repository<TicketBooking>,
-  ) {}
+  ) { }
 
   async create(
     manager: EntityManager,

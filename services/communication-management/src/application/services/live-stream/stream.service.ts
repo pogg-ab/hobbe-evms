@@ -254,7 +254,7 @@ export class StreamService {
         }
       }
 
-      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(selectedCamera, rtmpUrl, streamId);
+      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(null, rtmpUrl, streamId);
 
       if (streamStatus.status === 'started') {
         console.log(`Stream started successfully for stream ID: ${streamId}`);
@@ -282,6 +282,7 @@ export class StreamService {
   async getCameraDevices(): Promise<{ deviceId: string; label: string }[]> {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
+      console.log("devices : ", devices)
       return devices.filter(device => device.kind === 'videoinput').map(device => ({
         deviceId: device.deviceId,
         label: device.label || 'Unknown Camera',
