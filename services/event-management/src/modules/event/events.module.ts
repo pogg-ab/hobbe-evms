@@ -125,7 +125,7 @@ export class EventsModule {
   constructor(@Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka) { }
 
   async onModuleInit() {
-    this.client.subscribeToResponseOf('validateEventUser');
+    this.client.subscribeToResponseOf('validateUser');
     await this.client.connect();
   }
 }

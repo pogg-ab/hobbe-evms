@@ -5,9 +5,12 @@ export const kafkaProducerConfig: KafkaOptions = {
   transport: Transport.KAFKA,
   options: {
     client: {
-      clientId: 'auth-producer',
+      clientId: 'comm-auth-producer',
       brokers: [process.env.KAFKA_BROKER],
     } as KafkaConfig,
+     consumer: {
+          groupId: 'comm-consumer-group',
+        },
     producer: { allowAutoTopicCreation: true },
   },
 };

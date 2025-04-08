@@ -5,13 +5,13 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class UserValidationService {
   constructor(
-    @Inject('KAFKA_VALIDATE_USER_SERVICE') private readonly eventClient: ClientKafka,
+    @Inject('KAFKA_VALIDATE_USER_SERVICE') private readonly client: ClientKafka,
   ) { }
 
   async validateUser(payload: any): Promise<any> {
     try {
       const response = await firstValueFrom(
-        this.eventClient.send('validateEventUser', payload),
+        this.client.send('validateUser', payload),
       );
 
 
