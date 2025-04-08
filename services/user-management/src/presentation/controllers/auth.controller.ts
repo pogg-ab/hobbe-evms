@@ -204,8 +204,8 @@ export class AuthController {
   async validateJWT(@Payload() payload: any): Promise<any> {
     return await this.authService.validateJwt(payload);
   }
-  @MessagePattern('validateEventUser')
-  async validateEventJWT(@Payload() payload: any): Promise<any> {
-    return await this.authService.validateJwt(payload);
-  }
+  // @MessagePattern('validateCommUser')
+  // async validateCommJWT(@Payload() payload: any): Promise<any> {
+  //   return await this.authService.validateJwt(payload);
+  // }
 }
