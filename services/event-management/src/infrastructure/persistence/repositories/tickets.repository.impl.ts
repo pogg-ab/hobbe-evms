@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
+import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
@@ -163,6 +164,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   async updateStatus(
     manager: EntityManager,
     id: IdValueObject,
+    booking_id: string,
     status: string,
     user: any
   ): Promise<Tickets | null> {
@@ -170,6 +172,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       const ticket = await manager.findOne(Tickets, {
         where: { id },
       });
+
 
       if (!ticket) {
         throw new HttpException(
@@ -180,10 +183,9 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
 
       ticket.status = status;
       ticket.updated_by = user;
+      ticket.booking_id = booking_id ; // Assuming ticket_id is the booking ID
       ticket.updated_at = new Date();
-
       await this.ticketsListRepository.save(ticket);
-
       return ticket;
     } catch (error) {
       throw new HttpException(
@@ -192,6 +194,36 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       );
     }
   }
+
+  async updateStatusAfterPayment(
+    manager: EntityManager,
+    booking_id: string,
+  ): Promise<void> {
+    try {
+      const result = await manager
+        .createQueryBuilder()
+        .update(Tickets)
+        .set({
+          status: 'paid', // or whatever status you want to set
+          updated_at: new Date(),
+        })
+        .where('booking_id = :booking_id', { booking_id })
+        .execute();
+  
+      if (result.affected === 0) {
+        throw new HttpException(
+          `No tickets found with booking_id ${booking_id}`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+    } catch (error) {
+      throw new HttpException(
+        `Error updating tickets for booking_id ${booking_id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  
 
   async findUpcomingTickets(
     userId: string,

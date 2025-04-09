@@ -32,4 +32,10 @@ export interface ITicketBookingRepository {
     event_organizer_id: string,
   ): Promise<{ event: Event; ticketBookings: TicketBooking[] }[] | null>;
 
+
+  updateStatus(
+    id: string,
+    booking_status: string,
+    update_at: any,
+  ): Promise<TicketBooking>;
 }

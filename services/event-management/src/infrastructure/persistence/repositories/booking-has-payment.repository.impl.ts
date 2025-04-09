@@ -26,7 +26,6 @@ export class BookingHasPaymentRepositoryImpl
       const ticketBooking = await manager.findOne(TicketBooking, {
         where: { booking_id: bookingId },
       });
-      console.log(ticketBooking);
 
       if (!ticketBooking) {
         throw new HttpException(
@@ -117,6 +116,39 @@ export class BookingHasPaymentRepositoryImpl
       );
     }
   }
+
+  async updateStatus(
+    bookingId: string,
+    status: 'pending' | 'paid' | 'failed',
+  ): Promise<void> {
+    try {
+      const bookingHasPayment = await this.bookingHasPaymentRepository
+      .createQueryBuilder('bhp')
+      .where('bhp.booking_id = :bookingId', { bookingId })
+      .getOne();
+    
+  
+      if (!bookingHasPayment) {
+        throw new HttpException(
+          `Booking Has Payment with ID ${bookingId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+  
+      bookingHasPayment.status = status;
+      bookingHasPayment.updated_at = new Date();
+  
+      await this.bookingHasPaymentRepository.save(bookingHasPayment);
+      // console.log('Booking ID:', bookingId);
+      
+    } catch (error) {
+      throw new HttpException(
+        `Error updating Booking Has Payment with ID ${bookingId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  
 
   async delete(bookingHasPaymentId: string): Promise<void> {
     try {

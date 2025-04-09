@@ -13,11 +13,11 @@ import { KafkaProducerService } from './infrastructure/kafka/kafka.producer.serv
 export class AppService {
   constructor(
     private readonly kafkaConsumerService: KafkaConsumerService,
-    private readonly kafkaProducerService: KafkaProducerService,
+    // private readonly kafkaProducerService: KafkaProducerService,
     @Inject(CREATE_BANK_ACCOUNT_TOKEN)
     private readonly createBankAccountRepository: IBankAccountRepository,
     @InjectMapper() private readonly mapper: Mapper,
-    private readonly chapaSdkService: ChapaSDKService,
+    // private readonly chapaSdkService: ChapaSDKService,
   ) {}
   getHello(): string {
     return 'Hello World!';
@@ -52,29 +52,29 @@ export class AppService {
       },
     );
 
-    await this.kafkaConsumerService.paymentConsumer(
-      { topics: ['payment_info_sent'] },
-      {
-        eachMessage: async ({ message }) => {
-          const value = message.value?.toString();
-          if (!value) return;
-          const { event_id, booking_id, amount,user_id } = JSON.parse(value);
-          const paymentLink = await this.chapaSdkService.paymentInit({
-            event_id,
-            booking_id,
-            user_id,
-            amount,
-            currency: 'ETB',
-            phone_number: '0900123456',
-          });
+    // await this.kafkaConsumerService.paymentConsumer(
+    //   { topics: ['payment_info_sent'] },
+    //   {
+    //     eachMessage: async ({ message }) => {
+    //       const value = message.value?.toString();
+    //       if (!value) return;
+    //       const { event_id, booking_id, amount,user_id } = JSON.parse(value);
+    //       const paymentLink = await this.chapaSdkService.paymentInit({
+    //         event_id,
+    //         booking_id,
+    //         user_id,
+    //         amount,
+    //         currency: 'ETB',
+    //         phone_number: '0900123456',
+    //       });
     
-          await this.kafkaProducerService.produce({
-            topic: 'payment_link',
-            messages: [{ value: JSON.stringify(paymentLink) }],
-          });    
-        },
-      }
-    );
+    //       await this.kafkaProducerService.produce({
+    //         topic: 'payment_link',
+    //         messages: [{ value: JSON.stringify(paymentLink) }],
+    //       });    
+    //     },
+    //   }
+    // );
     
   }
 }

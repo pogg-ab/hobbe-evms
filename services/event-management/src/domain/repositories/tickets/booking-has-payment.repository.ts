@@ -23,5 +23,11 @@ export interface IBookingHasPaymentRepository {
     user: any,
   ): Promise<void>;
 
+  updateStatus(
+    // manager: EntityManager,
+    bookingId: string,
+    status: 'pending' | 'paid' | 'failed',
+  ): Promise<void>;
+
   delete(bookingHasPaymentId: string): Promise<void>;
 }

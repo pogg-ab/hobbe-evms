@@ -50,7 +50,9 @@ export class CommentsRepositoryImpl implements ICommentsRepository {
   async findAllByEvent(event_id: string): Promise<Comments[]> {
     try {
       const data = `SELECT * FROM comments
-        WHERE event_id = '${event_id}'`;
+        WHERE event_id = '${event_id}'
+         ORDER BY created_at DESC
+        `;
       const commnets = this.dataSource.query(data);
       if (!commnets) {
         throw new HttpException(

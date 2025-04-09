@@ -175,6 +175,29 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
     }
   }
 
+
+  async updateStatus(
+    id: string,
+    booking_status: string,
+    updated_at: string,
+  ): Promise<TicketBooking> {
+    try {
+      const ticketBooking = await this.findOne(id);
+      const updatedTicketBooking = this.ticketBookingRepository.merge(
+        ticketBooking,
+        { booking_status, updated_at },
+      );
+     
+      await this.ticketBookingRepository.save(updatedTicketBooking);
+      return updatedTicketBooking;
+    } catch (error) {
+      throw new HttpException(
+        `Error status updating Ticket Booking with ID ${id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async delete(id: string): Promise<void> {
     try {
       const ticketBooking = await this.findOne(id);

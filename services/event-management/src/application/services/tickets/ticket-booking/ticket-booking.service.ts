@@ -284,16 +284,8 @@ export class TicketBookingService {
         );
       }
 
-      // await this.kafkaProducerService.produce({
-      //   topic: 'payment_info_sent',
-      //   messages: [{ value: JSON.stringify({...createdBooking, amount:calculatedPrice}) }],
-      // }); 
-
-      // const paymentLink = createTicketBookingDto.hasPayment ?  await this.getPaymentLinkWithTimeout() : null;
-  
-      // console.log('Payment link:', paymentLink);
+     
       const paymentLink = await this.kafkaPaymentRpcService.sendRequest('payment-link-request-topic', { value: JSON.stringify({...createdBooking, amount:calculatedPrice}) } );
-      // console.log('Response from payment service:', response);
 
       for (let i = 0; i < ticketCount; i++) {
         const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
@@ -304,6 +296,7 @@ export class TicketBookingService {
         await this.ticketRepository.updateStatus(
           queryRunner.manager,
           selectedTickets[i].id,
+          createdBooking.booking_id,
           status,
           user
         );
@@ -438,7 +431,24 @@ export class TicketBookingService {
       {
         eachMessage: async ({ message }) => {
           const paymentStatus = JSON.parse(message.value.toString());
-          console.log('Payment status received:', paymentStatus);
+          await this.ticketBookingRepository.updateStatus(
+            paymentStatus.booking_id,
+            paymentStatus.payment_status,
+            new Date(),
+          );
+          
+          
+          await this.bookingHasPaymentRepository.updateStatus(
+            paymentStatus.booking_id,
+            "paid",
+          );
+
+          await this.ticketRepository.updateStatusAfterPayment(
+            this.dataSource.manager,
+            paymentStatus.booking_id,
+          );
+          
+          console.log("Done updating ticket status after payment");
           
         },
       },
@@ -450,46 +460,46 @@ export class TicketBookingService {
 
 
   // Kafka Consumer for payment_info_sent topic
-  private async getPaymentLinkWithTimeout(timeoutMs: number = 3000): Promise<string> {
-    const paymentLinkEmitter = new EventEmitter();
+  // private async getPaymentLinkWithTimeout(timeoutMs: number = 3000): Promise<string> {
+  //   const paymentLinkEmitter = new EventEmitter();
 
-    // Create promise for payment link
-    const paymentLinkPromise = new Promise<string>((resolve, reject) => {
-      // Success handler
-      paymentLinkEmitter.on('received', (link: string) => {
-        // console.log('Received paymentLink:', link);
-        resolve(link);
-      });
+  //   // Create promise for payment link
+  //   const paymentLinkPromise = new Promise<string>((resolve, reject) => {
+  //     // Success handler
+  //     paymentLinkEmitter.on('received', (link: string) => {
+  //       // console.log('Received paymentLink:', link);
+  //       resolve(link);
+  //     });
 
-      // Timeout handler
-      setTimeout(() => {
-        reject(
-          new RequestTimeoutException('Oops! 😒 The payment link wasn’t received in time. Please try again.'));
-      }, timeoutMs);
-    });
+  //     // Timeout handler
+  //     setTimeout(() => {
+  //       reject(
+  //         new RequestTimeoutException('Oops! 😒 The payment link wasn’t received in time. Please try again.'));
+  //     }, timeoutMs);
+  //   });
 
-    // Start consuming Kafka messages
-    this.startKafkaPaymentLinkConsumer(paymentLinkEmitter);
+  //   // Start consuming Kafka messages
+  //   this.startKafkaPaymentLinkConsumer(paymentLinkEmitter);
 
-    return paymentLinkPromise;
-  }
+  //   return paymentLinkPromise;
+  // }
 
-  private startKafkaPaymentLinkConsumer(emitter: EventEmitter): void {
-    this.kafkaConsumerService.paymentLinkConsume(
-      { topics: ['payment_link'],fromBeginning: true  },
-      {
-        eachMessage: async ({ message }) => {
-          const value = message.value?.toString();
-          if (!value) return;
+  // private startKafkaPaymentLinkConsumer(emitter: EventEmitter): void {
+  //   this.kafkaConsumerService.paymentLinkConsume(
+  //     { topics: ['payment_link'],fromBeginning: true  },
+  //     {
+  //       eachMessage: async ({ message }) => {
+  //         const value = message.value?.toString();
+  //         if (!value) return;
 
-          try {
-            const paymentLink = JSON.parse(value);
-            emitter.emit('received', paymentLink);
-          } catch (error) {
-            console.error('Failed to parse payment link:', error);
-          }
-        },
-      }
-    );
-  }
+  //         try {
+  //           const paymentLink = JSON.parse(value);
+  //           emitter.emit('received', paymentLink);
+  //         } catch (error) {
+  //           console.error('Failed to parse payment link:', error);
+  //         }
+  //       },
+  //     }
+  //   );
+  // }
 }
