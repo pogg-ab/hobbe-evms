@@ -1,4 +1,4 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Chapa } from 'chapa-nodejs';
 import { ConfigService } from '@nestjs/config';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
@@ -38,7 +38,6 @@ export class ChapaSDKService {
   async paymentInit(chapaPayDto:CreateChapaPayDto): Promise<any> {
     try {
       const tx_ref = await this.generateReference();
-
       const response = await this.chapa.initialize({
         phone_number: chapaPayDto.phone_number,
         currency: chapaPayDto.currency,
@@ -58,7 +57,7 @@ export class ChapaSDKService {
       return response;
     } catch (error) {
       console.error('Payment Init Error:', error.response?.data || error.message);
-      throw new InternalServerErrorException('Payment initialization failed',error);
+      throw new BadRequestException('Payment initialization failed',error);
     }
   }
 

@@ -29,7 +29,6 @@ import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-tic
 import { MarkTicketAsAttendedDto } from 'src/presentation/dtos/tickets/mark-ticket-as-attended.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
-import { EventEmitter } from 'events';
 
 
 @ApiTags('Ticket Booking')
@@ -75,14 +74,7 @@ export class TicketBookingController {
       user.user.user_id.toString(),
     );
     const ticketBooking = await this.commandBus.execute(command);
-
-    // const paymentLink = await this.getPaymentLinkWithTimeout();
-    // const paymentLink = createTicketBookingDto.hasPayment ?  await this.getPaymentLinkWithTimeout() : null;
-    return {
-      message: 'Ticket Booking created successfully',
-      ticketBooking,
-      paymentLink:null
-    };
+    return ticketBooking;
   }
 
 

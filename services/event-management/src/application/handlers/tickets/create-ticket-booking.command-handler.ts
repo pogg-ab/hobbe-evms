@@ -8,7 +8,7 @@ export class CreateTicketBookingCommandHandler
 {
   constructor(private readonly ticketBookingsService: TicketBookingService) {}
 
-  async execute(command: CreateTicketBookingCommand): Promise<void> {
+  async execute(command: CreateTicketBookingCommand): Promise<{ message:string,paymentLink: any}> {
     const { createTicketBookingDto, user } = command;
     return this.ticketBookingsService.create(createTicketBookingDto, user);
   }

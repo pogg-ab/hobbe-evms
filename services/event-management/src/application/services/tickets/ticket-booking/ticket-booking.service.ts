@@ -38,6 +38,8 @@ import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-tic
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 import { EventEmitter } from 'stream';
 import { DataSource } from 'typeorm';
+import { KafkaPaymentRpcService } from 'src/infrastructure/kafka/kafka-payment-rpc.service';
+
 
 @Injectable()
 export class TicketBookingService {
@@ -65,16 +67,15 @@ export class TicketBookingService {
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
     private readonly socket: SocketIo,
-    private readonly kafkaProducerService: KafkaProducerService,
+    // private readonly kafkaProducerService: KafkaProducerService,
     private readonly kafkaConsumerService: KafkaConsumerService,
-
-
+    private readonly kafkaPaymentRpcService: KafkaPaymentRpcService,
   ) { }
 
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
     user: any,
-  ): Promise<void> {
+  ): Promise<{message:string, paymentLink: any}> {
     const eventId = createTicketBookingDto.event_id.toString();
     const ticketCount = createTicketBookingDto.total_amount;
     const currentDate = new Date();
@@ -283,14 +284,16 @@ export class TicketBookingService {
         );
       }
 
-      await this.kafkaProducerService.produce({
-        topic: 'payment_info_sent',
-        messages: [{ value: JSON.stringify({...createdBooking, amount:calculatedPrice}) }],
-      }); 
+      // await this.kafkaProducerService.produce({
+      //   topic: 'payment_info_sent',
+      //   messages: [{ value: JSON.stringify({...createdBooking, amount:calculatedPrice}) }],
+      // }); 
 
-      const paymentLink = createTicketBookingDto.hasPayment ?  await this.getPaymentLinkWithTimeout() : null;
+      // const paymentLink = createTicketBookingDto.hasPayment ?  await this.getPaymentLinkWithTimeout() : null;
   
-      console.log('Payment link:', paymentLink);
+      // console.log('Payment link:', paymentLink);
+      const paymentLink = await this.kafkaPaymentRpcService.sendRequest('payment-link-request-topic', { value: JSON.stringify({...createdBooking, amount:calculatedPrice}) } );
+      // console.log('Response from payment service:', response);
 
       for (let i = 0; i < ticketCount; i++) {
         const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
@@ -319,6 +322,10 @@ export class TicketBookingService {
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, eventId);
 
       await queryRunner.commitTransaction();
+      return {
+        message: 'Ticket Booking created successfully',
+        paymentLink: paymentLink,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

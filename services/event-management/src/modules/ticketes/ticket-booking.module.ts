@@ -33,6 +33,7 @@ import { CREATE_TICKET_BOOKING_REPOSITORY_TOKEN } from 'src/domain/repositories/
 import { CREATE_TICKET_GIFTS_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-gifts.repository.token';
 import { CREATE_TICKET_HEADING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets-heading.repository.token';
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
+import { KafkaPaymentRpcService } from 'src/infrastructure/kafka/kafka-payment-rpc.service';
 import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { BookingHasPaymentRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-payment.repository.impl';
@@ -83,6 +84,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     SocketIo,
     KafkaProducerService,
     KafkaConsumerService,
+    KafkaPaymentRpcService,
     {
       provide: CREATE_TICKET_BOOKING_REPOSITORY_TOKEN,
       useClass: TicketBookingRepositoryImpl,
