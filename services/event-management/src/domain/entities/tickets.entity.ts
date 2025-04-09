@@ -9,6 +9,7 @@ import { IdValueObject } from '../value-objects/event-id.value-object';
 import { Events } from './events.entity';
 import { Promocodes } from './promocodes.entity';
 import { TicketsHeading } from './tickets-heading.entity';
+import { TicketBooking } from './ticket-booking.entity';
 
 @Entity()
 export class Tickets {
@@ -104,4 +105,9 @@ export class Tickets {
 
   @Column({ type: 'timestamp', nullable: true })
   updated_at: Date;
+
+
+  @Column({ nullable: true })
+  booking_id?: string;
+  
 }

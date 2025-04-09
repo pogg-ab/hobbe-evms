@@ -37,8 +37,18 @@ export interface ITicketsRepository {
     manager: EntityManager,
     id: IdValueObject,
     status: string,
+    booking_id: string,
     user: any
   ): Promise<Tickets | null>;
+
+  updateStatusAfterPayment(
+    manager: EntityManager,
+    booking_id: string,
+  ): Promise<void>;
+
+
+  
+
   findUpcomingTickets(
     userId: string,
     page: number,
