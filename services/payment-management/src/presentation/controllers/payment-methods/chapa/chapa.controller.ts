@@ -25,7 +25,7 @@ export class ChapaController {
   
   @Post('initialize')
   async initializePayment(@Body() chapaPayDto:CreateChapaPayDto):Promise<any>{
-    return this.chapaSdkService.paymentInit(chapaPayDto);
+    return  await this.chapaSdkService.paymentInit(chapaPayDto);
   }
 
   @ApiOperation({ description: 'Verify Payment' })

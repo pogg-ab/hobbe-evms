@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  RequestTimeoutException,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -28,7 +29,6 @@ import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-tic
 import { MarkTicketAsAttendedDto } from 'src/presentation/dtos/tickets/mark-ticket-as-attended.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
-import { EventEmitter } from 'events';
 
 
 @ApiTags('Ticket Booking')
@@ -74,14 +74,7 @@ export class TicketBookingController {
       user.user.user_id.toString(),
     );
     const ticketBooking = await this.commandBus.execute(command);
-
-    const paymentLink = await this.getPaymentLinkWithTimeout();
-    // const paymentLink = createTicketBookingDto.hasPromocode ?  await this.getPaymentLinkWithTimeout() : null;
-    return {
-      message: 'Ticket Booking created successfully',
-      ticketBooking,
-      paymentLink
-    };
+    return ticketBooking;
   }
 
 
@@ -199,45 +192,5 @@ export class TicketBookingController {
   }
 
 
-  private async getPaymentLinkWithTimeout(timeoutMs: number = 10000): Promise<string> {
-    const paymentLinkEmitter = new EventEmitter();
 
-    // Create promise for payment link
-    const paymentLinkPromise = new Promise<string>((resolve, reject) => {
-      // Success handler
-      paymentLinkEmitter.on('received', (link: string) => {
-        // console.log('Received paymentLink:', link);
-        resolve(link);
-      });
-
-      // Timeout handler
-      setTimeout(() => {
-        reject(new Error('Payment link not received in time'));
-      }, timeoutMs);
-    });
-
-    // Start consuming Kafka messages
-    this.startKafkaPaymentLinkConsumer(paymentLinkEmitter);
-
-    return paymentLinkPromise;
-  }
-
-  private startKafkaPaymentLinkConsumer(emitter: EventEmitter): void {
-    this.kafkaConsumerService.paymentLinkConsume(
-      { topics: ['payment_link'] },
-      {
-        eachMessage: async ({ message }) => {
-          const value = message.value?.toString();
-          if (!value) return;
-
-          try {
-            const paymentLink = JSON.parse(value);
-            emitter.emit('received', paymentLink);
-          } catch (error) {
-            console.error('Failed to parse payment link:', error);
-          }
-        },
-      }
-    );
-  }
 }

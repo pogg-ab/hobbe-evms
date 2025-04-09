@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  RequestTimeoutException,
 } from '@nestjs/common';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
@@ -30,10 +31,15 @@ import { ITicketsHeadingRepository } from 'src/domain/repositories/tickets/ticke
 import { CREATE_TICKET_HEADING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets-heading.repository.token';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
+import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
+import { EventEmitter } from 'stream';
 import { DataSource } from 'typeorm';
+import { KafkaPaymentRpcService } from 'src/infrastructure/kafka/kafka-payment-rpc.service';
+
 
 @Injectable()
 export class TicketBookingService {
@@ -60,13 +66,16 @@ export class TicketBookingService {
     private readonly bookingHasPaymentRepository: IBookingHasPaymentRepository,
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
-    private readonly socket: SocketIo
+    private readonly socket: SocketIo,
+    // private readonly kafkaProducerService: KafkaProducerService,
+    private readonly kafkaConsumerService: KafkaConsumerService,
+    private readonly kafkaPaymentRpcService: KafkaPaymentRpcService,
   ) { }
 
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
     user: any,
-  ): Promise<void> {
+  ): Promise<{message:string, paymentLink: any}> {
     const eventId = createTicketBookingDto.event_id.toString();
     const ticketCount = createTicketBookingDto.total_amount;
     const currentDate = new Date();
@@ -275,6 +284,17 @@ export class TicketBookingService {
         );
       }
 
+      // await this.kafkaProducerService.produce({
+      //   topic: 'payment_info_sent',
+      //   messages: [{ value: JSON.stringify({...createdBooking, amount:calculatedPrice}) }],
+      // }); 
+
+      // const paymentLink = createTicketBookingDto.hasPayment ?  await this.getPaymentLinkWithTimeout() : null;
+  
+      // console.log('Payment link:', paymentLink);
+      const paymentLink = await this.kafkaPaymentRpcService.sendRequest('payment-link-request-topic', { value: JSON.stringify({...createdBooking, amount:calculatedPrice}) } );
+      // console.log('Response from payment service:', response);
+
       for (let i = 0; i < ticketCount; i++) {
         const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
         const participantId = createTicketBookingDto.hasGift
@@ -302,6 +322,10 @@ export class TicketBookingService {
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, eventId);
 
       await queryRunner.commitTransaction();
+      return {
+        message: 'Ticket Booking created successfully',
+        paymentLink: paymentLink,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -405,5 +429,67 @@ export class TicketBookingService {
     ticket.status = 'ATTENDED';
 
     return null;
+  }
+
+
+  async onModuleInit() {
+    await this.kafkaConsumerService.paymentStatusConsumer(
+      { topics: ['payment_status'] },
+      {
+        eachMessage: async ({ message }) => {
+          const paymentStatus = JSON.parse(message.value.toString());
+          console.log('Payment status received:', paymentStatus);
+          
+        },
+      },
+    ); 
+  }
+
+
+
+
+
+  // Kafka Consumer for payment_info_sent topic
+  private async getPaymentLinkWithTimeout(timeoutMs: number = 3000): Promise<string> {
+    const paymentLinkEmitter = new EventEmitter();
+
+    // Create promise for payment link
+    const paymentLinkPromise = new Promise<string>((resolve, reject) => {
+      // Success handler
+      paymentLinkEmitter.on('received', (link: string) => {
+        // console.log('Received paymentLink:', link);
+        resolve(link);
+      });
+
+      // Timeout handler
+      setTimeout(() => {
+        reject(
+          new RequestTimeoutException('Oops! 😒 The payment link wasn’t received in time. Please try again.'));
+      }, timeoutMs);
+    });
+
+    // Start consuming Kafka messages
+    this.startKafkaPaymentLinkConsumer(paymentLinkEmitter);
+
+    return paymentLinkPromise;
+  }
+
+  private startKafkaPaymentLinkConsumer(emitter: EventEmitter): void {
+    this.kafkaConsumerService.paymentLinkConsume(
+      { topics: ['payment_link'],fromBeginning: true  },
+      {
+        eachMessage: async ({ message }) => {
+          const value = message.value?.toString();
+          if (!value) return;
+
+          try {
+            const paymentLink = JSON.parse(value);
+            emitter.emit('received', paymentLink);
+          } catch (error) {
+            console.error('Failed to parse payment link:', error);
+          }
+        },
+      }
+    );
   }
 }

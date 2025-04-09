@@ -1,4 +1,4 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Chapa } from 'chapa-nodejs';
 import { ConfigService } from '@nestjs/config';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
@@ -38,7 +38,6 @@ export class ChapaSDKService {
   async paymentInit(chapaPayDto:CreateChapaPayDto): Promise<any> {
     try {
       const tx_ref = await this.generateReference();
-
       const response = await this.chapa.initialize({
         phone_number: chapaPayDto.phone_number,
         currency: chapaPayDto.currency,
@@ -46,10 +45,10 @@ export class ChapaSDKService {
         tx_ref,
         return_url: `${this.CALLBACK_BASE_URL}/chapa/verify/${tx_ref}`,
       });
-
+    
       const paymentDto = {
         ...chapaPayDto,
-        user_id:"849b4dda-fc2b-452d-bc12-e8dd0bc8b6f3",
+        // user_id:"849b4dda-fc2b-452d-bc12-e8dd0bc8b6f3",
         tx_ref:tx_ref,
         payment_method:"Chapa",
       }
@@ -57,11 +56,12 @@ export class ChapaSDKService {
 
       return response;
     } catch (error) {
-      throw new InternalServerErrorException('Payment initialization failed');
+      console.error('Payment Init Error:', error.response?.data || error.message);
+      throw new BadRequestException('Payment initialization failed',error);
     }
   }
 
-  async verifyPayment(txRef: string) {
+  async verifyPayment(txRef: string):Promise<void> {
     try {
       const response = await axios.get(`${this.BASE_URL}/transaction/verify/${txRef}`, {
         headers: { Authorization: `Bearer ${this.API_KEY}` },
