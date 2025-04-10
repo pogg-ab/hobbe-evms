@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class KafkaPaymentRpcService implements OnModuleInit {
-  private kafka = new Kafka({ brokers: ['localhost:9092'] });
+  private kafka = new Kafka({ brokers: [process.env.KAFKA_BROKER] });
   private producer: Producer = this.kafka.producer();
   private consumer: Consumer = this.kafka.consumer({ groupId: 'payment-link-rpc-client-group' });
   private readonly replyTopic = 'payment-link-reply-topic';
