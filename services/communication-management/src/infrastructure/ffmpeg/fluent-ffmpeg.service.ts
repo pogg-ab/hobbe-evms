@@ -303,24 +303,19 @@ export class FluentFFmpegService {
         const lines = data.toString().split('\n');
 
         for (const line of lines) {
-          // Skip FFmpeg version/config lines
           if (line.includes('ffmpeg version') || line.includes('configuration:')) {
             continue;
           }
 
-          // Detect when we enter the devices listing section
           if (line.includes('DirectShow video devices')) {
             hasDevicesSection = true;
             continue;
           }
 
-          // Only process lines if we're in devices section
           if (!hasDevicesSection) continue;
 
-          // Match video devices (newer FFmpeg versions include "(video)" suffix)
           const videoMatch = line.match(/\[dshow @ \w+\]\s+"([^"]+)"(?: \(video\))?/);
           if (videoMatch) {
-            // If we had a previous device without alternative name, add it now
             if (currentDevice.label) {
               cameras.push({
                 deviceId: `video=${currentDevice.label}`,
@@ -335,7 +330,6 @@ export class FluentFFmpegService {
             continue;
           }
 
-          // Match alternative names
           const altMatch = line.match(/Alternative name "([^"]+)"/);
           if (altMatch && currentDevice.label) {
             currentDevice.altDeviceId = altMatch[1].trim();
@@ -350,7 +344,6 @@ export class FluentFFmpegService {
       });
 
       command.on('end', () => {
-        // Add any remaining device that didn't have an alternative name
         if (currentDevice.label) {
           cameras.push({
             deviceId: `video=${currentDevice.label}`,
@@ -369,7 +362,6 @@ export class FluentFFmpegService {
 
       command.on('error', (err) => {
         console.error('FFmpeg error:', err.message);
-        // If we found some cameras before the error occurred, return them
         if (cameras.length > 0) {
           resolve(cameras);
         } else {
@@ -377,7 +369,6 @@ export class FluentFFmpegService {
         }
       });
 
-      // Add timeout handler
       const timeout = setTimeout(() => {
         command.kill('SIGTERM');
         if (cameras.length > 0) {
