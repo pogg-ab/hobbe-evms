@@ -146,10 +146,10 @@ export class FluentFFmpegService {
         }
 
         console.log(`Preparing stream ${streamId} to ${rtmpUrl}`);
-
         let selectedCamera = cameraDevice;
         if (!selectedCamera) {
           const cameras = await this.listCameras();
+          console.log(cameras)
           if (cameras.length === 0) {
             throw new Error('No camera devices found');
           }
@@ -284,10 +284,10 @@ export class FluentFFmpegService {
   }
 
   private async listWindowsCameras(): Promise<{ deviceId: string; label: string; altDeviceId?: string }[]> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const cameras: { deviceId: string; label: string; altDeviceId?: string }[] = [];
       let currentDevice: { label?: string; altDeviceId?: string } = {};
-      let outputBuffer = '';
+      let hasDevicesSection = false;
 
       const command = ffmpeg()
         .addOption('-list_devices')
@@ -295,27 +295,50 @@ export class FluentFFmpegService {
         .addOption('-f')
         .addOption('dshow')
         .addOption('-i')
-        .addOption('dummy');
+        .addOption('dummy')
+        .outputFormat('null')
+        .output('NUL');
 
       command.on('stderr', (data) => {
-        outputBuffer += data.toString();
-        const lines = outputBuffer.split('\n');
+        const lines = data.toString().split('\n');
 
         for (const line of lines) {
-          if (line.includes('ffmpeg version') || line.includes('configuration:')) continue;
+          // Skip FFmpeg version/config lines
+          if (line.includes('ffmpeg version') || line.includes('configuration:')) {
+            continue;
+          }
 
-          const videoMatch = line.match(/\[dshow @ \w+\] "([^"]+)" \(video\)/);
+          // Detect when we enter the devices listing section
+          if (line.includes('DirectShow video devices')) {
+            hasDevicesSection = true;
+            continue;
+          }
+
+          // Only process lines if we're in devices section
+          if (!hasDevicesSection) continue;
+
+          // Match video devices (newer FFmpeg versions include "(video)" suffix)
+          const videoMatch = line.match(/\[dshow @ \w+\]\s+"([^"]+)"(?: \(video\))?/);
           if (videoMatch) {
+            // If we had a previous device without alternative name, add it now
+            if (currentDevice.label) {
+              cameras.push({
+                deviceId: `video=${currentDevice.label}`,
+                label: currentDevice.label,
+                altDeviceId: currentDevice.altDeviceId
+              });
+            }
             currentDevice = {
-              label: videoMatch[1],
+              label: videoMatch[1].trim(),
               altDeviceId: undefined
             };
             continue;
           }
 
+          // Match alternative names
           const altMatch = line.match(/Alternative name "([^"]+)"/);
           if (altMatch && currentDevice.label) {
-            currentDevice.altDeviceId = altMatch[1];
+            currentDevice.altDeviceId = altMatch[1].trim();
             cameras.push({
               deviceId: `video=${currentDevice.label}`,
               label: currentDevice.label,
@@ -324,18 +347,48 @@ export class FluentFFmpegService {
             currentDevice = {};
           }
         }
-
-        outputBuffer = lines[lines.length - 1];
       });
 
       command.on('end', () => {
-        console.log('Detected cameras:', cameras);
-        resolve(cameras);
+        // Add any remaining device that didn't have an alternative name
+        if (currentDevice.label) {
+          cameras.push({
+            deviceId: `video=${currentDevice.label}`,
+            label: currentDevice.label,
+            altDeviceId: currentDevice.altDeviceId
+          });
+        }
+
+        if (cameras.length > 0) {
+          console.log('Detected cameras:', cameras);
+          resolve(cameras);
+        } else {
+          reject(new Error('No cameras found. Make sure FFmpeg has dshow support and cameras are connected.'));
+        }
       });
 
       command.on('error', (err) => {
-        console.error('Device listing error:', err.message);
-        resolve(cameras);
+        console.error('FFmpeg error:', err.message);
+        // If we found some cameras before the error occurred, return them
+        if (cameras.length > 0) {
+          resolve(cameras);
+        } else {
+          reject(new Error(`Failed to list cameras: ${err.message}`));
+        }
+      });
+
+      // Add timeout handler
+      const timeout = setTimeout(() => {
+        command.kill('SIGTERM');
+        if (cameras.length > 0) {
+          resolve(cameras);
+        } else {
+          reject(new Error('Camera detection timed out'));
+        }
+      }, 10000); // 10 second timeout
+
+      command.on('close', () => {
+        clearTimeout(timeout);
       });
 
       command.run();

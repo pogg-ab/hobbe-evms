@@ -246,6 +246,7 @@ export class StreamService {
       let selectedCamera = cameraDevice;
       if (!selectedCamera) {
         const availableCameras = await this.getCameraDevices();
+        console.log(availableCameras)
         if (availableCameras.length > 0) {
           selectedCamera = availableCameras[0].deviceId;
           console.log(`Selected camera device: ${availableCameras[0].label}`);
