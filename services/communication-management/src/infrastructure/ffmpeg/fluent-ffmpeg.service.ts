@@ -113,19 +113,6 @@ export class FluentFFmpegService {
     });
   }
 
-  private checkDshowSupport(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      exec('ffmpeg -formats', (err, stdout, stderr) => {
-        if (err) {
-          this.logger.error('Error checking available formats', err);
-          reject(new Error('Error checking available formats'));
-        }
-
-        const isDshowAvailable = stdout.includes('dshow');
-        resolve(isDshowAvailable);
-      });
-    });
-  }
 
   async streamCameraToRtmp(
     cameraDevice: string | null,
@@ -134,13 +121,9 @@ export class FluentFFmpegService {
   ): Promise<{ success: boolean; message: string; status: 'started' | 'stopped' | 'error' | 'else'; data?: { streamId: string; rtmpUrl: string } }> {
     return new Promise(async (resolve, reject) => {
       try {
+        const { exec } = require('child_process');
+        const ffmpegPath = `${process.env.FFMPEG_PATH || 'ffmpeg'}`;
 
-
-        const ffmpegPath = `${process.env.FFMPEG_PATH}`;
-        if (!require('fs').existsSync(ffmpegPath)) {
-          throw new Error(`FFmpeg not found at: ${ffmpegPath}`);
-        }
-        ffmpeg.setFfmpegPath(ffmpegPath);
         if (!rtmpUrl || !rtmpUrl.startsWith('rtmp://')) {
           throw new Error('Valid RTMP URL is required (starting with rtmp://)');
         }
@@ -149,99 +132,55 @@ export class FluentFFmpegService {
         let selectedCamera = cameraDevice;
         if (!selectedCamera) {
           const cameras = await this.listCameras();
-          console.log(cameras)
+          console.log(cameras);
           if (cameras.length === 0) {
             throw new Error('No camera devices found');
           }
-          selectedCamera = cameras[0].deviceId;
-          console.log(`Auto-selected camera: ${cameras[0].label}`);
+          selectedCamera = cameras[1].deviceId;
+          console.log(`Auto-selected camera: ${cameras[1].label}`);
         }
 
+        selectedCamera = selectedCamera.replace(/^video=/, '').trim();
         console.log(`Configuring camera source: ${selectedCamera}`);
 
-        const command = ffmpeg();
+        let ffmpegCommand = '';
+        switch (os.platform()) {
+          case 'win32': // Windows
+            ffmpegCommand = `${ffmpegPath} -f dshow -video_size 1280x720 -framerate 30 -rtbufsize 2000000 -i video="${selectedCamera}" ` +
+              `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency -profile:v main ` +
+              `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
+              `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
+            break;
 
-        const isDshowAvailable = await this.checkDshowSupport();
+          case 'darwin': // macOS
+            ffmpegCommand = `${ffmpegPath} -f avfoundation -framerate 30 -video_size 1280x720 -i "${selectedCamera}" ` +
+              `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency -profile:v main ` +
+              `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
+              `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
+            break;
 
+          case 'linux': // Linux
+            ffmpegCommand = `${ffmpegPath} -f v4l2 -framerate 30 -video_size 1280x720 -input_format mjpeg -i "${selectedCamera}" ` +
+              `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency -profile:v main ` +
+              `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
+              `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
+            break;
 
-        if (!isDshowAvailable) {
-          console.log('DirectShow not available, trying alternative input methods...');
-          selectedCamera = "0";
-          console.log(`Using fallback camera: ${selectedCamera}`);
-        } else {
-          console.log('DirectShow available, using dshow...');
-          switch (os.platform()) {
-            case 'win32': // Windows
-              command.input(`video=${selectedCamera}`)
-                .inputFormat('dshow')
-                .inputOptions(['-framerate 30', '-video_size 640x480']);
-
-              break;
-
-            case 'darwin': // macOS
-              command.input(selectedCamera) // Typically "0" or "1"
-                .inputFormat('avfoundation')
-                .inputOptions([
-                  '-framerate 30',
-                  '-pixel_format uyvy422'
-                ]);
-              break;
-
-            case 'linux': // Linux
-              command.input(selectedCamera) // Typically "/dev/video0"
-                .inputFormat('v4l2')
-                .inputOptions([
-                  '-framerate 30',
-                  '-video_size 640x480',
-                  '-input_format mjpeg'
-                ]);
-              break;
-
-            default:
-              throw new Error(`Unsupported OS: ${os.platform()}`);
-          }
+          default:
+            throw new Error(`Unsupported OS: ${os.platform()}`);
         }
-        command.output(rtmpUrl)
-          .outputOptions([
-            '-c:v libx264',
-            '-preset veryfast',
-            '-maxrate 800k',
-            '-bufsize 1600k',
-            '-vf format=yuv420p,scale=640:360',
-            '-c:a aac',
-            '-b:a 128k',
-            '-f flv',
-            '-g 60',
-            '-r 30',
-            '-flags +global_header',
-            '-strict experimental'
-          ]);
 
-        command.on('start', (commandLine) => {
-          console.log(`FFmpeg command: ${commandLine}`);
-          this.activeProcesses.set(streamId, command);
-
-          resolve({
-            success: true,
-            message: `Stream started successfully`,
-            status: 'started',
-            data: { streamId, rtmpUrl },
-          });
-        })
-          .on('end', () => {
-            console.log(`Stream completed: ${streamId}`);
-            this.activeProcesses.delete(streamId);
-          })
-          .on('error', (err) => {
-            console.error(`Stream error: ${err.message}`);
+        const ffmpegProcess = exec(ffmpegCommand, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`FFmpeg error: ${error.message}`);
             this.activeProcesses.delete(streamId);
 
             let userMessage = 'Streaming error';
-            if (err.message.includes('dshow')) {
-              userMessage = 'Windows camera error - check device name';
-            } else if (err.message.includes('v4l2')) {
-              userMessage = 'Linux camera error - check permissions';
-            } else if (err.message.includes('Output')) {
+            if (error.message.includes('dshow')) {
+              userMessage = 'Windows camera error - try lower resolution or different format';
+            } else if (error.message.includes('v4l2')) {
+              userMessage = 'Linux camera error - check supported formats';
+            } else if (error.message.includes('Output')) {
               userMessage = 'Stream output error - check RTMP URL';
             }
 
@@ -250,13 +189,29 @@ export class FluentFFmpegService {
               message: userMessage,
               status: 'error'
             });
-          })
-          .on('stderr', (line) => {
-            console.log(`FFmpeg: ${line}`);
-          });
+            return;
+          }
 
-        console.log('Starting stream...');
-        command.run();
+          console.log(`FFmpeg output: ${stdout}`);
+        });
+
+        this.activeProcesses.set(streamId, ffmpegProcess);
+
+        ffmpegProcess.on('exit', (code) => {
+          console.log(`FFmpeg process exited with code ${code}`);
+          this.activeProcesses.delete(streamId);
+        });
+
+        ffmpegProcess.stderr.on('data', (data) => {
+          console.log(`FFmpeg: ${data}`);
+        });
+
+        resolve({
+          success: true,
+          message: `Stream started successfully`,
+          status: 'started',
+          data: { streamId, rtmpUrl },
+        });
 
       } catch (error) {
         console.error(`Setup failed: ${error.message}`);
@@ -285,104 +240,76 @@ export class FluentFFmpegService {
 
   private async listWindowsCameras(): Promise<{ deviceId: string; label: string; altDeviceId?: string }[]> {
     return new Promise((resolve, reject) => {
-      const cameras: { deviceId: string; label: string; altDeviceId?: string }[] = [];
-      let currentDevice: { label?: string; altDeviceId?: string } = {};
-      let hasDevicesSection = false;
+      exec(
+        'ffmpeg -f dshow -list_devices true -i dummy',
+        { windowsHide: true },
+        (error, stdout, stderr) => {
+          const cameras: { deviceId: string; label: string; altDeviceId?: string }[] = [];
+          let currentDevice: { label?: string; altDeviceId?: string } = {};
 
-      const command = ffmpeg()
-        .addOption('-list_devices')
-        .addOption('true')
-        .addOption('-f')
-        .addOption('dshow')
-        .addOption('-i')
-        .addOption('dummy')
-        .outputFormat('null')
-        .output('NUL');
+          const lines = stderr.split('\n');
+          let inVideoSection = false;
 
-      command.on('stderr', (data) => {
-        const lines = data.toString().split('\n');
+          for (const line of lines) {
+            if (line.includes('ffmpeg version') || line.includes('configuration:')) {
+              continue;
+            }
 
-        for (const line of lines) {
-          if (line.includes('ffmpeg version') || line.includes('configuration:')) {
-            continue;
-          }
+            if (line.includes('"Alternative name"') || line.includes('(video)')) {
+              inVideoSection = true;
+            }
 
-          if (line.includes('DirectShow video devices')) {
-            hasDevicesSection = true;
-            continue;
-          }
+            if (!inVideoSection) continue;
 
-          if (!hasDevicesSection) continue;
+            const videoMatch = line.match(/\[dshow @ \w+\]\s+"([^"]+)"\s+\(video\)/);
+            if (videoMatch) {
+              if (currentDevice.label) {
+                cameras.push({
+                  deviceId: `video=${currentDevice.label}`,
+                  label: currentDevice.label,
+                  altDeviceId: currentDevice.altDeviceId
+                });
+              }
+              currentDevice = {
+                label: videoMatch[1].trim(),
+                altDeviceId: undefined
+              };
+              continue;
+            }
 
-          const videoMatch = line.match(/\[dshow @ \w+\]\s+"([^"]+)"(?: \(video\))?/);
-          if (videoMatch) {
-            if (currentDevice.label) {
+            const altMatch = line.match(/Alternative name\s+"([^"]+)"/);
+            if (altMatch && currentDevice.label) {
+              currentDevice.altDeviceId = altMatch[1].trim();
               cameras.push({
                 deviceId: `video=${currentDevice.label}`,
                 label: currentDevice.label,
                 altDeviceId: currentDevice.altDeviceId
               });
+              currentDevice = {};
             }
-            currentDevice = {
-              label: videoMatch[1].trim(),
-              altDeviceId: undefined
-            };
-            continue;
           }
 
-          const altMatch = line.match(/Alternative name "([^"]+)"/);
-          if (altMatch && currentDevice.label) {
-            currentDevice.altDeviceId = altMatch[1].trim();
+          if (currentDevice.label) {
             cameras.push({
               deviceId: `video=${currentDevice.label}`,
               label: currentDevice.label,
               altDeviceId: currentDevice.altDeviceId
             });
-            currentDevice = {};
+          }
+
+          if (cameras.length > 0) {
+            resolve(cameras);
+          } else {
+            reject(new Error(
+              'No cameras found. Possible reasons:\n' +
+              '1. No cameras are connected\n' +
+              '2. Camera access is blocked by privacy settings\n' +
+              '3. FFmpeg lacks dshow support\n' +
+              'Raw FFmpeg output:\n' + stderr
+            ));
           }
         }
-      });
-
-      command.on('end', () => {
-        if (currentDevice.label) {
-          cameras.push({
-            deviceId: `video=${currentDevice.label}`,
-            label: currentDevice.label,
-            altDeviceId: currentDevice.altDeviceId
-          });
-        }
-
-        if (cameras.length > 0) {
-          console.log('Detected cameras:', cameras);
-          resolve(cameras);
-        } else {
-          reject(new Error('No cameras found. Make sure FFmpeg has dshow support and cameras are connected.'));
-        }
-      });
-
-      command.on('error', (err) => {
-        console.error('FFmpeg error:', err.message);
-        if (cameras.length > 0) {
-          resolve(cameras);
-        } else {
-          reject(new Error(`Failed to list cameras: ${err.message}`));
-        }
-      });
-
-      const timeout = setTimeout(() => {
-        command.kill('SIGTERM');
-        if (cameras.length > 0) {
-          resolve(cameras);
-        } else {
-          reject(new Error('Camera detection timed out'));
-        }
-      }, 10000); // 10 second timeout
-
-      command.on('close', () => {
-        clearTimeout(timeout);
-      });
-
-      command.run();
+      );
     });
   }
 
