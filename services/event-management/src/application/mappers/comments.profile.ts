@@ -17,7 +17,7 @@ export class CommentsProfile extends AutomapperProfile {
         mapper,
         CommentsDto,
         Comments,
-       
+
         forMember(
           (destination) => destination.event_id,
           mapFrom((src) => src.event_id),
@@ -26,6 +26,10 @@ export class CommentsProfile extends AutomapperProfile {
         forMember(
           (destination) => destination.comment,
           mapFrom((src) => src.comment),
+        ),
+        forMember(
+          (destination) => destination.created_at,
+          mapFrom((src) => new Date()),
         ),
 
       );

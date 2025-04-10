@@ -192,7 +192,6 @@ export class AuthController {
   @HttpCode(200)
   async resetPassword(@Body() passwordResetDto: PasswordResetDto) {
     const { token, newPassword, confirmPassword } = passwordResetDto;
-
     const isResetSuccessful = await this.authService.resetPassword(
       token,
       newPassword,
@@ -319,7 +318,9 @@ export class AuthController {
         }
         
         .logo img {
-            height: 42px;
+            height: 80px; 
+            width: auto;
+            max-width: 100%;
         }
         
         h1 {
@@ -447,7 +448,7 @@ export class AuthController {
 <body>
     <div class="reset-card">
         <div class="logo">
-            <img src="https://via.placeholder.com/150x50?text=Hobbe+EVMS" alt="Hobbe EVMS Logo">
+            <img src="/logo/image.png" alt="Hobbe EVMS Logo">
         </div>
         
         <h1>Create New Password</h1>
@@ -601,9 +602,6 @@ export class AuthController {
                 document.getElementById('newPassword').value = '';
                 document.getElementById('confirmPassword').value = '';
                 
-                setTimeout(() => {
-                    window.location.href = '${loginUrl}';
-                }, 3000);
                 
             } catch (error) {
                 messageDiv.className = 'alert alert-error';
