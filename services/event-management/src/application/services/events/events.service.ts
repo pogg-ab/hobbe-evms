@@ -97,7 +97,31 @@ export class EventsService {
     page: number;
     limit: number;
   }> {
-    return this.createEventRepository.findAll(page, limit);
+    const result = await this.createEventRepository.findAll(page, limit);
+
+    if (!result.events || result.events.length === 0) {
+      return result;
+    }
+
+    // Get all user IDs for organizer info
+    const userIds = result.events.map(event => event.user_id);
+    let userInfoResponse = {};
+
+    try {
+      userInfoResponse = await this.userInfoService.getUserInfo(userIds);
+    } catch (userInfoError) {
+      console.error('Failed to fetch organizer info:', userInfoError);
+    }
+
+    const enrichedEvents = result.events.map(event => ({
+      ...event,
+      organizerInfo: userInfoResponse[event.user_id] || null
+    }));
+
+    return {
+      ...result,
+      events: enrichedEvents
+    };
   }
 
   async findAllByAuth(
@@ -110,7 +134,30 @@ export class EventsService {
     page: number;
     limit: number;
   }> {
-    return this.createEventRepository.findAllByAuth(user, page, limit);
+    const result = await this.createEventRepository.findAllByAuth(user, page, limit);
+
+    if (!result.events || result.events.length === 0) {
+      return result;
+    }
+
+    const userIds = result.events.map(event => event.user_id);
+    let userInfoResponse = {};
+
+    try {
+      userInfoResponse = await this.userInfoService.getUserInfo(userIds);
+    } catch (userInfoError) {
+      console.error('Failed to fetch organizer info:', userInfoError);
+    }
+
+    const enrichedEvents = result.events.map(event => ({
+      ...event,
+      organizerInfo: userInfoResponse[event.user_id] || null
+    }));
+
+    return {
+      ...result,
+      events: enrichedEvents
+    };
   }
 
   async findOne(id: string): Promise<Events | null> {
