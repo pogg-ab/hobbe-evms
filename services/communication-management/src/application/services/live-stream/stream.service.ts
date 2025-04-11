@@ -184,17 +184,6 @@ export class StreamService {
     return this.streamRepository.findAll();
   }
 
-  async transcodeStream(
-    inputStream: string | fs.ReadStream,
-    outputStream: string | NodeJS.WritableStream,
-  ): Promise<void> {
-    try {
-      await this.fluentFFmpegService.transcodeStream(inputStream, outputStream);
-    } catch (error) {
-      console.error('Error during stream transcoding:', error);
-    }
-  }
-
   async startStreamFromFile(
     inputFilePath: string,
     rtmpUrl: string,
