@@ -410,16 +410,16 @@ export class TicketBookingService {
   }
 
   async markTicketAsAttended(
-    ticketId: string,
+    ticketNumber: string,
     scannedBy: string,
   ): Promise<{
     success: boolean;
     message: string;
     // data: Tickets | null;
   }> {
-    const updatedTicket = await this.ticketRepository.markAsAttended(ticketId, scannedBy);
+    const updatedTicket = await this.ticketRepository.markAsAttended(ticketNumber, scannedBy);
     if (!updatedTicket) {
-      throw new NotFoundException(`Ticket with ID ${ticketId} not found`);
+      throw new NotFoundException(`Ticket with ID ${ticketNumber} not found`);
     }
     return updatedTicket;
   }

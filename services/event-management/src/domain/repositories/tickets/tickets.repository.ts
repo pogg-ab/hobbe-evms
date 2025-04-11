@@ -42,7 +42,7 @@ export interface ITicketsRepository {
   ): Promise<Tickets | null>;
 
   markAsAttended(
-    ticketCode: string,
+    ticketNumber: string,
     scannedBy: string,
   ): Promise<{
     success: boolean;
@@ -55,7 +55,6 @@ export interface ITicketsRepository {
     booking_id: string,
   ): Promise<void>;
 
-  findByTicketCode(ticketCode: string, scannedBy: string): Promise<Tickets | null>;
 
   findUpcomingTickets(
     userId: string,

@@ -14,8 +14,8 @@ export class UpdateTicketStatusHandler
     message: string;
     // data: Tickets | null;
   }> {
-    const { ticketId, scannedBy } = command;
+    const { ticketNumber, scannedBy } = command;
 
-    return this.ticketBookingService.markTicketAsAttended(ticketId, scannedBy);
+    return this.ticketBookingService.markTicketAsAttended(ticketNumber, scannedBy);
   }
 }

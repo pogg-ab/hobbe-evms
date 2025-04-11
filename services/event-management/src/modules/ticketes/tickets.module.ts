@@ -19,16 +19,21 @@ import { GetUserTicketsQueryHandler } from 'src/application/handlers/tickets/get
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { Events } from 'src/domain/entities/events.entity';
+import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
+import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
+import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 
 @Module({
 
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([Tickets, ParticipantHasTicket, TicketBooking]),
+    TypeOrmModule.forFeature([Tickets, ParticipantHasTicket, TicketBooking, Events]),
     CqrsModule,
   ],
   controllers: [TicketsController],
   providers: [
+    CreateTicketsDto,
     TicketsService,
     TicktesProfile,
     CreateTicketsCommandHandler,
@@ -37,10 +42,13 @@ import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.se
     GetUserTicketsQueryHandler,
     TicketsFindByIdQueryHandler,
     TicketsFindByHeadingQueryHandler,
-    
     {
       provide: TICKETS_LIST_REPOSITORY_TOKEN,
       useClass: TicketsRepositoryEmpl,
+    },
+    {
+      provide: CREATE_EVENT_REPOSITORY_TOKEN,
+      useClass: EventRepositoryEmpl,
     },
     {
       provide: CREATE_PARTICIPANT_HAS_TICKET_REPOSITORY_TOKEN,

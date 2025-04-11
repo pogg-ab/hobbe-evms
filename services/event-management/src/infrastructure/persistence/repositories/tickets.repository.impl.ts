@@ -1,5 +1,6 @@
-import { ConflictException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Events } from 'src/domain/entities/events.entity';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
@@ -13,6 +14,8 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   constructor(
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
+    @InjectRepository(Events)
+    private eventRepository: Repository<Events>,
     private readonly dataSource: DataSource,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
@@ -162,58 +165,67 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     }
   }
 
-  async findByTicketCode(ticketCode: string): Promise<Tickets | null> {
-    try {
-      const ticket = await this.ticketsListRepository.findOne({
-        where: { ticket_no: ticketCode },
-        relations: ['event_id']
-      });
-
-
-      if (!ticket) {
-        throw new HttpException(
-          `Ticket with code ${ticketCode} not found`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-      return ticket;
-    } catch (error) {
-      throw new HttpException(
-        `Error fetching Ticket with code ${ticketCode}: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
   async markAsAttended(
-    ticketCode: string,
+    ticketNumber: string,
     scannedBy: string,
   ): Promise<{
     success: boolean;
     message: string;
     // data: Tickets | null;
   }> {
+    const shortId = ticketNumber.slice(0, 7);
+    const now = new Date();
+
     try {
       const ticket = await this.ticketsListRepository.findOne({
-        where: { ticket_no: ticketCode },
+        where: { ticket_no: ticketNumber },
+        relations: ['event_id']
       });
 
       if (!ticket) {
         throw new NotFoundException({
           success: false,
-          message: `Ticket with code ${ticketCode} not found`,
-          data: null
+          message: `Ticket ${shortId}... not found in our system`,
         });
       }
 
-      if (ticket.status === 'ATTENDED') {
+      if (ticket.status === 'Attended') {
         throw new ConflictException({
           success: false,
-          message: `Ticket ${ticketCode} was already scanned at ${ticket.updated_at}`,
-          data: ticket
+          message: `Ticket ${shortId}... was previously scanned`,
+        });
+      }
+      if (ticket.status !== 'Booked' && ticket.status !== 'Attended') {
+        throw new ForbiddenException({
+          success: false,
+          message: `Ticket ${shortId}... has invalid status. ` +
+            `Only BOOKED tickets can be marked as ATTENDED.`,
+        });
+      }
+      const eventJson: Events = JSON.parse(JSON.stringify(ticket.event_id));
+
+      const event = await this.eventRepository.findOne({
+        where: { id: eventJson.id },
+      });
+
+      const oneDayBefore = new Date(event.event_start_date);
+      oneDayBefore.setDate(oneDayBefore.getDate() - 1);
+
+      if (now < oneDayBefore) {
+        throw new ForbiddenException({
+          success: false,
+          message: `Early scan attempt - Ticket scanning will be available starting ${oneDayBefore.toLocaleDateString()} at ${oneDayBefore.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
         });
       }
 
-      ticket.status = 'ATTENDED';
+      if (now > event.event_end_date) {
+        throw new ForbiddenException({
+          success: false,
+          message: `Scanning unavailable - The event concluded on ${event.event_end_date.toLocaleDateString()}. Please contact support for assistance.`,
+        });
+      }
+
+      ticket.status = 'Attended';
       ticket.updated_by = scannedBy;
       ticket.updated_at = new Date();
 
@@ -221,19 +233,19 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
 
       return {
         success: true,
-        message: `Ticket ${ticketCode} successfully marked as attended`,
+        message: `Ticket ${shortId}... successfully marked as attended`,
         // data: updatedTicket
       };
 
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ConflictException) {
+      if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof ForbiddenException) {
         throw error;
       }
 
       throw new InternalServerErrorException({
         success: false,
         message: `Failed to mark ticket as attended: ${error.message}`,
-        data: null
+        // data: null
       });
     }
   }

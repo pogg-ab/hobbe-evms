@@ -148,33 +148,16 @@ export class TicketBookingController {
     description:
       'Mark a Ticket as Attended. Triggered when the ticket is scanned at the event entrance.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'The ticket status has been successfully updated to ATTENDED.',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example:
-            'Ticket successfully marked as ATTENDED',
-        },
-      },
-    },
-  })
   @HttpCode(200)
   @Patch(':ticket_number/attend')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   async markTicketAsAttended(
-    @Param('ticket number') id: string,
+    @Param('ticket_number') ticket_number: string,
     @CurrentUserId() user: any,
   ): Promise<{ message: string }> {
-
-
-
     const command = new UpdateTicketStatusCommand(
-      id,
+      ticket_number,
       user.user.user_id.toString(),
     );
 
@@ -182,7 +165,4 @@ export class TicketBookingController {
 
     return result;
   }
-
-
-
 }
