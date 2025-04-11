@@ -157,17 +157,17 @@ export class TicketBookingController {
         message: {
           type: 'string',
           example:
-            'Ticket successfully marked as ATTENDED (scanned by QRScanner).',
+            'Ticket successfully marked as ATTENDED',
         },
       },
     },
   })
   @HttpCode(200)
-  @Patch(':id/attend')
+  @Patch(':ticket_number/attend')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   async markTicketAsAttended(
-    @Param('id') id: string,
+    @Param('ticket number') id: string,
     @CurrentUserId() user: any,
   ): Promise<{ message: string }> {
 
@@ -178,11 +178,9 @@ export class TicketBookingController {
       user.user.user_id.toString(),
     );
 
-    await this.commandBus.execute(command);
+    const result = await this.commandBus.execute(command);
 
-    return {
-      message: `Ticket successfully marked as ATTENDED.`,
-    };
+    return result;
   }
 
 

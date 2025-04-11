@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ConflictException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
@@ -187,26 +187,55 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   async markAsAttended(
     ticketCode: string,
     scannedBy: string,
-  ): Promise<Tickets> {
+  ): Promise<{
+    success: boolean;
+    message: string;
+    // data: Tickets | null;
+  }> {
+    try {
+      const ticket = await this.ticketsListRepository.findOne({
+        where: { ticket_no: ticketCode },
+      });
 
-    const ticket = await this.ticketsListRepository.findOne({
-      where: { ticket_no: ticketCode },
-      relations: ['event_id']
-    });
+      if (!ticket) {
+        throw new NotFoundException({
+          success: false,
+          message: `Ticket with code ${ticketCode} not found`,
+          data: null
+        });
+      }
 
-    if (!ticket) {
-      throw new Error('Ticket not found');
+      if (ticket.status === 'ATTENDED') {
+        throw new ConflictException({
+          success: false,
+          message: `Ticket ${ticketCode} was already scanned at ${ticket.updated_at}`,
+          data: ticket
+        });
+      }
+
+      ticket.status = 'ATTENDED';
+      ticket.updated_by = scannedBy;
+      ticket.updated_at = new Date();
+
+      const updatedTicket = await this.ticketsListRepository.save(ticket);
+
+      return {
+        success: true,
+        message: `Ticket ${ticketCode} successfully marked as attended`,
+        // data: updatedTicket
+      };
+
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException({
+        success: false,
+        message: `Failed to mark ticket as attended: ${error.message}`,
+        data: null
+      });
     }
-
-    if (ticket.status === 'ATTENDED') {
-      throw new Error('Ticket already marked as attended');
-    }
-
-    ticket.status = 'ATTENDED';
-    ticket.updated_by = scannedBy;
-    ticket.updated_at = new Date();
-
-    return this.ticketsListRepository.save(ticket);
   }
   async updateStatus(
     manager: EntityManager,

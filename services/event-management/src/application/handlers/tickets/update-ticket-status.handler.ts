@@ -9,7 +9,11 @@ export class UpdateTicketStatusHandler
   implements ICommandHandler<UpdateTicketStatusCommand> {
   constructor(private readonly ticketBookingService: TicketBookingService) { }
 
-  async execute(command: UpdateTicketStatusCommand): Promise<Tickets> {
+  async execute(command: UpdateTicketStatusCommand): Promise<{
+    success: boolean;
+    message: string;
+    // data: Tickets | null;
+  }> {
     const { ticketId, scannedBy } = command;
 
     return this.ticketBookingService.markTicketAsAttended(ticketId, scannedBy);

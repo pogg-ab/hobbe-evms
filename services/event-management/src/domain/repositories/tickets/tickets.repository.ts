@@ -44,7 +44,11 @@ export interface ITicketsRepository {
   markAsAttended(
     ticketCode: string,
     scannedBy: string,
-  ): Promise<Tickets>;
+  ): Promise<{
+    success: boolean;
+    message: string;
+    // data: Tickets | null;
+  }>;
 
   updateStatusAfterPayment(
     manager: EntityManager,
