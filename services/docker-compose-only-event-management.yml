@@ -1,12 +1,12 @@
 version: "1.0"
 
 services:
-  payment-management:
+  event-management:
     build:
-      context: ./payment-management
+      context: ./event-management
       dockerfile: Dockerfile
     ports:
-      - "4002:4002"
+      - "4001:4001"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432

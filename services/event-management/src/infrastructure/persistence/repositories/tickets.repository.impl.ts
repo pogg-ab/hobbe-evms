@@ -271,7 +271,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
 
       ticket.status = status;
       ticket.updated_by = user;
-      ticket.booking_id = booking_id; // Assuming ticket_id is the booking ID
+      ticket.booking_id = booking_id;
       ticket.updated_at = new Date();
       await this.ticketsListRepository.save(ticket);
       return ticket;
