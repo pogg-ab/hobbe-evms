@@ -61,6 +61,72 @@ export class StreamService {
     }
   }
 
+  async scheduleStream(
+    streamID: StreamID,
+    userId: string,
+    eventId: string,
+    scheduledDate: Date,
+    scheduledTime: string,
+    timezone?: string
+  ): Promise<{ success: boolean; message: string; data: Stream }> {
+    try {
+      const scheduledDateTime = this.combineDateTime(scheduledDate, scheduledTime, timezone);
+
+      const stream = new Stream();
+      stream.id = streamID;
+      stream.status = 'inactive';
+      stream.userId = userId;
+      stream.eventId = eventId;
+      stream.startDate = scheduledDateTime;
+      stream.createdBy = userId;
+      stream.updatedAt = new Date();
+
+      const dateString = scheduledDateTime
+        .toISOString()
+        .replace(/[-:T]/g, '')
+        .split('.')[0];
+      const streamKey = `${userId}-${dateString}`;
+      stream.url = `${process.env.RTMP_URL}/${streamKey}`;
+      stream.streamKey = streamKey;
+
+      const createdStream = await this.streamRepository.create(stream);
+
+      return {
+        success: true,
+        message: 'Stream scheduled successfully',
+        data: createdStream,
+      };
+    } catch (error) {
+      console.error(`Failed to schedule stream: ${error.message}`);
+      throw error;
+    }
+  }
+
+
+  private combineDateTime(date: Date, time: string, timezone?: string): Date {
+    const [hours, minutes] = time.split(':').map(Number);
+    const result = new Date(date);
+    result.setHours(hours, minutes);
+    return result;
+  }
+
+  private async scheduleStreamStart(streamId: string, scheduledTime: Date): Promise<void> {
+    const now = new Date();
+    const delay = scheduledTime.getTime() - now.getTime();
+
+    if (delay > 0) {
+      setTimeout(async () => {
+        try {
+          await this.startStream(streamId, { cameraDevice: 'default' });
+        } catch (error) {
+          console.error(`Failed to auto-start scheduled stream ${streamId}: ${error.message}`);
+        }
+      }, delay);
+    } else {
+      throw new Error('Scheduled time must be in the future');
+    }
+  }
+
   async startStream(streamId: string, source: string | { filePath?: string; cameraDevice?: string }): Promise<{ success: boolean; message: string; data: Stream | null }> {
     try {
       const stream = await this.streamRepository.findById(streamId);

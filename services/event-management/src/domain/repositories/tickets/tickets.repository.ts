@@ -41,13 +41,17 @@ export interface ITicketsRepository {
     user: any
   ): Promise<Tickets | null>;
 
+  markAsAttended(
+    ticketCode: string,
+    scannedBy: string,
+  ): Promise<Tickets>;
+
   updateStatusAfterPayment(
     manager: EntityManager,
     booking_id: string,
   ): Promise<void>;
 
-
-  
+  findByTicketCode(ticketCode: string, scannedBy: string): Promise<Tickets | null>;
 
   findUpcomingTickets(
     userId: string,

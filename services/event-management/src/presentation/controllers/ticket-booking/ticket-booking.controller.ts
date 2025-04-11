@@ -168,16 +168,10 @@ export class TicketBookingController {
   @UseGuards(JwtAuthGuard)
   async markTicketAsAttended(
     @Param('id') id: string,
-    @Body() markTicketAsAttendedDto: MarkTicketAsAttendedDto,
     @CurrentUserId() user: any,
   ): Promise<{ message: string }> {
-    const { scannedBy } = markTicketAsAttendedDto;
 
-    if (!scannedBy) {
-      throw new Error(
-        'The "scannedBy" field is required. Please provide the system or individual who scanned the ticket.',
-      );
-    }
+
 
     const command = new UpdateTicketStatusCommand(
       id,
@@ -187,7 +181,7 @@ export class TicketBookingController {
     await this.commandBus.execute(command);
 
     return {
-      message: `Ticket successfully marked as ATTENDED (scanned by ${scannedBy}).`,
+      message: `Ticket successfully marked as ATTENDED.`,
     };
   }
 

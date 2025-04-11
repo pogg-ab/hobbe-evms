@@ -161,6 +161,53 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       throw new Error(`Error fetching tickets: ${error.message}`);
     }
   }
+
+  async findByTicketCode(ticketCode: string): Promise<Tickets | null> {
+    try {
+      const ticket = await this.ticketsListRepository.findOne({
+        where: { ticket_no: ticketCode },
+        relations: ['event_id']
+      });
+
+
+      if (!ticket) {
+        throw new HttpException(
+          `Ticket with code ${ticketCode} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return ticket;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Ticket with code ${ticketCode}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  async markAsAttended(
+    ticketCode: string,
+    scannedBy: string,
+  ): Promise<Tickets> {
+
+    const ticket = await this.ticketsListRepository.findOne({
+      where: { ticket_no: ticketCode },
+      relations: ['event_id']
+    });
+
+    if (!ticket) {
+      throw new Error('Ticket not found');
+    }
+
+    if (ticket.status === 'ATTENDED') {
+      throw new Error('Ticket already marked as attended');
+    }
+
+    ticket.status = 'ATTENDED';
+    ticket.updated_by = scannedBy;
+    ticket.updated_at = new Date();
+
+    return this.ticketsListRepository.save(ticket);
+  }
   async updateStatus(
     manager: EntityManager,
     id: IdValueObject,
@@ -183,7 +230,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
 
       ticket.status = status;
       ticket.updated_by = user;
-      ticket.booking_id = booking_id ; // Assuming ticket_id is the booking ID
+      ticket.booking_id = booking_id; // Assuming ticket_id is the booking ID
       ticket.updated_at = new Date();
       await this.ticketsListRepository.save(ticket);
       return ticket;
@@ -209,7 +256,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         })
         .where('booking_id = :booking_id', { booking_id })
         .execute();
-  
+
       if (result.affected === 0) {
         throw new HttpException(
           `No tickets found with booking_id ${booking_id}`,
@@ -223,7 +270,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       );
     }
   }
-  
+
 
   async findUpcomingTickets(
     userId: string,
