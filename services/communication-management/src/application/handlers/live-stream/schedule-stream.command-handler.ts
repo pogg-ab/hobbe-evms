@@ -16,9 +16,7 @@ export class ScheduleStreamHandler implements ICommandHandler<ScheduleStreamComm
             timezone
         } = command;
 
-        const streamID = new StreamID();
         return this.streamService.scheduleStream(
-            streamID,
             userId,
             eventId,
             scheduledDate,

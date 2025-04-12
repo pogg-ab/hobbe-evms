@@ -15,11 +15,13 @@ import { CreateStreamDto } from 'src/presentation/dto/live-stream/create-stream.
 import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
 import { ScheduleStreamDto } from 'src/presentation/dto/live-stream/schedule-stream.dto';
 // import { CreateAndStartStreamDto } from 'src/presentation/dto/live-stream/create-and-start-stream.dto';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
+import { StartScheduledStreamCommand } from 'src/application/commands/live-stream/start-scheduled-stream.command';
+import { StartScheduledStreamHandler } from 'src/application/handlers/live-stream/start-scheduled-stream.command-handler';
 
 @Controller('streams')
 export class StreamController {
@@ -59,6 +61,32 @@ export class StreamController {
         timezone
       ),
     );
+  }
+
+  @Post(':streamId/start-scheduled')
+  @ApiOperation({
+    summary: 'Start a scheduled stream',
+    description: 'Transitions a scheduled stream to LIVE status and initiates broadcasting'
+  })
+  @ApiParam({
+    name: 'streamId',
+    description: 'ID of the scheduled stream to start',
+    example: '9ea675ab-19bc-440d-808e-842efbbc467'
+  })
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async startScheduledStream(
+    @CurrentUserId() user: any,
+    @Param('streamId') streamId: string,
+    @Body() startStreamDto?: StartStreamDto
+  ): Promise<any> {
+    const userId = user.user.user_id.toString();
+    const result = await this.commandBus.execute(
+      new StartScheduledStreamCommand(userId, streamId)
+    );
+
+    return result
   }
 
   // @Post('create-and-start')

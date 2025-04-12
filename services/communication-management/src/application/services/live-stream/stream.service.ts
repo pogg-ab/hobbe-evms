@@ -6,7 +6,14 @@ import { STREAM_REPOSITORY_TOKEN } from 'src/domain/repositories/live-stream/str
 import { StreamID } from 'src/domain/value-objects/stream-id.value-object';
 import { FluentFFmpegService } from 'src/infrastructure/ffmpeg/fluent-ffmpeg.service';
 import { NodeMediaService } from 'src/infrastructure/media-server/media-server.service';
-
+import {
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger
+} from '@nestjs/common';
 @Injectable()
 export class StreamService {
   constructor(
@@ -62,7 +69,6 @@ export class StreamService {
   }
 
   async scheduleStream(
-    streamID: StreamID,
     userId: string,
     eventId: string,
     scheduledDate: Date,
@@ -73,7 +79,6 @@ export class StreamService {
       const scheduledDateTime = this.combineDateTime(scheduledDate, scheduledTime, timezone);
 
       const stream = new Stream();
-      stream.id = streamID;
       stream.status = 'inactive';
       stream.userId = userId;
       stream.eventId = eventId;
@@ -109,6 +114,78 @@ export class StreamService {
     result.setHours(hours, minutes);
     return result;
   }
+
+  async startScheduledStream(
+    userId: string,
+    streamId: string
+  ): Promise<{ success: boolean; message: string; streamId?: string }> {
+    const logger = new Logger('StreamService');
+
+    try {
+      const stream = await this.streamRepository.findById(streamId);
+      if (!stream) {
+        throw new NotFoundException({
+          success: false,
+          message: 'Stream not found',
+          streamId
+        });
+      }
+
+      if (stream.userId !== userId) {
+        throw new ForbiddenException({
+          success: false,
+          message: 'Unauthorized to start this stream',
+          streamId
+        });
+      }
+
+      if (stream.status !== 'inactive') {
+        throw new ConflictException({
+          success: false,
+          message: `Stream cannot be started from current status: ${stream.status}`,
+          currentStatus: stream.status,
+          requiredStatus: 'inactive'
+        });
+      }
+
+      const now = new Date();
+      if (stream.startDate && now < new Date(stream.startDate)) {
+        throw new BadRequestException({
+          success: false,
+          message: 'Stream cannot start before scheduled time',
+          scheduledTime: stream.startDate,
+          currentTime: now.toISOString()
+        });
+      }
+
+      const result = await this.startStream(streamId, { cameraDevice: 'default' });
+
+      return result;
+
+    } catch (error) {
+      logger.error(`Stream activation failed`, {
+        error: error.message,
+        userId,
+        streamId,
+        stack: error.stack
+      });
+
+      if (error instanceof NotFoundException ||
+        error instanceof ForbiddenException ||
+        error instanceof ConflictException ||
+        error instanceof BadRequestException) {
+        throw error; // Re-throw HTTP exceptions
+      }
+
+      throw new InternalServerErrorException({
+        success: false,
+        message: 'Failed to start stream due to technical error',
+        streamId,
+        errorCode: 'STREAM_ACTIVATION_FAILED'
+      });
+    }
+  }
+
 
   private async scheduleStreamStart(streamId: string, scheduledTime: Date): Promise<void> {
     const now = new Date();
@@ -301,10 +378,8 @@ export class StreamService {
       let selectedCamera = cameraDevice;
       if (!selectedCamera) {
         const availableCameras = await this.getCameraDevices();
-        console.log(availableCameras)
         if (availableCameras.length > 0) {
           selectedCamera = availableCameras[0].deviceId;
-          console.log(`Selected camera device: ${availableCameras[0].label}`);
         } else {
           throw new Error('No camera devices found');
         }

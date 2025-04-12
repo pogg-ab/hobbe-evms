@@ -17,15 +17,8 @@ export class CreateSubAccountDto {
   })
   @IsUUID()
   @IsNotEmpty()
-  account_id: string;
+  sub_account_user_id: string;
 
-  @ApiProperty({
-    description: 'The ID of the logged-in user who is creating the sub-account',
-    example: '12345678-1234-1234-1234-1234567890ab',
-  })
-  @IsUUID()
-  @IsNotEmpty()
-  user_id: string;
 
   @ApiProperty({
     description: 'The privileges assigned to the sub-account',

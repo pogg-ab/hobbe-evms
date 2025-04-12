@@ -7,4 +7,5 @@ export interface ISubAccountRepository {
   findOne(id: SubAccountID): Promise<SubAccount | null>;
   update(id: SubAccountID, subAccount: SubAccount): Promise<SubAccount>;
   delete(id: string): Promise<void>;
+  existsBetweenUsers(ownerUserId: string, subAccountUserId: string): Promise<boolean>;
 }

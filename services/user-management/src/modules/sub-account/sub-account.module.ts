@@ -8,12 +8,14 @@ import { FindAllSubAccountsQueryHandler } from 'src/application/handlers/sub-acc
 import { FindSubAccountByIdQueryHandler } from 'src/application/handlers/sub-account/find-sub-account-by-id.handler';
 import { RemoveSubAccountCommandHandler } from 'src/application/handlers/sub-account/remove-sub-account.handler';
 import { UpdateSubAccountCommandHandler } from 'src/application/handlers/sub-account/update-sub-account.handler';
+import { SubAccountProfile } from 'src/application/mappers/sub-account.profile';
 import { SubAccountService } from 'src/application/services/sub-account.service';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { Role } from 'src/domain/entities/role.entity';
 import { SubAccount } from 'src/domain/entities/sub-account.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
+import { User } from 'src/domain/entities/user.entity';
 import { SUB_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/sub-account.repository.token';
 import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.producer.config';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
@@ -29,6 +31,7 @@ import { SubAccountController } from 'src/presentation/controllers/sub-account.c
       Role,
       UserRole,
       OrganizationalAccount,
+      User,
     ]),
     ClientsModule.register([
       {
@@ -48,10 +51,11 @@ import { SubAccountController } from 'src/presentation/controllers/sub-account.c
     FindAllSubAccountsQueryHandler,
     FindSubAccountByIdQueryHandler,
     MessageProducerService,
+    SubAccountProfile,
     {
       provide: SUB_ACCOUNT_REPOSITORY_TOKEN,
       useClass: SubAccountRepositoryImpl,
     },
   ],
 })
-export class SubAccountModule {}
+export class SubAccountModule { }

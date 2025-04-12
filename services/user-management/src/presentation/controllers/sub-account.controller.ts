@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateSubAccountCommand } from 'src/application/commands/sub-account/create-sub-account.command';
 import { RemoveSubAccountCommand } from 'src/application/commands/sub-account/remove-sub-account.command';
 import { UpdateSubAccountCommand } from 'src/application/commands/sub-account/update-sub-account.command';
@@ -22,7 +22,23 @@ import { SubAccountID } from 'src/domain/value-objects/sub-account-id.value-obje
 import { CreateSubAccountDto } from '../dtos/create-sub-account.dto';
 import { UpdateSubAccountDto } from '../dtos/update-sub-account.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CurrentUserId } from '../decorators/currentUserId.decorater';
+export class ErrorResponseDto {
+  @ApiProperty({ example: 400 })
+  statusCode: number;
 
+  @ApiProperty({ example: 'Bad Request' })
+  error: string;
+
+  @ApiProperty({ example: 'Failed to create sub-account' })
+  message: string;
+
+  @ApiProperty({ example: 'Detailed error message...', required: false })
+  details?: string;
+
+  @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
+  timestamp: string;
+}
 @ApiTags('Sub Account')
 @Controller('sub-account')
 export class SubAccountController {
@@ -32,6 +48,8 @@ export class SubAccountController {
   ) { }
 
   @Post()
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a new sub-account' })
   @ApiBody({ type: CreateSubAccountDto })
   @HttpCode(201)
@@ -40,15 +58,36 @@ export class SubAccountController {
     description: 'Sub-account created successfully',
     type: SubAccount,
   })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Validation or creation failed',
+    type: ErrorResponseDto,
+  })
   async create(
     @Body() createSubAccountDto: CreateSubAccountDto,
-  ): Promise<{ message: string; subAccount: SubAccount }> {
+    @CurrentUserId() currentUser: any,
+  ): Promise<any> {
     try {
-      const command = new CreateSubAccountCommand(createSubAccountDto);
+      const userId = currentUser.user.user_id.toString()
+      const command = new CreateSubAccountCommand(createSubAccountDto, userId);
       const subAccount = await this.commandBus.execute(command);
-      return { message: 'Sub-account created successfully', subAccount };
+
+      return {
+        message: 'Sub-account created successfully',
+
+      };
     } catch (error) {
-      throw new BadRequestException('Failed to create sub-account');
+      console.error('Failed to create sub-account', error.stack);
+
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        message: 'Failed to create sub-account',
+        details: error.message,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 
