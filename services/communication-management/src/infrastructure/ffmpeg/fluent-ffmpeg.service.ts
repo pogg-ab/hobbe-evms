@@ -222,7 +222,8 @@ export class FluentFFmpegService {
     rtmpUrl: string,
     streamId: string,
     config: StartStreamDto): Promise<{ command: string; selectedCamera: string }> {
-    const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
+    const useDocker = process.env.FFMPEG_DOCKER === 'true';
+    const ffmpegPath = useDocker ? 'docker exec ffmpeg ffmpeg' : (process.env.FFMPEG_PATH || 'ffmpeg');
     const platform = os.platform();
     const isMobile = this.isMobilePlatform();
 
