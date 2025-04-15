@@ -12,6 +12,7 @@ import { WiseModule } from './modules/payment-methods/wise/wise.module';
 import { ChapaModule } from './modules/payment-methods/chapa/chapa.module';
 import { ChapaSDKService } from './application/services/payment-methods/chapa/chapa-sdk.service';
 import { KafkaProducerService } from './infrastructure/kafka/kafka.producer.servicce';
+import { StripeModule } from './modules/payment-methods/stripe/stripe.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { KafkaProducerService } from './infrastructure/kafka/kafka.producer.serv
     BankAccountsModule,
     WiseModule,
     ChapaModule,
+    StripeModule,
   ],
   providers: [
     AppService, 
