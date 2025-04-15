@@ -46,7 +46,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userName =  client.data?.user?.user?.user_name?.toString();
 
       this.broadcastUserStatus(userName, true);
-      // client.emit('chat', chats);
+      client.emit('chat', chats);
     } catch (error) {
       client.emit('auth',error.message)
       client.disconnect();
