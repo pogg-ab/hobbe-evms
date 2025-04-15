@@ -9,9 +9,6 @@ import {
 } from 'class-validator';
 
 export class VideoConfigDto {
-    @ApiProperty({ example: '/dev/video0' })
-    @IsString()
-    device: string = 'default';
 
     @ApiProperty({ default: true })
     @IsBoolean()

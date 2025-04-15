@@ -30,14 +30,14 @@ export class StreamController {
     private readonly queryBus: QueryBus,
   ) { }
 
-  @Post()
-  async createStream(@Body() createStreamDto: CreateStreamDto) {
-    const { userId, eventId, startDate, endDate } = createStreamDto;
+  // @Post()
+  // async createStream(@Body() createStreamDto: CreateStreamDto) {
+  //   const { userId, eventId, startDate, endDate } = createStreamDto;
 
-    return this.commandBus.execute(
-      new CreateStreamCommand(userId, eventId, startDate, endDate),
-    );
-  }
+  //   return this.commandBus.execute(
+  //     new CreateStreamCommand(userId, eventId, startDate, endDate),
+  //   );
+  // }
 
   @Post('schedule')
   @ApiOperation({ description: 'Schedule a new stream' })
@@ -83,7 +83,7 @@ export class StreamController {
   ): Promise<any> {
     const userId = user.user.user_id.toString();
     const result = await this.commandBus.execute(
-      new StartScheduledStreamCommand(userId, streamId)
+      new StartScheduledStreamCommand(userId, streamId, startStreamDto)
     );
 
     return result

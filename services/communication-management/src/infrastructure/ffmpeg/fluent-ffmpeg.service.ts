@@ -6,6 +6,7 @@ import { IStreamRepository } from 'src/domain/repositories/live-stream/stream.re
 import * as os from 'os';
 import { existsSync } from 'fs';
 import { exec } from 'child_process';
+import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
 
 type StreamStatus = 'started' | 'stopped' | 'paused' | 'error';
 
@@ -100,7 +101,7 @@ export class FluentFFmpegService {
 
 
   async streamCameraToRtmp(
-    cameraDevice: string | null,
+    config: StartStreamDto,
     rtmpUrl: string,
     streamId: string,
   ): Promise<FfmpegResponse> {
@@ -114,17 +115,17 @@ export class FluentFFmpegService {
           });
         }
 
-        if (this.pausedStreams.has(streamId) && !cameraDevice) {
+        if (this.pausedStreams.has(streamId) && !config.video.enabled) {
           const paused = this.pausedStreams.get(streamId);
           return this.resumeStream(paused.command, streamId, paused.rtmpUrl)
             .then(resolve)
             .catch(reject);
         }
 
-        const { command, selectedCamera } = await this.buildFfmpegCommand(
-          cameraDevice,
+        const { command } = await this.buildFfmpegCommand(
           rtmpUrl,
-          streamId
+          streamId,
+          config
         );
 
         const ffmpegProcess = exec(command, (error) => {
@@ -218,22 +219,25 @@ export class FluentFFmpegService {
   }
 
   private async buildFfmpegCommand(
-    cameraDevice: string | null,
     rtmpUrl: string,
-    streamId: string
-  ): Promise<{ command: string; selectedCamera: string }> {
+    streamId: string,
+    config: StartStreamDto): Promise<{ command: string; selectedCamera: string }> {
     const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
     const platform = os.platform();
     const isMobile = this.isMobilePlatform();
 
-    let selectedCamera = cameraDevice || await this.selectDefaultCamera(platform);
+    const videoEnabled = config.video.enabled
+    let selectedCamera = videoEnabled ? await this.selectDefaultCamera(platform) : 'none';
 
     const commonParams = `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency ` +
       `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
       `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
 
     let inputParams: string;
-    if (isMobile && this.isAndroid()) {
+
+    if (!videoEnabled) {
+      inputParams = `-f lavfi -i color=c=black:s=1280x720:r=30`;
+    } else if (isMobile && this.isAndroid()) {
       inputParams = `-f android_camera -camera_index ${selectedCamera} -video_size 1280x720 -framerate 30`;
     } else if (isMobile && this.isIOS()) {
       inputParams = `-f avfoundation -video_size 1280x720 -framerate 30 -i "${selectedCamera}"`;
@@ -256,7 +260,7 @@ export class FluentFFmpegService {
 
     return {
       command: `${ffmpegPath} ${inputParams} ${commonParams}`,
-      selectedCamera
+      selectedCamera: videoEnabled ? selectedCamera : 'none'
     };
   }
 

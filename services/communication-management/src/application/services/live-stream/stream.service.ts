@@ -14,6 +14,8 @@ import {
   InternalServerErrorException,
   Logger
 } from '@nestjs/common';
+import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
+import { StreamOptions } from 'stream';
 @Injectable()
 export class StreamService {
   constructor(
@@ -117,7 +119,8 @@ export class StreamService {
 
   async startScheduledStream(
     userId: string,
-    streamId: string
+    streamId: string,
+    startStreamDto: StartStreamDto
   ): Promise<{ success: boolean; message: string; streamId?: string }> {
     const logger = new Logger('StreamService');
 
@@ -158,7 +161,7 @@ export class StreamService {
         });
       }
 
-      const result = await this.startStream(streamId, { cameraDevice: 'default' });
+      const result = await this.startStream(streamId, startStreamDto);
 
       return result;
 
@@ -187,24 +190,24 @@ export class StreamService {
   }
 
 
-  private async scheduleStreamStart(streamId: string, scheduledTime: Date): Promise<void> {
-    const now = new Date();
-    const delay = scheduledTime.getTime() - now.getTime();
+  // private async scheduleStreamStart(streamId: string, scheduledTime: Date): Promise<void> {
+  //   const now = new Date();
+  //   const delay = scheduledTime.getTime() - now.getTime();
 
-    if (delay > 0) {
-      setTimeout(async () => {
-        try {
-          await this.startStream(streamId, { cameraDevice: 'default' });
-        } catch (error) {
-          console.error(`Failed to auto-start scheduled stream ${streamId}: ${error.message}`);
-        }
-      }, delay);
-    } else {
-      throw new Error('Scheduled time must be in the future');
-    }
-  }
+  //   if (delay > 0) {
+  //     setTimeout(async () => {
+  //       try {
+  //         await this.startStream(streamId, { cameraDevice: 'default' });
+  //       } catch (error) {
+  //         console.error(`Failed to auto-start scheduled stream ${streamId}: ${error.message}`);
+  //       }
+  //     }, delay);
+  //   } else {
+  //     throw new Error('Scheduled time must be in the future');
+  //   }
+  // }
 
-  async startStream(streamId: string, source: string | { filePath?: string; cameraDevice?: string }): Promise<{ success: boolean; message: string; data: Stream | null }> {
+  async startStream(streamId: string, config: StartStreamDto): Promise<{ success: boolean; message: string; data: Stream | null }> {
     try {
       const stream = await this.streamRepository.findById(streamId);
       if (!stream) {
@@ -222,15 +225,25 @@ export class StreamService {
 
       const rtmpUrl = stream.url;
 
-      if (typeof source === 'string') {
-        await this.startStreamFromFile(source, rtmpUrl, streamId);
-      } else if (source.filePath) {
-        await this.startStreamFromFile(source.filePath, rtmpUrl, streamId);
-      } else if (source.cameraDevice) {
-        await this.startStreamFromCamera(rtmpUrl, streamId, source.cameraDevice);
-      } else {
-        throw new Error('Invalid source provided. Must be either filePath or cameraDevice.');
+      const streamingOptions = {
+        source: config.source,
+        video: config.video,
+        audio: config.audio,
+        hardwareAcceleration: config.hardwareAcceleration
+      };
+
+      // Start the stream based on source type
+      switch (config.source.type) {
+        case 'file':
+          await this.startStreamFromFile(stream.url, streamId, streamingOptions.source.filePath);
+          break;
+        case 'camera':
+          await this.startStreamFromCamera(stream.url, streamId, streamingOptions);
+          break;
+        default:
+          throw new Error(`Unsupported source type: ${config.source.type}`);
       }
+
 
       this.nodeMediaService.startStream(rtmpUrl, streamId);
 
@@ -365,7 +378,7 @@ export class StreamService {
     }
   }
 
-  async startStreamFromCamera(rtmpUrl: string, streamId: string, cameraDevice?: string): Promise<{ success: boolean; message: string; data?: { streamId: string; rtmpUrl: string } }> {
+  async startStreamFromCamera(rtmpUrl: string, streamId: string, config: StartStreamDto): Promise<{ success: boolean; message: string; data?: { streamId: string; rtmpUrl: string } }> {
     try {
       console.log(`Starting stream to RTMP URL: ${rtmpUrl} for stream ID: ${streamId}`);
 
@@ -375,17 +388,8 @@ export class StreamService {
         await this.stopStream(streamId);
       }
 
-      let selectedCamera = cameraDevice;
-      if (!selectedCamera) {
-        const availableCameras = await this.getCameraDevices();
-        if (availableCameras.length > 0) {
-          selectedCamera = availableCameras[0].deviceId;
-        } else {
-          throw new Error('No camera devices found');
-        }
-      }
 
-      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(null, rtmpUrl, streamId);
+      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(config, rtmpUrl, streamId);
 
       if (streamStatus.status === 'started') {
         console.log(`Stream started successfully for stream ID: ${streamId}`);
@@ -423,7 +427,5 @@ export class StreamService {
       return [];
     }
   }
-
-
 
 }

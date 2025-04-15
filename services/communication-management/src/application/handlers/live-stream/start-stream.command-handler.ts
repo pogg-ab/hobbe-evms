@@ -12,21 +12,21 @@ export class StartStreamCommandHandler
     async execute(command: StartStreamCommand): Promise<{ success: boolean; message: string; data: Stream | null }> {
         const { streamId, source } = command;
 
-        if (typeof source === 'string') {
-            const result = await this.streamService.startStream(streamId, source);
-            if (!result.success) {
-                throw new BadRequestException(result.message);
-            }
-            return result;
-        }
+        // if (typeof source === 'string') {
+        //     const result = await this.streamService.startStream(streamId, source);
+        //     if (!result.success) {
+        //         throw new BadRequestException(result.message);
+        //     }
+        //     return result;
+        // }
 
-        if (source.filePath || source.cameraDevice) {
-            const result = await this.streamService.startStream(streamId, source);
-            if (!result.success) {
-                throw new BadRequestException(result.message);
-            }
-            return result;
-        }
+        // if (source.filePath || source.cameraDevice) {
+        //     const result = await this.streamService.startStream(streamId, source);
+        //     if (!result.success) {
+        //         throw new BadRequestException(result.message);
+        //     }
+        //     return result;
+        // }
 
         throw new BadRequestException('Invalid source provided. Must be either filePath or cameraDevice.');
     }
