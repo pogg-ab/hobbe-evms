@@ -1,14 +1,27 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateStreamCommand } from 'src/application/commands/live-stream/create-stream.command';
-import { StartStreamCommand } from 'src/application/commands/live-stream/start-stream.command';
-import { StopStreamCommand } from 'src/application/commands/live-stream/stop-stream.command';
-import { UpdateStreamCommand } from 'src/application/commands/live-stream/update-stream.command';
-import { GetAllStreamsQuery } from 'src/application/queries/live-stream/get-all-streams.query';
-import { GetStreamQuery } from 'src/application/queries/live-stream/get-stream.query';
-import { GetStreamsByUserIdQuery } from 'src/application/queries/live-stream/get-streams-by-user-id.query';
+// import { StartStreamCommand } from 'src/application/commands/live-stream/start-stream.command';
+// import { StopStreamCommand } from 'src/application/commands/live-stream/stop-stream.command';
+// import { UpdateStreamCommand } from 'src/application/commands/live-stream/update-stream.command';
+// import { PauseStreamCommand } from 'src/application/commands/live-stream/pause-stream.command';
+// import { ResumeStreamCommand } from 'src/application/commands/live-stream/resume-stream.command';
+import { ScheduleStreamCommand } from 'src/application/commands/live-stream/schedule-stream.command';
+// import { CreateAndStartStreamCommand } from 'src/application/commands/live-stream/create-and-start-stream.command';
+// import { GetAllStreamsQuery } from 'src/application/queries/live-stream/get-all-streams.query';
+// import { GetStreamQuery } from 'src/application/queries/live-stream/get-stream.query';
+// import { GetStreamsByUserIdQuery } from 'src/application/queries/live-stream/get-streams-by-user-id.query';
 import { CreateStreamDto } from 'src/presentation/dto/live-stream/create-stream.dto';
 import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
+import { ScheduleStreamDto } from 'src/presentation/dto/live-stream/schedule-stream.dto';
+// import { CreateAndStartStreamDto } from 'src/presentation/dto/live-stream/create-and-start-stream.dto';
+import { ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { Roles } from 'src/presentation/decorators/roles.decorator';
+import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
+import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/presentation/guards/roles.guard';
+import { StartScheduledStreamCommand } from 'src/application/commands/live-stream/start-scheduled-stream.command';
+import { StartScheduledStreamHandler } from 'src/application/handlers/live-stream/start-scheduled-stream.command-handler';
 
 @Controller('streams')
 export class StreamController {
@@ -17,71 +30,156 @@ export class StreamController {
     private readonly queryBus: QueryBus,
   ) { }
 
-  @Post()
-  async createStream(@Body() createStreamDto: CreateStreamDto) {
-    const { userId, eventId, startDate, endDate } = createStreamDto;
+  // @Post()
+  // async createStream(@Body() createStreamDto: CreateStreamDto) {
+  //   const { userId, eventId, startDate, endDate } = createStreamDto;
+
+  //   return this.commandBus.execute(
+  //     new CreateStreamCommand(userId, eventId, startDate, endDate),
+  //   );
+  // }
+
+  @Post('schedule')
+  @ApiOperation({ description: 'Schedule a new stream' })
+  @HttpCode(201)
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async scheduleStream(
+    @CurrentUserId() user: any,
+    @Body() scheduleStreamDto: ScheduleStreamDto,
+  ): Promise<any> {
+    const userId = user.user.user_id.toString();
+    const { eventId, scheduledDate, scheduledTime, timezone } = scheduleStreamDto;
 
     return this.commandBus.execute(
-      new CreateStreamCommand(userId, eventId, startDate, endDate),
+      new ScheduleStreamCommand(
+        userId,
+        eventId,
+        scheduledDate,
+        scheduledTime,
+        timezone
+      ),
     );
   }
 
-  @Patch(':id')
-  async updateStream(
-    @Param('id') streamId: string,
-    @Body() updateStreamDto: any,
-  ) {
-    const { url, status } = updateStreamDto;
-    return this.commandBus.execute(
-      new UpdateStreamCommand(streamId, url, status),
-    );
-  }
-
-  @Get(':id')
-  async getStream(@Param('id') streamId: string) {
-    return this.queryBus.execute(new GetStreamQuery(streamId));
-  }
-
-  @Get()
-  async getAllStreams() {
-    return this.queryBus.execute(new GetAllStreamsQuery());
-  }
-
-  @Post(':id/start')
-  async startStream(
-    @Param('id') streamId: string,
-    @Body() startStreamDto: StartStreamDto,
-  ) {
-    const { source } = startStreamDto;
-
-    try {
-      const result = await this.commandBus.execute(new StartStreamCommand(streamId, source));
-
-      return {
-        success: true,
-        message: `Stream ${streamId} started successfully`,
-        data: result.data,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to start stream: ${error.message}`,
-        data: null,
-      };
-    }
-  }
-
-  @Post(':id/stop')
-  async stopStream(@Param('id') streamId: string) {
+  @Post(':streamId/start-scheduled')
+  @ApiOperation({
+    summary: 'Start a scheduled stream',
+    description: 'Transitions a scheduled stream to LIVE status and initiates broadcasting'
+  })
+  @ApiParam({
+    name: 'streamId',
+    description: 'ID of the scheduled stream to start',
+    example: '9ea675ab-19bc-440d-808e-842efbbc467'
+  })
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async startScheduledStream(
+    @CurrentUserId() user: any,
+    @Param('streamId') streamId: string,
+    @Body() startStreamDto?: StartStreamDto
+  ): Promise<any> {
+    const userId = user.user.user_id.toString();
     const result = await this.commandBus.execute(
-      new StopStreamCommand(streamId),
+      new StartScheduledStreamCommand(userId, streamId, startStreamDto)
     );
 
-    return result;
+    return result
   }
 
-  @Get('user/:userId')
-  async getStreamsByUserId(@Param('userId') userId: string) {
-    return this.queryBus.execute(new GetStreamsByUserIdQuery(userId));
-  }
+  // @Post('create-and-start')
+  // async createAndStartStream(@Body() createAndStartStreamDto: CreateAndStartStreamDto) {
+  //   const { userId, eventId, startDate, endDate, source } = createAndStartStreamDto;
+
+  //   return this.commandBus.execute(
+  //     new CreateAndStartStreamCommand(userId, eventId, startDate, endDate, source),
+  //   );
+  // }
+
+  // @Patch(':id')
+  // async updateStream(
+  //   @Param('id') streamId: string,
+  //   @Body() updateStreamDto: any,
+  // ) {
+  //   const { url, status } = updateStreamDto;
+  //   return this.commandBus.execute(
+  //     new UpdateStreamCommand(streamId, url, status),
+  //   );
+  // }
+
+  // @Get(':id')
+  // async getStream(@Param('id') streamId: string) {
+  //   return this.queryBus.execute(new GetStreamQuery(streamId));
+  // }
+
+  // @Get()
+  // async getAllStreams() {
+  //   return this.queryBus.execute(new GetAllStreamsQuery());
+  // }
+
+  // @Post(':id/start')
+  // async startStream(
+  //   @Param('id') streamId: string,
+  //   @Body() startStreamDto: StartStreamDto,
+  // ) {
+  //   const { source } = startStreamDto;
+
+  //   try {
+  //     const result = await this.commandBus.execute(new StartStreamCommand(streamId, source));
+
+  //     return {
+  //       success: true,
+  //       message: `Stream ${streamId} started successfully`,
+  //       data: result.data,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: `Failed to start stream: ${error.message}`,
+  //       data: null,
+  //     };
+  //   }
+  // }
+
+  // @Post(':id/stop')
+  // async stopStream(@Param('id') streamId: string) {
+  //   const result = await this.commandBus.execute(
+  //     new StopStreamCommand(streamId),
+  //   );
+
+  //   return result;
+  // }
+
+  // @Post(':id/pause')
+  // async pauseStream(@Param('id') streamId: string) {
+  //   const result = await this.commandBus.execute(
+  //     new PauseStreamCommand(streamId),
+  //   );
+
+  //   return {
+  //     success: true,
+  //     message: `Stream ${streamId} paused successfully`,
+  //     data: result,
+  //   };
+  // }
+
+  // @Post(':id/resume')
+  // async resumeStream(@Param('id') streamId: string) {
+  //   const result = await this.commandBus.execute(
+  //     new ResumeStreamCommand(streamId),
+  //   );
+
+  //   return {
+  //     success: true,
+  //     message: `Stream ${streamId} resumed successfully`,
+  //     data: result,
+  //   };
+  // }
+
+  // @Get('user/:userId')
+  // async getStreamsByUserId(@Param('userId') userId: string) {
+  //   return this.queryBus.execute(new GetStreamsByUserIdQuery(userId));
+  // }
 }

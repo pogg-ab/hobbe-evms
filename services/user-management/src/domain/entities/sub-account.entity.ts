@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -11,39 +12,21 @@ import { SubAccountID } from '../value-objects/sub-account-id.value-object';
 import { SubAccountStatus } from '../value-objects/sub-account-status.value-object';
 import { OrganizationalAccount } from './organizational-account.entity';
 import { PersonalAccount } from './personal-account.entity';
+import { User } from './user.entity';
+import { UserID } from '../value-objects/user-id.value-object';
 
 @Entity()
 export class SubAccount {
   @PrimaryGeneratedColumn('uuid')
   sub_account_id: SubAccountID;
 
-  @OneToMany(
-    () => OrganizationalAccount,
-    (account) => account.organizational_account_id,
-    { nullable: true },
-  )
-  @JoinColumn({ name: 'main_account_id' })
-  organizational_account_main: OrganizationalAccount;
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'owner_user_id', referencedColumnName: 'user_id' })
+  owner_user: User;
 
-  @OneToMany(() => PersonalAccount, (account) => account.personal_account_id, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'main_account_id' })
-  personal_account_main: PersonalAccount;
-
-  @OneToMany(
-    () => OrganizationalAccount,
-    (account) => account.organizational_account_id,
-    { nullable: true },
-  )
-  @JoinColumn({ name: 'owner_account_id' })
-  organizational_account_owner: OrganizationalAccount;
-
-  @OneToMany(() => PersonalAccount, (account) => account.personal_account_id, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'owner_account_id' })
-  personal_account_owner: PersonalAccount;
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'sub_account_user_id', referencedColumnName: 'user_id' })
+  sub_account_user: User;
 
   @Column()
   generated_user_id: string;
@@ -65,10 +48,5 @@ export class SubAccount {
 
   @UpdateDateColumn()
   updated_at: Date;
-  destination: Promise<OrganizationalAccount>;
 
-  constructor() {
-    this.sub_account_id = new SubAccountID();
-    this.status = new SubAccountStatus('active');
-  }
 }

@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   ffmpeg:
-    image: jrottenberg/ffmpeg:latest
+    image: jrottenberg/ffmpeg
     container_name: ffmpeg
-    working_dir: /workspace
     volumes:
-      - ./input:/workspace/input  
-      - ./output:/workspace/output  
-    
+      - ./media:/media
+    entrypoint: ["/bin/bash"]
+    tty: true
+    stdin_open: true

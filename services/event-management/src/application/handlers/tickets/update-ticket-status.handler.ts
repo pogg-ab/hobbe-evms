@@ -6,13 +6,16 @@ import { Tickets } from 'src/domain/entities/tickets.entity';
 
 @CommandHandler(UpdateTicketStatusCommand)
 export class UpdateTicketStatusHandler
-  implements ICommandHandler<UpdateTicketStatusCommand>
-{
-  constructor(private readonly ticketBookingService: TicketBookingService) {}
+  implements ICommandHandler<UpdateTicketStatusCommand> {
+  constructor(private readonly ticketBookingService: TicketBookingService) { }
 
-  async execute(command: UpdateTicketStatusCommand): Promise<Tickets> {
-    const { ticketId, updatedBy } = command;
+  async execute(command: UpdateTicketStatusCommand): Promise<{
+    success: boolean;
+    message: string;
+    // data: Tickets | null;
+  }> {
+    const { ticketNumber, scannedBy } = command;
 
-    return this.ticketBookingService.markTicketAsAttended(ticketId, updatedBy);
+    return this.ticketBookingService.markTicketAsAttended(ticketNumber, scannedBy);
   }
 }

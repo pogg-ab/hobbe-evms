@@ -6,7 +6,16 @@ import { STREAM_REPOSITORY_TOKEN } from 'src/domain/repositories/live-stream/str
 import { StreamID } from 'src/domain/value-objects/stream-id.value-object';
 import { FluentFFmpegService } from 'src/infrastructure/ffmpeg/fluent-ffmpeg.service';
 import { NodeMediaService } from 'src/infrastructure/media-server/media-server.service';
-
+import {
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger
+} from '@nestjs/common';
+import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
+import { StreamOptions } from 'stream';
 @Injectable()
 export class StreamService {
   constructor(
@@ -61,7 +70,144 @@ export class StreamService {
     }
   }
 
-  async startStream(streamId: string, source: string | { filePath?: string; cameraDevice?: string }): Promise<{ success: boolean; message: string; data: Stream | null }> {
+  async scheduleStream(
+    userId: string,
+    eventId: string,
+    scheduledDate: Date,
+    scheduledTime: string,
+    timezone?: string
+  ): Promise<{ success: boolean; message: string; data: Stream }> {
+    try {
+      const scheduledDateTime = this.combineDateTime(scheduledDate, scheduledTime, timezone);
+
+      const stream = new Stream();
+      stream.status = 'inactive';
+      stream.userId = userId;
+      stream.eventId = eventId;
+      stream.startDate = scheduledDateTime;
+      stream.createdBy = userId;
+      stream.updatedAt = new Date();
+
+      const dateString = scheduledDateTime
+        .toISOString()
+        .replace(/[-:T]/g, '')
+        .split('.')[0];
+      const streamKey = `${userId}-${dateString}`;
+      stream.url = `${process.env.RTMP_URL}/${streamKey}`;
+      stream.streamKey = streamKey;
+
+      const createdStream = await this.streamRepository.create(stream);
+
+      return {
+        success: true,
+        message: 'Stream scheduled successfully',
+        data: createdStream,
+      };
+    } catch (error) {
+      console.error(`Failed to schedule stream: ${error.message}`);
+      throw error;
+    }
+  }
+
+
+  private combineDateTime(date: Date, time: string, timezone?: string): Date {
+    const [hours, minutes] = time.split(':').map(Number);
+    const result = new Date(date);
+    result.setHours(hours, minutes);
+    return result;
+  }
+
+  async startScheduledStream(
+    userId: string,
+    streamId: string,
+    startStreamDto: StartStreamDto
+  ): Promise<{ success: boolean; message: string; streamId?: string }> {
+    const logger = new Logger('StreamService');
+
+    try {
+      const stream = await this.streamRepository.findById(streamId);
+      if (!stream) {
+        throw new NotFoundException({
+          success: false,
+          message: 'Stream not found',
+          streamId
+        });
+      }
+
+      if (stream.userId !== userId) {
+        throw new ForbiddenException({
+          success: false,
+          message: 'Unauthorized to start this stream',
+          streamId
+        });
+      }
+
+      if (stream.status !== 'inactive') {
+        throw new ConflictException({
+          success: false,
+          message: `Stream cannot be started from current status: ${stream.status}`,
+          currentStatus: stream.status,
+          requiredStatus: 'inactive'
+        });
+      }
+
+      const now = new Date();
+      if (stream.startDate && now < new Date(stream.startDate)) {
+        throw new BadRequestException({
+          success: false,
+          message: 'Stream cannot start before scheduled time',
+          scheduledTime: stream.startDate,
+          currentTime: now.toISOString()
+        });
+      }
+
+      const result = await this.startStream(streamId, startStreamDto);
+
+      return result;
+
+    } catch (error) {
+      logger.error(`Stream activation failed`, {
+        error: error.message,
+        userId,
+        streamId,
+        stack: error.stack
+      });
+
+      if (error instanceof NotFoundException ||
+        error instanceof ForbiddenException ||
+        error instanceof ConflictException ||
+        error instanceof BadRequestException) {
+        throw error; // Re-throw HTTP exceptions
+      }
+
+      throw new InternalServerErrorException({
+        success: false,
+        message: 'Failed to start stream due to technical error',
+        streamId,
+        errorCode: 'STREAM_ACTIVATION_FAILED'
+      });
+    }
+  }
+
+
+  // private async scheduleStreamStart(streamId: string, scheduledTime: Date): Promise<void> {
+  //   const now = new Date();
+  //   const delay = scheduledTime.getTime() - now.getTime();
+
+  //   if (delay > 0) {
+  //     setTimeout(async () => {
+  //       try {
+  //         await this.startStream(streamId, { cameraDevice: 'default' });
+  //       } catch (error) {
+  //         console.error(`Failed to auto-start scheduled stream ${streamId}: ${error.message}`);
+  //       }
+  //     }, delay);
+  //   } else {
+  //     throw new Error('Scheduled time must be in the future');
+  //   }
+  // }
+
+  async startStream(streamId: string, config: StartStreamDto): Promise<{ success: boolean; message: string; data: Stream | null }> {
     try {
       const stream = await this.streamRepository.findById(streamId);
       if (!stream) {
@@ -79,15 +225,25 @@ export class StreamService {
 
       const rtmpUrl = stream.url;
 
-      if (typeof source === 'string') {
-        await this.startStreamFromFile(source, rtmpUrl, streamId);
-      } else if (source.filePath) {
-        await this.startStreamFromFile(source.filePath, rtmpUrl, streamId);
-      } else if (source.cameraDevice) {
-        await this.startStreamFromCamera(rtmpUrl, streamId, source.cameraDevice);
-      } else {
-        throw new Error('Invalid source provided. Must be either filePath or cameraDevice.');
+      const streamingOptions = {
+        source: config.source,
+        video: config.video,
+        audio: config.audio,
+        hardwareAcceleration: config.hardwareAcceleration
+      };
+
+      // Start the stream based on source type
+      switch (config.source.type) {
+        case 'file':
+          await this.startStreamFromFile(stream.url, streamId, streamingOptions.source.filePath);
+          break;
+        case 'camera':
+          await this.startStreamFromCamera(stream.url, streamId, streamingOptions);
+          break;
+        default:
+          throw new Error(`Unsupported source type: ${config.source.type}`);
       }
+
 
       this.nodeMediaService.startStream(rtmpUrl, streamId);
 
@@ -184,17 +340,6 @@ export class StreamService {
     return this.streamRepository.findAll();
   }
 
-  async transcodeStream(
-    inputStream: string | fs.ReadStream,
-    outputStream: string | NodeJS.WritableStream,
-  ): Promise<void> {
-    try {
-      await this.fluentFFmpegService.transcodeStream(inputStream, outputStream);
-    } catch (error) {
-      console.error('Error during stream transcoding:', error);
-    }
-  }
-
   async startStreamFromFile(
     inputFilePath: string,
     rtmpUrl: string,
@@ -233,7 +378,7 @@ export class StreamService {
     }
   }
 
-  async startStreamFromCamera(rtmpUrl: string, streamId: string, cameraDevice?: string): Promise<{ success: boolean; message: string; data?: { streamId: string; rtmpUrl: string } }> {
+  async startStreamFromCamera(rtmpUrl: string, streamId: string, config: StartStreamDto): Promise<{ success: boolean; message: string; data?: { streamId: string; rtmpUrl: string } }> {
     try {
       console.log(`Starting stream to RTMP URL: ${rtmpUrl} for stream ID: ${streamId}`);
 
@@ -243,19 +388,8 @@ export class StreamService {
         await this.stopStream(streamId);
       }
 
-      let selectedCamera = cameraDevice;
-      if (!selectedCamera) {
-        const availableCameras = await this.getCameraDevices();
-        console.log(availableCameras)
-        if (availableCameras.length > 0) {
-          selectedCamera = availableCameras[0].deviceId;
-          console.log(`Selected camera device: ${availableCameras[0].label}`);
-        } else {
-          throw new Error('No camera devices found');
-        }
-      }
 
-      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(null, rtmpUrl, streamId);
+      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(config, rtmpUrl, streamId);
 
       if (streamStatus.status === 'started') {
         console.log(`Stream started successfully for stream ID: ${streamId}`);
@@ -293,7 +427,5 @@ export class StreamService {
       return [];
     }
   }
-
-
 
 }

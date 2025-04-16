@@ -5,12 +5,11 @@ import { CreateSubAccountCommand } from '../../commands/sub-account/create-sub-a
 
 @CommandHandler(CreateSubAccountCommand)
 export class CreateSubAccountCommandHandler
-  implements ICommandHandler<CreateSubAccountCommand>
-{
-  constructor(private readonly subAccountService: SubAccountService) {}
+  implements ICommandHandler<CreateSubAccountCommand> {
+  constructor(private readonly subAccountService: SubAccountService) { }
 
   async execute(command: CreateSubAccountCommand): Promise<any> {
-    const { createSubAccountDto } = command;
-    return this.subAccountService.create(createSubAccountDto);
+    const { createSubAccountDto, userId } = command;
+    return this.subAccountService.create(createSubAccountDto, userId);
   }
 }

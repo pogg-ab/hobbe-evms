@@ -5,6 +5,8 @@ import { CreateStreamHandler } from 'src/application/handlers/live-stream/create
 import { GetAllStreamsHandler } from 'src/application/handlers/live-stream/get-all-streams.query-handler';
 import { GetStreamHandler } from 'src/application/handlers/live-stream/get-stream.query-handler';
 import { GetStreamsByUserIdQueryHandler } from 'src/application/handlers/live-stream/get-streams-by-user-id.query-handler';
+import { ScheduleStreamHandler } from 'src/application/handlers/live-stream/schedule-stream.command-handler';
+import { StartScheduledStreamHandler } from 'src/application/handlers/live-stream/start-scheduled-stream.command-handler';
 import { StartStreamCommandHandler } from 'src/application/handlers/live-stream/start-stream.command-handler';
 import { StopStreamCommandHandler } from 'src/application/handlers/live-stream/stop-stream.command-handler';
 import { UpdateStreamHandler } from 'src/application/handlers/live-stream/update-stream.command-handler';
@@ -31,6 +33,8 @@ import { StreamController } from 'src/presentation/controller/live-stream/stream
     StartStreamCommandHandler,
     GetStreamsByUserIdQueryHandler,
     StopStreamCommandHandler,
+    ScheduleStreamHandler,
+    StartScheduledStreamHandler,
     {
       provide: STREAM_REPOSITORY_TOKEN,
       useClass: StreamRepositoryImpl,

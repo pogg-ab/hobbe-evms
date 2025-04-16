@@ -5,18 +5,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { SubAccount } from 'src/domain/entities/sub-account.entity';
+import { User } from 'src/domain/entities/user.entity';
 import { SubAccountStatus } from 'src/domain/value-objects/sub-account-status.value-object';
 import { CreateSubAccountDto } from 'src/presentation/dtos/create-sub-account.dto';
 import { Repository } from 'typeorm';
-
+import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class SubAccountProfile extends AutomapperProfile {
   constructor(
     @InjectMapper() mapper: Mapper,
-    @InjectRepository(OrganizationalAccount)
-    private organizationalAccountRepo: Repository<OrganizationalAccount>,
-    @InjectRepository(PersonalAccount)
-    private personalAccountRepo: Repository<PersonalAccount>,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
+
   ) {
     super(mapper);
   }
@@ -27,26 +27,6 @@ export class SubAccountProfile extends AutomapperProfile {
         mapper,
         CreateSubAccountDto,
         SubAccount,
-        forMember(
-          async (destination) => destination.organizational_account_owner,
-          mapFrom(
-            async (src) => await this.getOrganizationalAccount(src.account_id),
-          ),
-        ),
-        forMember(
-          async (destination) => destination.personal_account_owner,
-          mapFrom(async (src) => await this.getPersonalAccount(src.account_id)),
-        ),
-        forMember(
-          async (destination) => destination.organizational_account_main,
-          mapFrom(
-            async (src) => await this.getOrganizationalAccount(src.user_id),
-          ),
-        ),
-        forMember(
-          async (destination) => destination.personal_account_main,
-          mapFrom(async (src) => await this.getPersonalAccount(src.user_id)),
-        ),
         forMember(
           (destination) => destination.status,
           mapFrom(() => new SubAccountStatus('active')),
@@ -63,28 +43,25 @@ export class SubAccountProfile extends AutomapperProfile {
           (destination) => destination.updated_at,
           mapFrom(() => new Date()),
         ),
+        forMember(
+          (destination) => destination.generated_user_id,
+          mapFrom(() => uuidv4()),
+        ),
+
       );
     };
   }
 
-  private async getOrganizationalAccount(accountId: string) {
-    if (accountId) {
-      const organizationalAccount =
-        await this.organizationalAccountRepo.findOne({
-          where: { organizational_account_id: accountId },
+  private async getUser(userId: string) {
+    if (userId) {
+      const user =
+        await this.userRepo.findOne({
+          where: { user_id: userId },
         });
-      return organizationalAccount || null;
+      return user || null;
     }
     return null;
   }
 
-  private async getPersonalAccount(accountId: string) {
-    if (accountId) {
-      const personalAccount = await this.personalAccountRepo.findOne({
-        where: { personal_account_id: accountId },
-      });
-      return personalAccount || null;
-    }
-    return null;
-  }
+
 }

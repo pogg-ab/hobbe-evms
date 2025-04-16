@@ -6,14 +6,21 @@ import { IStreamRepository } from 'src/domain/repositories/live-stream/stream.re
 import * as os from 'os';
 import { existsSync } from 'fs';
 import { exec } from 'child_process';
+import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
 
+type StreamStatus = 'started' | 'stopped' | 'paused' | 'error';
 
-
+interface FfmpegResponse {
+  success: boolean;
+  message: string;
+  status: StreamStatus;
+  data?: { streamId: string; rtmpUrl: string };
+}
 
 @Injectable()
 export class FluentFFmpegService {
-  private activeProcesses: Map<string, ffmpeg.FfmpegCommand> = new Map();
-  private readonly logger = new Logger(FluentFFmpegService.name);
+  private activeProcesses: Map<string, any> = new Map();
+  private pausedStreams: Map<string, { command: string; rtmpUrl: string }> = new Map();
 
 
   constructor(
@@ -22,28 +29,7 @@ export class FluentFFmpegService {
     ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || 'ffmpeg')
 
   }
-  async transcodeStream(
-    inputStream: string | fs.ReadStream,
-    outputStream: string | NodeJS.WritableStream,
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const command = ffmpeg(inputStream)
-        .output(outputStream)
-        .on('start', (commandLine) => {
-          console.log(`FFmpeg process started with command: ${commandLine}`);
-        })
-        .on('end', () => {
-          console.log('FFmpeg process finished.');
-          resolve();
-        })
-        .on('error', (err) => {
-          console.error('FFmpeg error:', err);
-          reject(err);
-        });
 
-      command.run();
-    });
-  }
 
   async streamFileToRtmp(
     inputFilePath: string,
@@ -115,106 +101,52 @@ export class FluentFFmpegService {
 
 
   async streamCameraToRtmp(
-    cameraDevice: string | null,
+    config: StartStreamDto,
     rtmpUrl: string,
     streamId: string,
-  ): Promise<{ success: boolean; message: string; status: 'started' | 'stopped' | 'error' | 'else'; data?: { streamId: string; rtmpUrl: string } }> {
+  ): Promise<FfmpegResponse> {
     return new Promise(async (resolve, reject) => {
       try {
-        const { exec } = require('child_process');
-        const ffmpegPath = `${process.env.FFMPEG_PATH || 'ffmpeg'}`;
-
-        if (!rtmpUrl || !rtmpUrl.startsWith('rtmp://')) {
-          throw new Error('Valid RTMP URL is required (starting with rtmp://)');
+        if (!this.validateRtmpUrl(rtmpUrl)) {
+          return reject({
+            success: false,
+            message: 'Valid RTMP URL is required (starting with rtmp://)',
+            status: 'error'
+          });
         }
 
-        console.log(`Preparing stream ${streamId} to ${rtmpUrl}`);
-        let selectedCamera = cameraDevice;
-        if (!selectedCamera) {
-          const cameras = await this.listCameras();
-          console.log(cameras);
-          if (cameras.length === 0) {
-            throw new Error('No camera devices found');
-          }
-          selectedCamera = cameras[1].deviceId;
-          console.log(`Auto-selected camera: ${cameras[1].label}`);
+        if (this.pausedStreams.has(streamId) && !config.video.enabled) {
+          const paused = this.pausedStreams.get(streamId);
+          return this.resumeStream(paused.command, streamId, paused.rtmpUrl)
+            .then(resolve)
+            .catch(reject);
         }
 
-        selectedCamera = selectedCamera.replace(/^video=/, '').trim();
-        console.log(`Configuring camera source: ${selectedCamera}`);
+        const { command } = await this.buildFfmpegCommand(
+          rtmpUrl,
+          streamId,
+          config
+        );
 
-        let ffmpegCommand = '';
-        switch (os.platform()) {
-          case 'win32': // Windows
-            ffmpegCommand = `${ffmpegPath} -f dshow -video_size 1280x720 -framerate 30 -rtbufsize 2000000 -i video="${selectedCamera}" ` +
-              `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency -profile:v main ` +
-              `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
-              `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
-            break;
-
-          case 'darwin': // macOS
-            ffmpegCommand = `${ffmpegPath} -f avfoundation -framerate 30 -video_size 1280x720 -i "${selectedCamera}" ` +
-              `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency -profile:v main ` +
-              `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
-              `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
-            break;
-
-          case 'linux': // Linux
-            ffmpegCommand = `${ffmpegPath} -f v4l2 -framerate 30 -video_size 1280x720 -input_format mjpeg -i "${selectedCamera}" ` +
-              `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency -profile:v main ` +
-              `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
-              `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
-            break;
-
-          default:
-            throw new Error(`Unsupported OS: ${os.platform()}`);
-        }
-
-        const ffmpegProcess = exec(ffmpegCommand, (error, stdout, stderr) => {
-          if (error) {
-            console.error(`FFmpeg error: ${error.message}`);
-            this.activeProcesses.delete(streamId);
-
-            let userMessage = 'Streaming error';
-            if (error.message.includes('dshow')) {
-              userMessage = 'Windows camera error - try lower resolution or different format';
-            } else if (error.message.includes('v4l2')) {
-              userMessage = 'Linux camera error - check supported formats';
-            } else if (error.message.includes('Output')) {
-              userMessage = 'Stream output error - check RTMP URL';
-            }
-
-            reject({
-              success: false,
-              message: userMessage,
-              status: 'error'
-            });
-            return;
-          }
-
-          console.log(`FFmpeg output: ${stdout}`);
+        const ffmpegProcess = exec(command, (error) => {
+          this.handleFfmpegError(error, streamId, reject);
         });
 
         this.activeProcesses.set(streamId, ffmpegProcess);
+        this.pausedStreams.delete(streamId);
 
         ffmpegProcess.on('exit', (code) => {
-          console.log(`FFmpeg process exited with code ${code}`);
-          this.activeProcesses.delete(streamId);
-        });
-
-        ffmpegProcess.stderr.on('data', (data) => {
-          console.log(`FFmpeg: ${data}`);
+          this.cleanupStream(streamId);
         });
 
         resolve({
           success: true,
-          message: `Stream started successfully`,
+          message: 'Stream started successfully',
           status: 'started',
           data: { streamId, rtmpUrl },
         });
 
       } catch (error) {
-        console.error(`Setup failed: ${error.message}`);
         reject({
           success: false,
           message: error.message,
@@ -224,191 +156,212 @@ export class FluentFFmpegService {
     });
   }
 
-
-  private async listCameras(): Promise<{ deviceId: string; label: string }[]> {
-    switch (os.platform()) {
-      case 'win32':
-        return this.listWindowsCameras();
-      // case 'darwin':
-      //   return this.listMacCameras();
-      // case 'linux':
-      //   return this.listLinuxCameras();
-      default:
-        throw new Error(`Unsupported platform: ${os.platform()}`);
-    }
-  }
-
-  private async listWindowsCameras(): Promise<{ deviceId: string; label: string; altDeviceId?: string }[]> {
-    return new Promise((resolve, reject) => {
-      exec(
-        'ffmpeg -f dshow -list_devices true -i dummy',
-        { windowsHide: true },
-        (error, stdout, stderr) => {
-          const cameras: { deviceId: string; label: string; altDeviceId?: string }[] = [];
-          let currentDevice: { label?: string; altDeviceId?: string } = {};
-
-          const lines = stderr.split('\n');
-          let inVideoSection = false;
-
-          for (const line of lines) {
-            if (line.includes('ffmpeg version') || line.includes('configuration:')) {
-              continue;
-            }
-
-            if (line.includes('"Alternative name"') || line.includes('(video)')) {
-              inVideoSection = true;
-            }
-
-            if (!inVideoSection) continue;
-
-            const videoMatch = line.match(/\[dshow @ \w+\]\s+"([^"]+)"\s+\(video\)/);
-            if (videoMatch) {
-              if (currentDevice.label) {
-                cameras.push({
-                  deviceId: `video=${currentDevice.label}`,
-                  label: currentDevice.label,
-                  altDeviceId: currentDevice.altDeviceId
-                });
-              }
-              currentDevice = {
-                label: videoMatch[1].trim(),
-                altDeviceId: undefined
-              };
-              continue;
-            }
-
-            const altMatch = line.match(/Alternative name\s+"([^"]+)"/);
-            if (altMatch && currentDevice.label) {
-              currentDevice.altDeviceId = altMatch[1].trim();
-              cameras.push({
-                deviceId: `video=${currentDevice.label}`,
-                label: currentDevice.label,
-                altDeviceId: currentDevice.altDeviceId
-              });
-              currentDevice = {};
-            }
-          }
-
-          if (currentDevice.label) {
-            cameras.push({
-              deviceId: `video=${currentDevice.label}`,
-              label: currentDevice.label,
-              altDeviceId: currentDevice.altDeviceId
-            });
-          }
-
-          if (cameras.length > 0) {
-            resolve(cameras);
-          } else {
-            reject(new Error(
-              'No cameras found. Possible reasons:\n' +
-              '1. No cameras are connected\n' +
-              '2. Camera access is blocked by privacy settings\n' +
-              '3. FFmpeg lacks dshow support\n' +
-              'Raw FFmpeg output:\n' + stderr
-            ));
-          }
+  async stopStream(streamId: string): Promise<FfmpegResponse> {
+    return new Promise((resolve) => {
+      try {
+        const process = this.activeProcesses.get(streamId);
+        if (process) {
+          process.kill('SIGINT');
+          resolve({
+            success: true,
+            message: 'Stream stopped successfully',
+            status: 'stopped'
+          });
+        } else {
+          resolve({
+            success: false,
+            message: 'No active stream found',
+            status: 'error'
+          });
         }
-      );
+      } catch (error) {
+        resolve({
+          success: false,
+          message: error.message,
+          status: 'error'
+        });
+      }
     });
   }
 
-  // private async listMacCameras(): Promise<{ deviceId: string; label: string }[]> {
-  //   try {
-  //     const { stdout } = await execAsync('ffmpeg -f avfoundation -list_devices true -i "" 2>&1 | grep "AVFoundation video devices" -A 10');
-  //     const cameras: { deviceId: string; label: string }[] = [];
-
-  //     stdout.split('\n').forEach(line => {
-  //       if (line.includes('] ') && line.includes('[')) {
-  //         const matches = line.match(/\[(\d+)\] (.*)/);
-  //         if (matches && matches.length >= 3) {
-  //           cameras.push({
-  //             deviceId: matches[1], // Camera index
-  //             label: matches[2].trim() // Camera name
-  //           });
-  //         }
-  //       }
-  //     });
-
-  //     return cameras;
-  //   } catch (error) {
-  //     console.error('Error listing Mac cameras:', error);
-  //     return [];
-  //   }
-  // }
-
-  // private async listLinuxCameras(): Promise<{ deviceId: string; label: string }[]> {
-  //   try {
-  //     // First try V4L2 devices
-  //     const devices = await fs.readdir('/dev');
-  //     const videoDevices = devices.filter(d => d.startsWith('video'));
-
-  //     // Try to get more info about each device
-  //     const cameras = await Promise.all(
-  //       videoDevices.map(async (device) => {
-  //         const devicePath = `/dev/${device}`;
-  //         try {
-  //           const { stdout } = await execAsync(`v4l2-ctl --device=${devicePath} --info 2>/dev/null | grep "Card type"`);
-  //           const label = stdout.replace('Card type:', '').trim() || `Camera ${device.replace('video', '')}`;
-  //           return { deviceId: devicePath, label };
-  //         } catch {
-  //           return { deviceId: devicePath, label: `Camera ${device.replace('video', '')}` };
-  //         }
-  //       })
-  //     );
-
-  //     return cameras;
-  //   } catch (error) {
-  //     console.error('Error listing Linux cameras:', error);
-  //     return [];
-  //   }
-  // }
-
-  async stopStream(streamId: string): Promise<{ success: boolean; message: string; status: 'stopped' | 'error' | 'else' }> {
-    const process = this.activeProcesses.get(streamId);
-
-    if (process) {
+  async pauseStream(streamId: string): Promise<FfmpegResponse> {
+    return new Promise((resolve) => {
       try {
-        process.kill('SIGTERM');
+        const process = this.activeProcesses.get(streamId);
+        if (!process) {
+          return resolve({
+            success: false,
+            message: 'No active stream found',
+            status: 'error'
+          });
+        }
+
+        const command = process.spawnargs.join(' ');
+        const rtmpUrl = this.extractRtmpUrl(command);
+
+        this.pausedStreams.set(streamId, { command, rtmpUrl });
+        process.kill('SIGINT');
         this.activeProcesses.delete(streamId);
-        const stream = await this.streamRepository.findById(streamId);
-        if (!stream) {
-          throw new Error(`Stream with ID ${streamId} not found`);
-        }
 
-        if (stream.status !== 'active') {
-          throw new Error(`Stream with ID ${streamId} is not active`);
-        }
-
-
-        stream.status = 'completed';
-        stream.endDate = new Date();
-        stream.updatedAt = new Date();
-        await this.streamRepository.update(stream);
-
-
-        console.log(`Stream ${streamId} completed successfully`);
-        return {
+        resolve({
           success: true,
-          message: `Stream ${streamId} completed successfully`,
-          status: 'stopped',
-        };
+          message: 'Stream paused successfully',
+          status: 'paused'
+        });
       } catch (error) {
-        console.error(`Failed to stop stream ${streamId}: ${error.message}`);
-        return {
+        resolve({
           success: false,
-          message: `Failed to stop stream ${streamId}: ${error.message}`,
-          status: 'error',
-        };
+          message: error.message,
+          status: 'error'
+        });
       }
+    });
+  }
+
+  private async buildFfmpegCommand(
+    rtmpUrl: string,
+    streamId: string,
+    config: StartStreamDto): Promise<{ command: string; selectedCamera: string }> {
+    const useDocker = process.env.FFMPEG_DOCKER === 'true';
+    const ffmpegPath = useDocker ? 'docker exec ffmpeg ffmpeg' : (process.env.FFMPEG_PATH || 'ffmpeg');
+    const platform = os.platform();
+    const isMobile = this.isMobilePlatform();
+
+    const videoEnabled = config.video.enabled
+    let selectedCamera = videoEnabled ? await this.selectDefaultCamera(platform) : 'none';
+
+    const commonParams = `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency ` +
+      `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
+      `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
+
+    let inputParams: string;
+
+    if (!videoEnabled) {
+      inputParams = `-f lavfi -i color=c=black:s=1280x720:r=30`;
+    } else if (isMobile && this.isAndroid()) {
+      inputParams = `-f android_camera -camera_index ${selectedCamera} -video_size 1280x720 -framerate 30`;
+    } else if (isMobile && this.isIOS()) {
+      inputParams = `-f avfoundation -video_size 1280x720 -framerate 30 -i "${selectedCamera}"`;
     } else {
-      console.warn(`No active stream found for ID ${streamId}`);
-      return {
-        success: false,
-        message: `No active stream found for ID ${streamId}`,
-        status: 'else',
-      };
+      selectedCamera = selectedCamera.replace(/^video=/, '').trim();
+      switch (platform) {
+        case 'win32':
+          inputParams = `-f dshow -video_size 1280x720 -framerate 30 -rtbufsize 2000000 -i video="${selectedCamera}"`;
+          break;
+        case 'darwin':
+          inputParams = `-f avfoundation -video_size 1280x720 -framerate 30 -i "${selectedCamera}"`;
+          break;
+        case 'linux':
+          inputParams = `-f v4l2 -video_size 1280x720 -framerate 30 -input_format mjpeg -i "${selectedCamera}"`;
+          break;
+        default:
+          throw new Error(`Unsupported platform: ${platform}`);
+      }
+    }
+
+    return {
+      command: `${ffmpegPath} ${inputParams} ${commonParams}`,
+      selectedCamera: videoEnabled ? selectedCamera : 'none'
+    };
+  }
+
+  private async resumeStream(
+    command: string,
+    streamId: string,
+    rtmpUrl: string
+  ): Promise<FfmpegResponse> {
+    return new Promise((resolve, reject) => {
+      try {
+        const ffmpegProcess = exec(command, (error) => {
+          this.handleFfmpegError(error, streamId, reject);
+        });
+
+        this.activeProcesses.set(streamId, ffmpegProcess);
+        this.pausedStreams.delete(streamId);
+
+        ffmpegProcess.on('exit', (code) => {
+          this.cleanupStream(streamId);
+        });
+
+        resolve({
+          success: true,
+          message: 'Stream resumed successfully',
+          status: 'started',
+          data: { streamId, rtmpUrl },
+        });
+      } catch (error) {
+        reject({
+          success: false,
+          message: error.message,
+          status: 'error'
+        });
+      }
+    });
+  }
+
+  private validateRtmpUrl(url: string): boolean {
+    return url.startsWith('rtmp://');
+  }
+
+  private isMobilePlatform(): boolean {
+    if (typeof window === 'undefined') return false;
+    const ua = window.navigator.userAgent;
+    return /iPhone|iPad|iPod|Android/i.test(ua);
+  }
+
+  private isAndroid(): boolean {
+    if (typeof window === 'undefined') return false;
+    return /Android/i.test(window.navigator.userAgent);
+  }
+
+  private isIOS(): boolean {
+    if (typeof window === 'undefined') return false;
+    return /iPhone|iPad|iPod/i.test(window.navigator.userAgent);
+  }
+
+  private extractRtmpUrl(command: string): string {
+    const match = command.match(/rtmp:\/\/[^\s"]+/);
+    return match ? match[0] : '';
+  }
+
+  private handleFfmpegError(error: Error, streamId: string, reject: (reason: any) => void): void {
+    this.activeProcesses.delete(streamId);
+
+    let userMessage = 'Streaming error';
+    if (error.message.includes('dshow')) {
+      userMessage = 'Windows camera error - try lower resolution or different format';
+    } else if (error.message.includes('v4l2')) {
+      userMessage = 'Linux camera error - check supported formats';
+    } else if (error.message.includes('Output')) {
+      userMessage = 'Stream output error - check RTMP URL';
+    } else if (this.isAndroid()) {
+      userMessage = 'Android camera error - check permissions';
+    } else if (this.isIOS()) {
+      userMessage = 'iOS camera error - check permissions';
+    }
+
+    reject({
+      success: false,
+      message: userMessage,
+      status: 'error'
+    });
+  }
+
+  private cleanupStream(streamId: string): void {
+    this.activeProcesses.delete(streamId);
+    this.pausedStreams.delete(streamId);
+  }
+
+  private async selectDefaultCamera(platform: string): Promise<string> {
+    switch (platform) {
+      case 'win32': return '720p HD Camera';
+      case 'darwin': return '0';
+      case 'linux': return '/dev/video0';
+      default: throw new Error('Cannot select default camera for unknown platform');
     }
   }
+
+
+
 
 }

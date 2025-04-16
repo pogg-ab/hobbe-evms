@@ -148,49 +148,21 @@ export class TicketBookingController {
     description:
       'Mark a Ticket as Attended. Triggered when the ticket is scanned at the event entrance.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'The ticket status has been successfully updated to ATTENDED.',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example:
-            'Ticket successfully marked as ATTENDED (scanned by QRScanner).',
-        },
-      },
-    },
-  })
   @HttpCode(200)
-  @Patch(':id/attend')
+  @Patch(':ticket_number/attend')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   async markTicketAsAttended(
-    @Param('id') id: string,
-    @Body() markTicketAsAttendedDto: MarkTicketAsAttendedDto,
+    @Param('ticket_number') ticket_number: string,
     @CurrentUserId() user: any,
   ): Promise<{ message: string }> {
-    const { scannedBy } = markTicketAsAttendedDto;
-
-    if (!scannedBy) {
-      throw new Error(
-        'The "scannedBy" field is required. Please provide the system or individual who scanned the ticket.',
-      );
-    }
-
     const command = new UpdateTicketStatusCommand(
-      id,
+      ticket_number,
       user.user.user_id.toString(),
     );
 
-    await this.commandBus.execute(command);
+    const result = await this.commandBus.execute(command);
 
-    return {
-      message: `Ticket successfully marked as ATTENDED (scanned by ${scannedBy}).`,
-    };
+    return result;
   }
-
-
-
 }

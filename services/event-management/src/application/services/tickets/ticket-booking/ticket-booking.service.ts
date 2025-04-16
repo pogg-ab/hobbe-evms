@@ -75,7 +75,7 @@ export class TicketBookingService {
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
     user: any,
-  ): Promise<{message:string, paymentLink: any}> {
+  ): Promise<{ message: string, paymentLink: any }> {
     const eventId = createTicketBookingDto.event_id.toString();
     const ticketCount = createTicketBookingDto.total_amount;
     const currentDate = new Date();
@@ -284,8 +284,8 @@ export class TicketBookingService {
         );
       }
 
-     
-      const paymentLink = await this.kafkaPaymentRpcService.sendRequest('payment-link-request-topic', { value: JSON.stringify({...createdBooking, amount:calculatedPrice}) } );
+
+      const paymentLink = await this.kafkaPaymentRpcService.sendRequest('payment-link-request-topic', { value: JSON.stringify({ ...createdBooking, amount: calculatedPrice }) });
 
       for (let i = 0; i < ticketCount; i++) {
         const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
@@ -410,18 +410,18 @@ export class TicketBookingService {
   }
 
   async markTicketAsAttended(
-    ticketId: string,
+    ticketNumber: string,
     scannedBy: string,
-  ): Promise<Tickets> {
-    const ticket = await this.ticketRepository.findOne(ticketId);
-
-    if (!ticket) {
-      throw new Error('Ticket not found');
+  ): Promise<{
+    success: boolean;
+    message: string;
+    // data: Tickets | null;
+  }> {
+    const updatedTicket = await this.ticketRepository.markAsAttended(ticketNumber, scannedBy);
+    if (!updatedTicket) {
+      throw new NotFoundException(`Ticket with ID ${ticketNumber} not found`);
     }
-
-    ticket.status = 'ATTENDED';
-
-    return null;
+    return updatedTicket;
   }
 
 
@@ -436,8 +436,8 @@ export class TicketBookingService {
             paymentStatus.payment_status,
             new Date(),
           );
-          
-          
+
+
           await this.bookingHasPaymentRepository.updateStatus(
             paymentStatus.booking_id,
             "paid",
@@ -447,12 +447,12 @@ export class TicketBookingService {
             this.dataSource.manager,
             paymentStatus.booking_id,
           );
-          
+
           console.log("Done updating ticket status after payment");
-          
+
         },
       },
-    ); 
+    );
   }
 
 
