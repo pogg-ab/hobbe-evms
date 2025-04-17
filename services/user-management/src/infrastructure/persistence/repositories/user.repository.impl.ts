@@ -1,13 +1,13 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Follower } from 'src/domain/entities/follower.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { IUserRepository } from 'src/domain/repositories/user.repository';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, IsNull, Repository } from 'typeorm';
 import { Client } from '@elastic/elasticsearch';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 @Injectable()
-export class UserRepositoryImpl implements IUserRepository {
+export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstrap {
   private readonly client: Client;
   constructor(
     @InjectRepository(User)
@@ -17,6 +17,47 @@ export class UserRepositoryImpl implements IUserRepository {
     private readonly elasticsearchConfig: ElasticsearchConfig
 
   ) { this.client = elasticsearchConfig.getClient(); }
+
+  async onApplicationBootstrap() {
+    await this.backfillUserProfiles();
+  }
+
+  private async backfillUserProfiles(): Promise<void> {
+    try {
+      const usersToUpdate = await this.userRepository.find({
+        where: [
+          { profile_id: IsNull() },
+          { profile_name: IsNull() }
+        ],
+        relations: ['personal_account', 'organizational_account']
+      });
+
+      if (usersToUpdate.length > 0) {
+        console.log(`Backfilling profiles for ${usersToUpdate.length} users`);
+
+        const batchSize = 100;
+        for (let i = 0; i < usersToUpdate.length; i += batchSize) {
+          const batch = usersToUpdate.slice(i, i + batchSize);
+          await Promise.all(
+            batch.map(user => {
+              this.ensureProfileFields(user);
+              return this.userRepository.save(user);
+            })
+          );
+        }
+
+        console.log('Profile backfill completed');
+      }
+    } catch (error) {
+      console.error('Failed to backfill user profiles:', error);
+    }
+  }
+  private ensureProfileFields(user: User): void {
+    if (!user.profile_id || !user.profile_name) {
+      user.updateProfileDetails();
+    }
+  }
+
 
   async create(manager: EntityManager, user: User): Promise<User> {
     try {
@@ -49,6 +90,8 @@ export class UserRepositoryImpl implements IUserRepository {
         user_id: user.user_id,
         user_name: user.user_name,
         account_type: user.account_type,
+        profile_id: user.profile_id,
+        profile_name: user.profile_name,
         account_info:
           user.account_type === 'personal'
             ? user.personal_account
@@ -91,6 +134,8 @@ export class UserRepositoryImpl implements IUserRepository {
         user_id: user.user_id,
         user_name: user.user_name,
         account_type: user.account_type,
+        profile_id: user.profile_id,
+        profile_name: user.profile_name,
         account_info:
           user.account_type === 'personal'
             ? user.personal_account
@@ -165,6 +210,8 @@ export class UserRepositoryImpl implements IUserRepository {
             user_id: user.user_id,
             user_name: user.user_name,
             account_type: user.account_type,
+            profile_id: user.profile_id,
+            profile_name: user.profile_name,
             account_info:
               user.account_type === 'personal'
                 ? user.personal_account
@@ -204,6 +251,7 @@ export class UserRepositoryImpl implements IUserRepository {
           HttpStatus.NOT_FOUND,
         );
       }
+
 
       const updatedUser = Object.assign(existingUser, user);
 
