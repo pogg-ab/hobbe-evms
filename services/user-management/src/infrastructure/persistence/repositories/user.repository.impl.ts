@@ -90,6 +90,8 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
         user_id: user.user_id,
         user_name: user.user_name,
         account_type: user.account_type,
+        profile_id: user.profile_id,
+        profile_name: user.profile_name,
         account_info:
           user.account_type === 'personal'
             ? user.personal_account
@@ -132,6 +134,8 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
         user_id: user.user_id,
         user_name: user.user_name,
         account_type: user.account_type,
+        profile_id: user.profile_id,
+        profile_name: user.profile_name,
         account_info:
           user.account_type === 'personal'
             ? user.personal_account
@@ -206,6 +210,8 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
             user_id: user.user_id,
             user_name: user.user_name,
             account_type: user.account_type,
+            profile_id: user.profile_id,
+            profile_name: user.profile_name,
             account_info:
               user.account_type === 'personal'
                 ? user.personal_account
