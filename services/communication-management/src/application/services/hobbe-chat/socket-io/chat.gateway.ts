@@ -38,7 +38,7 @@ async handleChatRoom(client: Socket, dto: CreatePrivateChatDto): Promise<void> {
   try {
     const { user } = client.data;
     const chat = await this.hobbeChatService.createChat(user, dto);
-    console.dir(chat,{depth:null});
+    // console.dir(chat,{depth:null});
     
     
     if (!chat.isExisting) {
@@ -53,5 +53,18 @@ async handleChatRoom(client: Socket, dto: CreatePrivateChatDto): Promise<void> {
   } catch (error) {
     client.emit('chat-room-error', `An error occurred while creating the chat: ${error.message}`);
   }
- }  
+ }
+ 
+ @SubscribeMessage('getChatConversation')
+ async handleChatConversation(client: Socket, chatId:{chatId:string}): Promise<any> {
+    try {
+      const { user } = client.data;
+      const chat =  await this.hobbeChatService.getChatConvesation(user, chatId);
+      // console.dir(chat,{depth:null});
+      client.emit('chat-conversatoin', chat);
+    } catch (error) {
+      client.emit('chat-conversation-error', `An error occurred while fetching the chat conversation: ${error.message}`);
+    }
+  }
+
 }
