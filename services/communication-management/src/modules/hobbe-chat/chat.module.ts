@@ -23,6 +23,7 @@ import { E2eeService } from 'src/application/services/hobbe-chat/e2ee/e2ee.servi
 import { E2EERepositoryImpl } from 'src/infrastructure/persistance/repository/hobbe-chat/e2ee.repository.impl';
 import { E2EE_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/e2ee/e2ee.repository.token';
 import { E2EE } from 'src/domain/entities/hobbe-chat/e2ee.entity';
+import { FindChatByIdQueryHandler } from 'src/application/handlers/hobbe-chat/find-chat-by-id.handler';
 
 
 @Module({
@@ -38,6 +39,7 @@ import { E2EE } from 'src/domain/entities/hobbe-chat/e2ee.entity';
     CreateChatHandler,
     GetUserChatsHandler,
     AddChatMemberHandler,
+    FindChatByIdQueryHandler,
     DeleteChatHandler,
     { provide: CHAT_USER_REPOSITORY_TOKEN, useClass: ChatUserRepositoryImpl },
     { provide: CHAT_REPOSITORY_TOKEN, useClass: ChatRepositoryImpl },
