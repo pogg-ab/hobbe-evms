@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EndStreamCommand } from 'src/application/commands/live-stream/end-stream.command';
 import { CreateStreamHandler } from 'src/application/handlers/live-stream/create-stream.command-handler';
+import { EndStreamHandler } from 'src/application/handlers/live-stream/end-stream.command-handler';
 import { GetAllStreamsHandler } from 'src/application/handlers/live-stream/get-all-streams.query-handler';
 import { GetStreamHandler } from 'src/application/handlers/live-stream/get-stream.query-handler';
 import { GetStreamsByUserIdQueryHandler } from 'src/application/handlers/live-stream/get-streams-by-user-id.query-handler';
@@ -35,6 +37,7 @@ import { StreamController } from 'src/presentation/controller/live-stream/stream
     StopStreamCommandHandler,
     ScheduleStreamHandler,
     StartScheduledStreamHandler,
+    EndStreamHandler,
     {
       provide: STREAM_REPOSITORY_TOKEN,
       useClass: StreamRepositoryImpl,

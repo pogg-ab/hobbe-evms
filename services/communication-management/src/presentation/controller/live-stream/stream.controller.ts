@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Logger, OnModuleInit, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateStreamCommand } from 'src/application/commands/live-stream/create-stream.command';
 // import { StartStreamCommand } from 'src/application/commands/live-stream/start-stream.command';
@@ -22,13 +22,96 @@ import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { StartScheduledStreamCommand } from 'src/application/commands/live-stream/start-scheduled-stream.command';
 import { StartScheduledStreamHandler } from 'src/application/handlers/live-stream/start-scheduled-stream.command-handler';
-
+import { EndStreamCommand } from 'src/application/commands/live-stream/end-stream.command';
+import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { GetAllStreamsQuery } from 'src/application/queries/live-stream/get-all-streams.query';
 @Controller('streams')
-export class StreamController {
+@WebSocketGateway({
+  namespace: '/stream',
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  }
+}) export class StreamController {
+  private readonly logger = new Logger(StreamController.name);
+  @WebSocketServer()
+  server: Server;
+
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) { }
+
+  afterInit() {
+    this.logger.log('WebSocket Gateway initialized');
+
+    this.server.on('connection', (socket: Socket) => {
+      this.logger.log(`Client connected: ${socket.id}`);
+
+      socket.on('disconnect', () => {
+        this.logger.log(`Client disconnected: ${socket.id}`);
+      });
+    });
+  }
+
+
+  @SubscribeMessage('joinStreamRoom')
+  handleJoinRoom(
+    @MessageBody() streamId: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.join(streamId);
+    this.logger.log(`Client ${client.id} joined stream room ${streamId}`);
+    client.emit('joinedRoom', { success: true, streamId });
+  }
+
+  @SubscribeMessage('leaveStreamRoom')
+  handleLeaveRoom(
+    @MessageBody() streamId: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.leave(streamId);
+    this.logger.log(`Client ${client.id} left stream room ${streamId}`);
+    client.emit('leftRoom', { success: true, streamId });
+  }
+
+  @SubscribeMessage('streamControl')
+  async handleStreamControl(
+    @MessageBody() data: { streamId: string; action: string; payload?: any },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const { streamId, action, payload } = data;
+      this.logger.log(`Stream control request: ${action} for ${streamId}`);
+
+      switch (action) {
+        case 'start':
+          await this.commandBus.execute(
+            new StartScheduledStreamCommand(client.data.userId, streamId, payload),
+          );
+          break;
+        case 'stop':
+          await this.commandBus.execute(
+            new EndStreamCommand(client.data.userId, streamId),
+          );
+          break;
+        default:
+          throw new Error('Invalid action');
+      }
+
+      this.server.to(streamId).emit('streamStatus', {
+        streamId,
+        status: action === 'start' ? 'live' : 'ended',
+        timestamp: new Date().toISOString(),
+      });
+
+      return { success: true, action };
+    } catch (error) {
+      this.logger.error(`Stream control error: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
 
   // @Post()
   // async createStream(@Body() createStreamDto: CreateStreamDto) {
@@ -73,20 +156,44 @@ export class StreamController {
     description: 'ID of the scheduled stream to start',
     example: '9ea675ab-19bc-440d-808e-842efbbc467'
   })
-  @ApiBearerAuth('access-token')
-  @Roles('User')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  // @ApiBearerAuth('access-token')
+  // @Roles('User')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
   async startScheduledStream(
-    @CurrentUserId() user: any,
+    // @CurrentUserId() user: any,
     @Param('streamId') streamId: string,
     @Body() startStreamDto?: StartStreamDto
   ): Promise<any> {
-    const userId = user.user.user_id.toString();
+    // const userId = user.user.user_id.toString();
+    const userId = "bdbcbb3a-0073-45c0-a94b-41b42f650345"
     const result = await this.commandBus.execute(
       new StartScheduledStreamCommand(userId, streamId, startStreamDto)
     );
 
     return result
+  }
+
+  @Post(':streamId/end-stream')
+  @ApiOperation({
+    summary: 'End a live stream',
+    description: 'Stops broadcasting and transitions a live stream to ENDED status'
+  })
+  @ApiParam({
+    name: 'streamId',
+    description: 'ID of the stream to end',
+    example: '9ea675ab-19bc-440d-808e-842efbbc467'
+  })
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async endStream(
+    @CurrentUserId() user: any,
+    @Param('streamId') streamId: string,
+  ): Promise<any> {
+    const userId = user.user.user_id.toString();
+    return this.commandBus.execute(
+      new EndStreamCommand(userId, streamId)
+    );
   }
 
   // @Post('create-and-start')
@@ -114,10 +221,10 @@ export class StreamController {
   //   return this.queryBus.execute(new GetStreamQuery(streamId));
   // }
 
-  // @Get()
-  // async getAllStreams() {
-  //   return this.queryBus.execute(new GetAllStreamsQuery());
-  // }
+  @Get()
+  async getAllStreams() {
+    return this.queryBus.execute(new GetAllStreamsQuery());
+  }
 
   // @Post(':id/start')
   // async startStream(

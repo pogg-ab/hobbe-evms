@@ -7,6 +7,7 @@ import * as os from 'os';
 import { existsSync } from 'fs';
 import { exec } from 'child_process';
 import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
+import { Server, WebSocket } from 'ws';
 
 type StreamStatus = 'started' | 'stopped' | 'paused' | 'error';
 
@@ -14,14 +15,15 @@ interface FfmpegResponse {
   success: boolean;
   message: string;
   status: StreamStatus;
-  data?: { streamId: string; rtmpUrl: string };
+  data?: { streamId: string; rtmpUrl: string; wsPort: number };
 }
 
 @Injectable()
 export class FluentFFmpegService {
   private activeProcesses: Map<string, any> = new Map();
   private pausedStreams: Map<string, { command: string; rtmpUrl: string }> = new Map();
-
+  private webSocketServers: Map<string, Server> = new Map();
+  private logger = new Logger(FluentFFmpegService.name);
 
   constructor(
     @Inject(STREAM_REPOSITORY_TOKEN)
@@ -105,80 +107,175 @@ export class FluentFFmpegService {
     rtmpUrl: string,
     streamId: string,
   ): Promise<FfmpegResponse> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         if (!this.validateRtmpUrl(rtmpUrl)) {
-          return reject({
+          throw new Error('Valid RTMP URL is required (starting with rtmp://)');
+        }
+
+        const port = 9000 + Math.floor(Math.random() * 1000);
+        const wsServer = new WebSocket.Server({ port });
+
+        this.webSocketServers.set(streamId, wsServer);
+        this.logger.log(`WebSocket server started on port ${port} for stream ${streamId}`);
+
+        const { command } = this.buildFfmpegCommand(port, rtmpUrl, config);
+        const ffmpegProcess = exec(command);
+
+        ffmpegProcess.on('error', (error) => {
+          this.logger.error(`FFmpeg error for stream ${streamId}: ${error.message}`);
+          this.cleanupStream(streamId);
+          reject({
             success: false,
-            message: 'Valid RTMP URL is required (starting with rtmp://)',
-            status: 'error'
+            message: `FFmpeg error: ${error.message}`,
+            status: 'error',
           });
-        }
-
-        if (this.pausedStreams.has(streamId) && !config.video.enabled) {
-          const paused = this.pausedStreams.get(streamId);
-          return this.resumeStream(paused.command, streamId, paused.rtmpUrl)
-            .then(resolve)
-            .catch(reject);
-        }
-
-        const { command } = await this.buildFfmpegCommand(
-          rtmpUrl,
-          streamId,
-          config
-        );
-
-        const ffmpegProcess = exec(command, (error) => {
-          this.handleFfmpegError(error, streamId, reject);
         });
 
-        this.activeProcesses.set(streamId, ffmpegProcess);
-        this.pausedStreams.delete(streamId);
+        ffmpegProcess.stdout?.on('data', (data) => {
+          this.logger.debug(`FFmpeg stdout: ${data}`);
+        });
+
+        ffmpegProcess.stderr?.on('data', (data) => {
+          this.logger.debug(`FFmpeg stderr: ${data}`);
+        });
 
         ffmpegProcess.on('exit', (code) => {
+          this.logger.log(`FFmpeg process exited with code ${code} for stream ${streamId}`);
           this.cleanupStream(streamId);
         });
 
-        resolve({
-          success: true,
-          message: 'Stream started successfully',
-          status: 'started',
-          data: { streamId, rtmpUrl },
+        wsServer.on('connection', (ws: WebSocket) => {
+          this.logger.log(`Client connected to stream ${streamId}`);
+
+          ws.on('message', (data: Buffer) => {
+            if (ffmpegProcess.stdin?.writable) {
+              ffmpegProcess.stdin.write(data);
+            }
+          });
+
+          ws.on('close', () => {
+            this.logger.log(`Client disconnected from stream ${streamId}`);
+          });
+
+          ws.on('error', (error) => {
+            this.logger.error(`WebSocket error for stream ${streamId}: ${error.message}`);
+          });
         });
 
+        this.activeProcesses.set(streamId, ffmpegProcess);
+
+        resolve({
+          success: true,
+          message: 'WebSocket stream started successfully',
+          status: 'started',
+          data: { streamId, rtmpUrl, wsPort: port },
+        });
       } catch (error) {
+        this.logger.error(`Failed to start stream ${streamId}: ${error.message}`);
         reject({
           success: false,
           message: error.message,
-          status: 'error'
+          status: 'error',
         });
       }
     });
   }
 
+  private buildFfmpegCommand(
+    wsPort: number,
+    rtmpUrl: string,
+    config: StartStreamDto,
+  ): { command: string } {
+    const videoConfig = config.video;
+    const audioConfig = config.audio;
+    const useDocker = process.env.FFMPEG_DOCKER === 'true';
+    const ffmpegPath = useDocker ? 'docker exec ffmpeg ffmpeg' : (process.env.FFMPEG_PATH || 'ffmpeg');
+
+    const inputParams = [
+      `-f mpegts`,
+      `-listen 1`,
+      `-i tcp://localhost:${wsPort}?listen`,
+    ];
+
+    const videoParams = [
+      `-c:v libx264`,
+      `-preset veryfast`,
+      `-tune zerolatency`,
+      `-b:v ${videoConfig.bitrate}k`,
+      `-maxrate ${videoConfig.maxBitrate}k`,
+      `-bufsize ${videoConfig.bufferSize}k`,
+      `-g ${videoConfig.gop}`,
+      `-keyint_min ${videoConfig.keyintMin}`,
+      `-pix_fmt ${videoConfig.pixelFormat}`,
+      `-x264-params keyint=${videoConfig.gop}:min-keyint=${videoConfig.keyintMin}`,
+    ];
+
+    const audioParams = audioConfig.enabled
+      ? [
+        `-c:a aac`,
+        `-ar ${audioConfig.sampleRate}`,
+        `-ac ${audioConfig.channels}`,
+        `-b:a 128k`,
+        `-aac_coder twoloop`,
+      ]
+      : ['-an'];
+
+    const outputParams = [
+      `-f flv`,
+      `-flvflags no_duration_filesize`,
+      `"${rtmpUrl}"`,
+    ];
+
+    const command = [
+      ffmpegPath,
+      ...inputParams,
+      ...videoParams,
+      ...audioParams,
+      ...outputParams,
+    ].join(' ');
+
+    this.logger.debug(`Generated FFmpeg command: ${command}`);
+    return { command };
+  }
+
   async stopStream(streamId: string): Promise<FfmpegResponse> {
     return new Promise((resolve) => {
       try {
-        const process = this.activeProcesses.get(streamId);
-        if (process) {
-          process.kill('SIGINT');
-          resolve({
-            success: true,
-            message: 'Stream stopped successfully',
-            status: 'stopped'
-          });
-        } else {
-          resolve({
+        const wsServer = this.webSocketServers.get(streamId);
+        const ffmpegProcess = this.activeProcesses.get(streamId);
+
+        if (!ffmpegProcess && !wsServer) {
+          return resolve({
             success: false,
             message: 'No active stream found',
-            status: 'error'
+            status: 'error',
           });
         }
+
+        if (wsServer) {
+          wsServer.close();
+          this.webSocketServers.delete(streamId);
+          this.logger.log(`WebSocket server closed for stream ${streamId}`);
+        }
+
+        if (ffmpegProcess) {
+          ffmpegProcess.kill('SIGINT');
+          this.activeProcesses.delete(streamId);
+          this.logger.log(`FFmpeg process stopped for stream ${streamId}`);
+        }
+
+        resolve({
+          success: true,
+          message: 'Stream stopped successfully',
+          status: 'stopped',
+        });
       } catch (error) {
+        this.logger.error(`Error stopping stream ${streamId}: ${error.message}`);
         resolve({
           success: false,
           message: error.message,
-          status: 'error'
+          status: 'error',
         });
       }
     });
@@ -218,52 +315,7 @@ export class FluentFFmpegService {
     });
   }
 
-  private async buildFfmpegCommand(
-    rtmpUrl: string,
-    streamId: string,
-    config: StartStreamDto): Promise<{ command: string; selectedCamera: string }> {
-    const useDocker = process.env.FFMPEG_DOCKER === 'true';
-    const ffmpegPath = useDocker ? 'docker exec ffmpeg ffmpeg' : (process.env.FFMPEG_PATH || 'ffmpeg');
-    const platform = os.platform();
-    const isMobile = this.isMobilePlatform();
 
-    const videoEnabled = config.video.enabled
-    let selectedCamera = videoEnabled ? await this.selectDefaultCamera(platform) : 'none';
-
-    const commonParams = `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency ` +
-      `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
-      `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
-
-    let inputParams: string;
-
-    if (!videoEnabled) {
-      inputParams = `-f lavfi -i color=c=black:s=1280x720:r=30`;
-    } else if (isMobile && this.isAndroid()) {
-      inputParams = `-f android_camera -camera_index ${selectedCamera} -video_size 1280x720 -framerate 30`;
-    } else if (isMobile && this.isIOS()) {
-      inputParams = `-f avfoundation -video_size 1280x720 -framerate 30 -i "${selectedCamera}"`;
-    } else {
-      selectedCamera = selectedCamera.replace(/^video=/, '').trim();
-      switch (platform) {
-        case 'win32':
-          inputParams = `-f dshow -video_size 1280x720 -framerate 30 -rtbufsize 2000000 -i video="${selectedCamera}"`;
-          break;
-        case 'darwin':
-          inputParams = `-f avfoundation -video_size 1280x720 -framerate 30 -i "${selectedCamera}"`;
-          break;
-        case 'linux':
-          inputParams = `-f v4l2 -video_size 1280x720 -framerate 30 -input_format mjpeg -i "${selectedCamera}"`;
-          break;
-        default:
-          throw new Error(`Unsupported platform: ${platform}`);
-      }
-    }
-
-    return {
-      command: `${ffmpegPath} ${inputParams} ${commonParams}`,
-      selectedCamera: videoEnabled ? selectedCamera : 'none'
-    };
-  }
 
   private async resumeStream(
     command: string,
@@ -287,7 +339,7 @@ export class FluentFFmpegService {
           success: true,
           message: 'Stream resumed successfully',
           status: 'started',
-          data: { streamId, rtmpUrl },
+          data: { streamId, rtmpUrl, wsPort: 9000 },
         });
       } catch (error) {
         reject({

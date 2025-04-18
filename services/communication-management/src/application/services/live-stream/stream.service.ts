@@ -16,6 +16,14 @@ import {
 } from '@nestjs/common';
 import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
 import { StreamOptions } from 'stream';
+type StreamStatus = 'started' | 'stopped' | 'paused' | 'error';
+
+interface FfmpegResponse {
+  success: boolean;
+  message: string;
+  status: StreamStatus;
+  data?: { streamId: string; rtmpUrl: string; wsPort: number };
+}
 @Injectable()
 export class StreamService {
   constructor(
@@ -177,7 +185,7 @@ export class StreamService {
         error instanceof ForbiddenException ||
         error instanceof ConflictException ||
         error instanceof BadRequestException) {
-        throw error; // Re-throw HTTP exceptions
+        throw error;
       }
 
       throw new InternalServerErrorException({
@@ -185,6 +193,79 @@ export class StreamService {
         message: 'Failed to start stream due to technical error',
         streamId,
         errorCode: 'STREAM_ACTIVATION_FAILED'
+      });
+    }
+  }
+
+
+  async endStream(
+    streamId: string,
+    userId: string
+  ): Promise<{ success: boolean; message: string; data: Stream | null }> {
+    const logger = new Logger('StreamService');
+
+    try {
+      const stream = await this.streamRepository.findById(streamId);
+      if (!stream) {
+        throw new NotFoundException({
+          success: false,
+          message: 'Stream not found',
+          streamId
+        });
+      }
+
+      if (stream.userId !== userId) {
+        throw new ForbiddenException({
+          success: false,
+          message: 'Unauthorized to end this stream',
+          streamId
+        });
+      }
+
+      if (stream.status !== 'active') {
+        throw new ConflictException({
+          success: false,
+          message: `Stream cannot be ended from current status: ${stream.status}`,
+          currentStatus: stream.status,
+          requiredStatus: 'active'
+        });
+      }
+
+      this.fluentFFmpegService.stopStream(streamId);
+
+      this.nodeMediaService.stopStream(streamId);
+
+      stream.status = 'completed';
+      stream.endDate = new Date();
+      stream.updatedAt = new Date();
+      const updatedStream = await this.streamRepository.update(stream);
+
+      logger.log(`Stream ${streamId} ended successfully by user ${userId}`);
+
+      return {
+        success: true,
+        message: `Stream ${streamId} ended successfully`,
+        data: updatedStream,
+      };
+    } catch (error) {
+      logger.error(`Failed to end stream ${streamId}`, {
+        error: error.message,
+        userId,
+        streamId,
+        stack: error.stack
+      });
+
+      if (error instanceof NotFoundException ||
+        error instanceof ForbiddenException ||
+        error instanceof ConflictException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException({
+        success: false,
+        message: 'Failed to end stream due to technical error',
+        streamId,
+        errorCode: 'STREAM_END_FAILED'
       });
     }
   }
@@ -207,7 +288,7 @@ export class StreamService {
   //   }
   // }
 
-  async startStream(streamId: string, config: StartStreamDto): Promise<{ success: boolean; message: string; data: Stream | null }> {
+  async startStream(streamId: string, config: StartStreamDto): Promise<{ success: boolean; message: string; data: Stream | null, port: any }> {
     try {
       const stream = await this.streamRepository.findById(streamId);
       if (!stream) {
@@ -231,14 +312,13 @@ export class StreamService {
         audio: config.audio,
         hardwareAcceleration: config.hardwareAcceleration
       };
-
-      // Start the stream based on source type
+      let result = null
       switch (config.source.type) {
         case 'file':
           await this.startStreamFromFile(stream.url, streamId, streamingOptions.source.filePath);
           break;
         case 'camera':
-          await this.startStreamFromCamera(stream.url, streamId, streamingOptions);
+          result = await this.startStreamFromCamera(stream.url, streamId, streamingOptions);
           break;
         default:
           throw new Error(`Unsupported source type: ${config.source.type}`);
@@ -251,12 +331,14 @@ export class StreamService {
         success: true,
         message: `Stream ${streamId} started successfully`,
         data: stream,
+        port: result.data.wsPort
       };
     } catch (error) {
       return {
         success: false,
         message: `Failed to start stream ${streamId}: ${error.message}`,
         data: null,
+        port: null
       };
     }
   }
@@ -339,6 +421,9 @@ export class StreamService {
   async getAllStreams(): Promise<Stream[]> {
     return this.streamRepository.findAll();
   }
+  async getStreamByStatus(): Promise<Stream[]> {
+    return this.streamRepository.findByStatus();
+  }
 
   async startStreamFromFile(
     inputFilePath: string,
@@ -378,7 +463,7 @@ export class StreamService {
     }
   }
 
-  async startStreamFromCamera(rtmpUrl: string, streamId: string, config: StartStreamDto): Promise<{ success: boolean; message: string; data?: { streamId: string; rtmpUrl: string } }> {
+  async startStreamFromCamera(rtmpUrl: string, streamId: string, config: StartStreamDto): Promise<FfmpegResponse> {
     try {
       console.log(`Starting stream to RTMP URL: ${rtmpUrl} for stream ID: ${streamId}`);
 
@@ -390,26 +475,19 @@ export class StreamService {
 
 
       const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(config, rtmpUrl, streamId);
-
       if (streamStatus.status === 'started') {
         console.log(`Stream started successfully for stream ID: ${streamId}`);
-        return {
-          success: true,
-          message: `Stream started successfully for stream ID: ${streamId}`,
-          data: { streamId, rtmpUrl },
-        };
+        return streamStatus;
       } else {
         console.error(`Failed to start stream for stream ID: ${streamId}`);
-        return {
-          success: false,
-          message: `Failed to start stream: ${streamStatus.message}`,
-        };
+        return streamStatus;
       }
     } catch (error) {
       console.error(`Failed to start stream from camera for stream ID: ${streamId}: ${error.message}`);
       return {
         success: false,
         message: `Failed to start stream: ${error.message}`,
+        status: "error"
       };
     }
   }

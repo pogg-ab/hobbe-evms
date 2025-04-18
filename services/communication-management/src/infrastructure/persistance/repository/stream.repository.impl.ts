@@ -35,6 +35,17 @@ export class StreamRepositoryImpl implements IStreamRepository {
       },
     });
   }
+  async findByStatus(): Promise<Stream[]> {
+    return await this.streamRepository.find({
+      where: {
+        status: "inactive",
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+
 
   async update(stream: Stream): Promise<Stream> {
 
