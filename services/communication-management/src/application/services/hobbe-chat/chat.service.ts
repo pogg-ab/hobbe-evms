@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { CreateChatCommand } from 'src/application/commands/hobbe-chat/create-chat.command';
 import { ChatRepository } from 'src/domain/repositories/hobbe-chat/chat.repository';
@@ -31,8 +31,16 @@ export class ChatService {
     user: any,
     createChatDto: CreatePrivateChatDto,
   ): Promise<any> {
+
+    const friend = await this.chatUserRepo.findOne(createChatDto.friendId);
+    if (!friend) {
+      throw new BadRequestException(`It looks like your friend hasn't joined Hobbe Chat yet.
+      Invite them now so you can stay connected and enjoy seamless conversations together!`);
+    }
+    
     const chat_user = user.user.user_id.toString();
-    const chat_user_name = user.user.user_name;
+    const profile_id = user.user.profile_id.toString();
+    const profile_name = user.user.profile_name.toString();
     // Check if private chat exists
     if (createChatDto.friendId) {
       const existingChat = await this.chatRepo.findPrivateChat(
@@ -40,11 +48,6 @@ export class ChatService {
         createChatDto.friendId,
       );
       if (existingChat) {
-        // const member = await this.getSingleChatMember(existingChat,createChatDto.friendId);
-        // if(member){
-        //   member.userName = createChatDto.name;
-        //   await this.updateChatMember(member);
-        // }
         return { ...existingChat, isExisting: true };
       }
     }
@@ -53,15 +56,12 @@ export class ChatService {
 
     const chat = await this.chatRepo.create(
       'private',
-      '@user' + randomInt(1000000000, 9999999999),
+      '@chat' + randomInt(100000000000, 999999999999),
     );
-    const chatUser = await this.chatUserRepo.chatUser(chat_user);
+    const chatUser = await this.chatUserRepo.create(chat_user,profile_id,profile_name);
     await this.chatMemberRepo.addMember(chat, chatUser);
 
-    if (createChatDto.friendId) {
-      const chatUser = await this.chatUserRepo.chatUser(createChatDto.friendId);
-      await this.chatMemberRepo.addMember(chat, chatUser);
-    }
+    await this.chatMemberRepo.addMember(chat, friend);
 
     const members = await this.chatMemberRepo.getChatMembers(chat);
     return { ...chat, members: members };
@@ -82,10 +82,10 @@ export class ChatService {
           this.e2eeService.getPrivateKey(userId),
         ]);
   
-        if (chat['lastMessage_content']) {
-          chat['lastMessage_content'] = this.e2eeService.decryptMessage(
-            chat['lastMessage_content'],
-            chat['lastMessage_senderId'],
+        if (chat['content']) {
+          chat['content'] = this.e2eeService.decryptMessage(
+            chat['content'],
+            chat['sender_id'],
             userId,
             currentUserPrivateKey.privateKey.toString(),
             friendPrivateKey.privateKey.toString(),
@@ -137,14 +137,14 @@ export class ChatService {
   //   return this.chatMemberRepo.updateUserName(chatMember);
   // }
 
-  async addChatMember(addChatMemberDto: AddChatMemberDto): Promise<ChatMember> {
-    const chat = await this.chatRepo.findById(addChatMemberDto.chatId);
-    const user = await this.chatUserRepo.chatUser(addChatMemberDto.chatId);
-    if (!chat) {
-      throw new NotFoundException('Chat not found');
-    }
-    return this.chatMemberRepo.addMember(chat, user);
-  }
+  // async addChatMember(addChatMemberDto: AddChatMemberDto): Promise<ChatMember> {
+  //   const chat = await this.chatRepo.findById(addChatMemberDto.chatId);
+  //   const user = await this.chatUserRepo.chatUser(addChatMemberDto.chatId);
+  //   if (!chat) {
+  //     throw new NotFoundException('Chat not found');
+  //   }
+  //   return this.chatMemberRepo.addMember(chat, user);
+  // }
 
   async removeChatMember(chat: Chat, user: ChatUser): Promise<void> {
     const member = await this.chatMemberRepo.findMember(chat, user);

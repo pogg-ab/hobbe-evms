@@ -18,7 +18,11 @@ export class MessageService {
     
 
      async sendMessage( user: any, createMessageDto : CreateMessageDto):Promise<any> {
-        const chatUser  = await this.chatUserRepo.chatUser(user.user.user_id.toString())
+        const chatUser  = await this.chatUserRepo.create(
+         user.user.user_id.toString(),
+         user.user.profile_id.toString(),
+         user.user.profile_name.toString(),
+      )
          const message =  await this.commandBus.execute(new SendMessageCommand(chatUser,createMessageDto));
          return message;
       }

@@ -36,26 +36,30 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!validatedUser) throw new Error('User validation failed');
 
       const userId = validatedUser.user.user_id.toString();
+      const profileId = validatedUser.user.profile_id.toString();
+      const profileName = validatedUser.user.profile_name.toString();
       this.usersMap.set(userId, client.id);
       client.data.user = validatedUser;
 
       
       
-      await this.chatUserService.chatUser(userId);
+      await this.chatUserService.chatUser(userId,profileId,profileName);
       const chats = await this.hobbeChatService.getUserChats(userId);
       const userName =  client.data?.user?.user?.user_name?.toString();
 
       this.broadcastUserStatus(userName, true);
       client.emit('chat', chats);
+     await this.chatUserService.chatUserStatus(userId, true);
     } catch (error) {
       client.emit('auth',error.message)
       client.disconnect();
     }
   }
 
-  handleDisconnect(client: Socket): void {
+  async handleDisconnect(client: Socket): Promise<void> {
     const userId = client.data?.user?.user?.user_id?.toString();
-    const userName =  client.data?.user?.user?.user_name?.toString();
+    const userName =  client.data?.user?.user?.profile_id?.toString();
+    await this.chatUserService.chatUserStatus(userId, false);
     if (userId) {
       this.usersMap.delete(userId);
       console.log(`${userName} disconnected: ${client.id}`);

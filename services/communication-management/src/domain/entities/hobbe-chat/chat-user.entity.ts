@@ -11,12 +11,15 @@ export class ChatUser {
   username: string;
 
   @Column({ nullable: true })
+  profileName: string;
+
+  @Column({ nullable: true })
   avatarUrl?: string;
 
   @Column({ nullable: true })
   bio?: string;
 
-  @Column({ default: false })
+  @Column({ default: true })
   isOnline: boolean;
 
   @Column({type: 'timestamptz', nullable: true })
