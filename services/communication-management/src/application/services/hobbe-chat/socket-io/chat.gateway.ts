@@ -43,7 +43,7 @@ async handleChatRoom(client: Socket, dto: CreatePrivateChatDto): Promise<void> {
     
     if (!chat.isExisting) {
       const creator = {message: `New Chat Room Created.`, chat}
-      const receiver = {message: `${user.user.user_name} has invited you to chat with him .`, chatId:chat.id}
+      const receiver = {message: `${user.user.profile_id} has invited you to chat with him .`, chatId:chat.id}
       client.emit('chat-room-created', creator);
       this.socketGateway.notifyUser(dto.friendId, 'chat-room-invited', receiver);
     } else {
@@ -61,7 +61,7 @@ async handleChatRoom(client: Socket, dto: CreatePrivateChatDto): Promise<void> {
       const { user } = client.data;
       const chat =  await this.hobbeChatService.getChatConvesation(user, chatId);
       // console.dir(chat,{depth:null});
-      client.emit('chat-conversatoin', chat);
+      client.emit('chat-conversation', chat);
     } catch (error) {
       client.emit('chat-conversation-error', `An error occurred while fetching the chat conversation: ${error.message}`);
     }

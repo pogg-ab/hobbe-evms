@@ -53,20 +53,49 @@ export class ChatRepositoryImpl implements ChatRepository {
       .getOne();
   }
 
-  async getUserChats(userId: string): Promise<Chat[]> {
+  // async getUserChats(userId: string): Promise<Chat[]> {
+  //   return await this.chatRepo
+  //     .createQueryBuilder('chat')
+  //     .leftJoin('chat.members', 'chatMember')
+     
+  //     .where('chatMember.userId = :userId', { userId })
+  //     .leftJoinAndSelect('chat.lastMessage', 'lastMessage')
+  //     // .addSelect('friend.userName', 'friend')
+  //     .addSelect('chatMember.unreadCount', 'unreadMessages')
+  //     .addSelect('friend.isActive', 'isOnline')
+  //     .orderBy('chat.updatedAt', 'DESC')
+  //     .getRawMany();
+  // }
+
+  async getUserChats(userId: string): Promise<any[]> {
     return await this.chatRepo
       .createQueryBuilder('chat')
       .leftJoin('chat.members', 'chatMember')
-      .leftJoin('chat.members', 'friend', 'friend.userId != :userId', {
-        userId,
-      })
+      .leftJoin('chat.members', 'friendMember', 'friendMember.userId != :userId', { userId })
+      .leftJoin('friendMember.user', 'friend')
+      .leftJoin('chat.lastMessage', 'lastMessage')
       .where('chatMember.userId = :userId', { userId })
-      .leftJoinAndSelect('chat.lastMessage', 'lastMessage')
-      // .addSelect('friend.userName', 'friend')
-      .addSelect('chatMember.unreadCount', 'unreadMessages')
+      .select([
+        'chat.id AS chat_id',
+        'chat.type AS chat_type',
+        'friend.username AS username',
+        'friend.profileName AS profile_name',
+        'friend.avatarUrl AS avatar',
+        'friend.isOnline AS isonline',
+        'lastMessage.id AS message_id',
+        'lastMessage.senderId AS sender_id',
+        'lastMessage.content AS content',
+        'lastMessage.createdAt AS created_at',
+        'chatMember.unreadCount AS unreadmessages',
+      
+      ])
       .orderBy('chat.updatedAt', 'DESC')
       .getRawMany();
+
   }
+  
+  
+  
 
   async softDeleteChat(chatId: string): Promise<void> {
     await this.chatRepo.update(chatId, { deletedAt: new Date() });

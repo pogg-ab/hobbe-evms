@@ -13,6 +13,6 @@ export class AddChatMemberHandler implements ICommandHandler<AddChatMemberComman
 
   async execute(command: AddChatMemberCommand): Promise<void> {
     const { addChatMemberDto } = command;
-    await this.chatService.addChatMember(addChatMemberDto);
+    // await this.chatService.addChatMember(addChatMemberDto);
   }
 }
