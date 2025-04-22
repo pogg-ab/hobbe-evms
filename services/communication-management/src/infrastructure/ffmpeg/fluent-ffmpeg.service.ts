@@ -5,8 +5,13 @@ import { STREAM_REPOSITORY_TOKEN } from 'src/domain/repositories/live-stream/str
 import { IStreamRepository } from 'src/domain/repositories/live-stream/stream.repository';
 import * as os from 'os';
 import { existsSync } from 'fs';
-import { exec } from 'child_process';
+import { ChildProcess, exec } from 'child_process';
 import { StartStreamDto } from 'src/presentation/dto/live-stream/start-stream.dto';
+import { Server, WebSocket } from 'ws';
+import { WebSocketServer } from 'ws';
+import * as net from 'net';
+import * as path from 'path';
+
 
 type StreamStatus = 'started' | 'stopped' | 'paused' | 'error';
 
@@ -14,14 +19,15 @@ interface FfmpegResponse {
   success: boolean;
   message: string;
   status: StreamStatus;
-  data?: { streamId: string; rtmpUrl: string };
+  data?: { streamId: string; rtmpUrl: string; wsPort: number };
 }
 
 @Injectable()
 export class FluentFFmpegService {
   private activeProcesses: Map<string, any> = new Map();
   private pausedStreams: Map<string, { command: string; rtmpUrl: string }> = new Map();
-
+  private webSocketServers: Map<string, Server> = new Map();
+  private logger = new Logger(FluentFFmpegService.name);
 
   constructor(
     @Inject(STREAM_REPOSITORY_TOKEN)
@@ -103,82 +109,379 @@ export class FluentFFmpegService {
   async streamCameraToRtmp(
     config: StartStreamDto,
     rtmpUrl: string,
+    hlsOutputPath: string,
     streamId: string,
   ): Promise<FfmpegResponse> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
+      // Track initialization time
+      const streamStartTime = Date.now();
+      let ffmpegStartTimeout: NodeJS.Timeout;
+
       try {
         if (!this.validateRtmpUrl(rtmpUrl)) {
-          return reject({
-            success: false,
-            message: 'Valid RTMP URL is required (starting with rtmp://)',
-            status: 'error'
+          throw new Error('Valid RTMP URL is required (starting with rtmp://)');
+        }
+
+        const port = 9000 + Math.floor(Math.random() * 1000);
+        const wsServer = new WebSocketServer({ port });
+        const tcpProxyServer = net.createServer();
+
+        this.webSocketServers.set(streamId, wsServer);
+        this.logger.log(`[${streamId}] WebSocket server started on port ${port}`);
+
+        let ffmpegProcess: ChildProcess;
+        let isFfmpegReady = false;
+        const pendingData: Buffer[] = [];
+
+        // Enhanced statistics
+        const stats = {
+          bytesReceived: 0,
+          bytesForwarded: 0,
+          lastPacketTime: 0,
+          packetsReceived: 0,
+          packetsForwarded: 0,
+          ffmpegStartTime: 0,
+          bufferingStartTime: Date.now()
+        };
+
+        tcpProxyServer.listen(port + 1, () => {
+          this.logger.log(`[${streamId}] TCP proxy server started on port ${port + 1}`);
+
+          const { command } = this.buildFfmpegCommand(port + 1, rtmpUrl, hlsOutputPath, config);
+          this.logger.debug(`[${streamId}] FFmpeg command: ${command}`);
+          ffmpegProcess = exec(command);
+          stats.ffmpegStartTime = Date.now();
+          this.activeProcesses.set(streamId, ffmpegProcess);
+
+          // FFmpeg initialization timeout (15 seconds)
+          ffmpegStartTimeout = setTimeout(() => {
+            if (!isFfmpegReady) {
+              this.logger.error(`[${streamId}] FFmpeg initialization timeout (15s)`);
+              this.cleanupStream(streamId);
+              reject({
+                success: false,
+                message: 'FFmpeg initialization timeout',
+                status: 'error',
+                stats,
+                initializationTime: Date.now() - streamStartTime
+              });
+            }
+          }, 15000);
+
+          // FFmpeg process handlers
+          ffmpegProcess.on('error', (error) => {
+            clearTimeout(ffmpegStartTimeout);
+            this.logger.error(`[${streamId}] FFmpeg error: ${error.message}`);
+            this.cleanupStream(streamId);
+            reject({
+              success: false,
+              message: `FFmpeg error: ${error.message}`,
+              status: 'error',
+              stats,
+              initializationTime: Date.now() - streamStartTime
+            });
           });
-        }
 
-        if (this.pausedStreams.has(streamId) && !config.video.enabled) {
-          const paused = this.pausedStreams.get(streamId);
-          return this.resumeStream(paused.command, streamId, paused.rtmpUrl)
-            .then(resolve)
-            .catch(reject);
-        }
+          ffmpegProcess.stdout?.on('data', (data) => {
+            this.logger.debug(`[${streamId}] FFmpeg stdout: ${data.toString().trim()}`);
+          });
 
-        const { command } = await this.buildFfmpegCommand(
-          rtmpUrl,
-          streamId,
-          config
-        );
+          ffmpegProcess.stderr?.on('data', (data) => {
+            const output = data.toString().trim();
+            this.logger.debug(`[${streamId}] FFmpeg stderr: ${output}`);
 
-        const ffmpegProcess = exec(command, (error) => {
-          this.handleFfmpegError(error, streamId, reject);
+            // Check for FFmpeg ready signal
+            if (output.includes('Listening on')) {
+              clearTimeout(ffmpegStartTimeout);
+              isFfmpegReady = true;
+              const initTime = Date.now() - stats.ffmpegStartTime;
+              this.logger.log(`[${streamId}] FFmpeg ready in ${initTime}ms`);
+
+              // Process pending data
+              if (pendingData.length > 0) {
+                const totalBytes = pendingData.reduce((sum, chunk) => sum + chunk.length, 0);
+                this.logger.log(`[${streamId}] Flushing ${pendingData.length} buffered chunks (${totalBytes} bytes)`);
+
+                pendingData.forEach(chunk => {
+                  stats.bytesForwarded += chunk.length;
+                  stats.packetsForwarded++;
+                  tcpProxyServer?.emit('data', chunk);
+                });
+                pendingData.length = 0;
+              }
+            }
+          });
+
+          ffmpegProcess.on('exit', (code, signal) => {
+            clearTimeout(ffmpegStartTimeout);
+            const runtime = Date.now() - stats.ffmpegStartTime;
+            this.logger.log(`[${streamId}] FFmpeg exited after ${runtime}ms | Code: ${code} | Signal: ${signal}`);
+            this.logger.log(`[${streamId}] Final stats: ` +
+              `Received: ${stats.packetsReceived} packets (${this.formatBytes(stats.bytesReceived)}) | ` +
+              `Forwarded: ${stats.packetsForwarded} packets (${this.formatBytes(stats.bytesForwarded)})`);
+            this.cleanupStream(streamId);
+          });
         });
 
-        this.activeProcesses.set(streamId, ffmpegProcess);
-        this.pausedStreams.delete(streamId);
+        // TCP proxy handlers
+        tcpProxyServer.on('connection', (tcpSocket) => {
+          this.logger.log(`[${streamId}] FFmpeg connected to TCP proxy`);
 
-        ffmpegProcess.on('exit', (code) => {
-          this.cleanupStream(streamId);
+          tcpSocket.on('error', (error) => {
+            this.logger.error(`[${streamId}] TCP error: ${error.message}`);
+          });
+
+          tcpSocket.on('close', () => {
+            this.logger.log(`[${streamId}] FFmpeg disconnected from TCP proxy`);
+          });
+        });
+
+        // WebSocket connection handler
+        wsServer.on('connection', (ws) => {
+          this.logger.log(`[${streamId}] New WebSocket connection`);
+          let tcpSocket: net.Socket;
+
+          const clientStats = {
+            bytesReceived: 0,
+            packetsReceived: 0,
+            lastActivity: Date.now(),
+            connectedAt: Date.now()
+          };
+
+          const connectToFfmpeg = () => {
+            tcpSocket = net.connect({ port: port + 1 }, () => {
+              this.logger.log(`[${streamId}] TCP proxy connected`);
+            });
+
+            // Data forwarding
+            ws.on('message', (data: Buffer) => {
+              try {
+                const now = Date.now();
+                clientStats.lastActivity = now;
+                stats.lastPacketTime = now;
+
+                clientStats.packetsReceived++;
+                stats.packetsReceived++;
+
+                const chunkSize = data.length;
+                clientStats.bytesReceived += chunkSize;
+                stats.bytesReceived += chunkSize;
+
+                if (!isFfmpegReady) {
+                  pendingData.push(data);
+                  // this.logger.debug(`[${streamId}] Buffering chunk (${this.formatBytes(chunkSize)})`);
+                  return;
+                }
+
+                if (tcpSocket.writable) {
+                  tcpSocket.write(data, (error) => {
+                    if (error) {
+                      this.logger.error(`[${streamId}] TCP write error: ${error.message}`);
+                    } else {
+                      stats.packetsForwarded++;
+                      stats.bytesForwarded += chunkSize;
+                    }
+                  });
+                } else {
+                  this.logger.warn(`[${streamId}] TCP socket not writable - buffering chunk`);
+                  pendingData.push(data);
+                }
+              } catch (error) {
+                this.logger.error(`[${streamId}] Message handling error: ${error.message}`);
+              }
+            });
+
+            tcpSocket.on('error', (error) => {
+              this.logger.error(`[${streamId}] TCP proxy error: ${error.message}`);
+              ws.close();
+            });
+          };
+
+          // Connect with slight delay
+          setTimeout(connectToFfmpeg, 500);
+
+          ws.on('close', () => {
+            const duration = Date.now() - clientStats.connectedAt;
+            this.logger.log(`[${streamId}] Client disconnected after ${duration}ms | ` +
+              `Received: ${clientStats.packetsReceived} packets (${this.formatBytes(clientStats.bytesReceived)})`);
+            if (tcpSocket) tcpSocket.end();
+          });
+
+          ws.on('error', (error) => {
+            this.logger.error(`[${streamId}] WebSocket error: ${error.message}`);
+            if (tcpSocket) tcpSocket.destroy();
+          });
         });
 
         resolve({
           success: true,
           message: 'Stream started successfully',
           status: 'started',
-          data: { streamId, rtmpUrl },
+          data: {
+            streamId,
+            rtmpUrl,
+            wsPort: port,
+          },
         });
 
       } catch (error) {
+        clearTimeout(ffmpegStartTimeout);
+        this.logger.error(`[${streamId}] Initialization failed: ${error.message}`);
         reject({
           success: false,
           message: error.message,
-          status: 'error'
+          status: 'error',
+          errorDetails: error.stack || 'No stack trace',
+          initializationTime: Date.now() - streamStartTime
         });
       }
     });
   }
 
+  private formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(2)} KB`;
+    return `${(bytes / 1048576).toFixed(2)} MB`;
+  }
+
+  private buildFfmpegCommand(
+    tcpPort: number,
+    rtmpUrl: string,
+    hlsOutputPath: string,
+    config: StartStreamDto,
+  ): { command: string } {
+    const videoConfig = config.video;
+    const audioConfig = config.audio;
+    const useDocker = process.env.FFMPEG_DOCKER === 'true';
+    const ffmpegPath = useDocker ? 'docker exec ffmpeg ffmpeg' : (process.env.FFMPEG_PATH || 'ffmpeg');
+
+    // Ensure HLS directory exists (using absolute path)
+    const absoluteHlsPath = path.resolve(hlsOutputPath);
+    try {
+      if (!fs.existsSync(absoluteHlsPath)) {
+        fs.mkdirSync(absoluteHlsPath, { recursive: true });
+        this.logger.debug(`Created HLS directory: ${absoluteHlsPath}`);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to create HLS directory: ${err.message}`);
+      throw new Error(`Could not create HLS output directory: ${absoluteHlsPath}`);
+    }
+
+    // Input configuration
+    const inputParams = [
+      `-f mp4`,
+      `-listen 1`,
+      `-i tcp://0.0.0.0:${tcpPort}?listen`,
+      `-fflags +genpts+igndts`,
+      `-analyzeduration 100M`,
+      `-probesize 100M`,
+      `-reconnect 1`,
+      `-re`,
+      `-reconnect_at_eof 1`,
+      `-reconnect_streamed 1`,
+      `-reconnect_delay_max 2`,
+    ];
+
+    // Video encoding
+    const videoParams = [
+      `-c:v libx264`,
+      `-preset veryfast`,
+      `-tune zerolatency`,
+      `-profile:v baseline`,
+      `-b:v ${videoConfig.bitrate}k`,
+      `-maxrate ${videoConfig.maxBitrate}k`,
+      `-bufsize ${videoConfig.bufferSize}k`,
+      `-g ${videoConfig.gop}`,
+      `-keyint_min ${videoConfig.keyintMin}`,
+      `-pix_fmt ${videoConfig.pixelFormat}`,
+      `-x264-params keyint=${videoConfig.gop}:min-keyint=${videoConfig.keyintMin}`,
+      `-movflags +faststart`,
+      `-vsync passthrough`,
+      `-async 1`,
+    ];
+
+    // Audio encoding
+    const audioParams = audioConfig.enabled
+      ? [
+        `-c:a aac`,
+        `-ar ${audioConfig.sampleRate}`,
+        `-ac ${audioConfig.channels}`,
+        `-b:a 128k`,
+        `-aac_coder twoloop`,
+        `-af aresample=async=1:first_pts=0`,
+      ]
+      : ['-an'];
+
+    // HLS Output (must come before RTMP)
+    const hlsParams = [
+      `-f hls`,
+      `-hls_time 4`,
+      `-hls_list_size 6`,
+      `-hls_flags delete_segments+append_list+temp_file`,
+      `-hls_segment_filename ${absoluteHlsPath}/segment_%03d.ts`,
+      `-hls_allow_cache 1`,
+      `-hls_base_url ${absoluteHlsPath}/`, // Ensure proper paths in playlist
+      `${absoluteHlsPath}/playlist.m3u8`,
+    ];
+
+    // RTMP Output (must come after HLS)
+    const outputParams = [
+      `-f flv`,
+      `-flvflags no_duration_filesize`,
+      `"${rtmpUrl}"`,
+    ];
+
+    // Build the full command
+    const command = [
+      ffmpegPath,
+      ...inputParams,
+      ...videoParams,
+      ...audioParams,
+      ...hlsParams, // HLS output first
+      ...outputParams, // RTMP output second
+    ].join(' ');
+
+    this.logger.debug(`Generated FFmpeg command: ${command}`);
+    return { command };
+  }
+
   async stopStream(streamId: string): Promise<FfmpegResponse> {
     return new Promise((resolve) => {
       try {
-        const process = this.activeProcesses.get(streamId);
-        if (process) {
-          process.kill('SIGINT');
-          resolve({
-            success: true,
-            message: 'Stream stopped successfully',
-            status: 'stopped'
-          });
-        } else {
-          resolve({
+        const wsServer = this.webSocketServers.get(streamId);
+        const ffmpegProcess = this.activeProcesses.get(streamId);
+
+        if (!ffmpegProcess && !wsServer) {
+          return resolve({
             success: false,
             message: 'No active stream found',
-            status: 'error'
+            status: 'error',
           });
         }
+
+        if (wsServer) {
+          wsServer.close();
+          this.webSocketServers.delete(streamId);
+          this.logger.log(`WebSocket server closed for stream ${streamId}`);
+        }
+
+        if (ffmpegProcess) {
+          ffmpegProcess.kill('SIGINT');
+          this.activeProcesses.delete(streamId);
+          this.logger.log(`FFmpeg process stopped for stream ${streamId}`);
+        }
+
+        resolve({
+          success: true,
+          message: 'Stream stopped successfully',
+          status: 'stopped',
+        });
       } catch (error) {
+        this.logger.error(`Error stopping stream ${streamId}: ${error.message}`);
         resolve({
           success: false,
           message: error.message,
-          status: 'error'
+          status: 'error',
         });
       }
     });
@@ -218,52 +521,7 @@ export class FluentFFmpegService {
     });
   }
 
-  private async buildFfmpegCommand(
-    rtmpUrl: string,
-    streamId: string,
-    config: StartStreamDto): Promise<{ command: string; selectedCamera: string }> {
-    const useDocker = process.env.FFMPEG_DOCKER === 'true';
-    const ffmpegPath = useDocker ? 'docker exec ffmpeg ffmpeg' : (process.env.FFMPEG_PATH || 'ffmpeg');
-    const platform = os.platform();
-    const isMobile = this.isMobilePlatform();
 
-    const videoEnabled = config.video.enabled
-    let selectedCamera = videoEnabled ? await this.selectDefaultCamera(platform) : 'none';
-
-    const commonParams = `-pix_fmt yuv420p -c:v libx264 -preset veryfast -tune zerolatency ` +
-      `-b:v 2000k -maxrate 2000k -bufsize 4000k -g 60 -keyint_min 60 ` +
-      `-threads 2 -movflags +faststart -f flv "${rtmpUrl}"`;
-
-    let inputParams: string;
-
-    if (!videoEnabled) {
-      inputParams = `-f lavfi -i color=c=black:s=1280x720:r=30`;
-    } else if (isMobile && this.isAndroid()) {
-      inputParams = `-f android_camera -camera_index ${selectedCamera} -video_size 1280x720 -framerate 30`;
-    } else if (isMobile && this.isIOS()) {
-      inputParams = `-f avfoundation -video_size 1280x720 -framerate 30 -i "${selectedCamera}"`;
-    } else {
-      selectedCamera = selectedCamera.replace(/^video=/, '').trim();
-      switch (platform) {
-        case 'win32':
-          inputParams = `-f dshow -video_size 1280x720 -framerate 30 -rtbufsize 2000000 -i video="${selectedCamera}"`;
-          break;
-        case 'darwin':
-          inputParams = `-f avfoundation -video_size 1280x720 -framerate 30 -i "${selectedCamera}"`;
-          break;
-        case 'linux':
-          inputParams = `-f v4l2 -video_size 1280x720 -framerate 30 -input_format mjpeg -i "${selectedCamera}"`;
-          break;
-        default:
-          throw new Error(`Unsupported platform: ${platform}`);
-      }
-    }
-
-    return {
-      command: `${ffmpegPath} ${inputParams} ${commonParams}`,
-      selectedCamera: videoEnabled ? selectedCamera : 'none'
-    };
-  }
 
   private async resumeStream(
     command: string,
@@ -287,7 +545,7 @@ export class FluentFFmpegService {
           success: true,
           message: 'Stream resumed successfully',
           status: 'started',
-          data: { streamId, rtmpUrl },
+          data: { streamId, rtmpUrl, wsPort: 9000 },
         });
       } catch (error) {
         reject({
