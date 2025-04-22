@@ -35,10 +35,10 @@ export class StreamRepositoryImpl implements IStreamRepository {
       },
     });
   }
-  async findByStatus(): Promise<Stream[]> {
+  async findByStatus(status: "inactive" | "active" | "completed"): Promise<Stream[]> {
     return await this.streamRepository.find({
       where: {
-        status: "inactive",
+        status: status,
       },
       order: {
         createdAt: 'DESC',

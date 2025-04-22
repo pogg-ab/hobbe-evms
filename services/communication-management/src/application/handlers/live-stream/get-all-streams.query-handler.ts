@@ -7,6 +7,6 @@ export class GetAllStreamsHandler implements IQueryHandler<GetAllStreamsQuery> {
   constructor(private readonly streamService: StreamService) { }
 
   async execute(query: GetAllStreamsQuery): Promise<any> {
-    return this.streamService.getStreamByStatus();
+    return this.streamService.getAllStreams();
   }
 }

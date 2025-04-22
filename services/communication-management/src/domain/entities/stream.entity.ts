@@ -16,6 +16,9 @@ export class Stream {
   @Column()
   url: string;
 
+  @Column()
+  hlsOutputPath: string;
+
   @Column({
     type: 'enum',
     enum: ['inactive', 'active', 'completed'],

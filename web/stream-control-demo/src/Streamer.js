@@ -6,7 +6,7 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 
-const StreamController = () => {
+const Streamer = () => {
     const webcamRef = useRef(null);
     const mediaRecorderRef = useRef(null);
     const [recording, setRecording] = useState(false);
@@ -41,7 +41,7 @@ const StreamController = () => {
     useEffect(() => {
         const fetchStreams = async () => {
             try {
-                const response = await axios.get('http://localhost:4003/streams');
+                const response = await axios.get('http://localhost:4003/streams/inactive');
                 setExistingStreams(response.data);
             } catch (error) {
                 console.error('Error fetching streams:', error);
@@ -135,37 +135,44 @@ const StreamController = () => {
                 },
                 hardwareAcceleration: false
             });
-            console.log(response)
+            console.log(response.data)
 
-            const wsUrl = `ws://localhost:${response.data.port}`;
-            const ws = new WebSocket(wsUrl);
+            const wsPort = response.data.port; // Get the TCP port from response
+            const wsUrl = `ws://localhost:${wsPort}`;
+            const socket = new WebSocket(wsUrl);
             setStatus('Connecting to WebSocket...');
 
             const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'video/webm;codecs=vp8,opus'
+                mimeType: 'video/webm;codecs=vp9,opus',
+                videoBitsPerSecond: 2000000
             });
 
             mediaRecorderRef.current = mediaRecorder;
 
-            ws.onopen = () => {
+            socket.onopen = () => {
                 setStatus('Streaming...');
                 setRecording(true);
 
                 mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-                        ws.send(event.data);
+                    if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+                        // Convert Blob to ArrayBuffer before sending
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            socket.send(reader.result);
+                        };
+                        reader.readAsArrayBuffer(event.data);
                     }
                 };
 
-                mediaRecorder.start(100); // send data every 100ms
+                mediaRecorder.start(100); // Collect data every 100ms
             };
 
-            ws.onerror = (err) => {
+            socket.onerror = (err) => {
                 console.error('WebSocket error:', err);
                 setStatus('WebSocket error');
             };
 
-            ws.onclose = () => {
+            socket.onclose = () => {
                 console.log('WebSocket closed');
                 setStatus('Stream ended');
                 setRecording(false);
@@ -298,4 +305,4 @@ const StreamController = () => {
     );
 };
 
-export default StreamController;
+export default Streamer;

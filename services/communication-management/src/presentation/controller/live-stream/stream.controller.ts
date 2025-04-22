@@ -26,92 +26,17 @@ import { EndStreamCommand } from 'src/application/commands/live-stream/end-strea
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GetAllStreamsQuery } from 'src/application/queries/live-stream/get-all-streams.query';
+import { GetActiveStreamsQuery } from 'src/application/queries/live-stream/get-active-streams.query';
+import { GetInActiveStreamsQuery } from 'src/application/queries/live-stream/get-inactive-streams.query';
 @Controller('streams')
-@WebSocketGateway({
-  namespace: '/stream',
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  }
-}) export class StreamController {
+export class StreamController {
   private readonly logger = new Logger(StreamController.name);
-  @WebSocketServer()
-  server: Server;
 
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) { }
 
-  afterInit() {
-    this.logger.log('WebSocket Gateway initialized');
-
-    this.server.on('connection', (socket: Socket) => {
-      this.logger.log(`Client connected: ${socket.id}`);
-
-      socket.on('disconnect', () => {
-        this.logger.log(`Client disconnected: ${socket.id}`);
-      });
-    });
-  }
-
-
-  @SubscribeMessage('joinStreamRoom')
-  handleJoinRoom(
-    @MessageBody() streamId: string,
-    @ConnectedSocket() client: Socket,
-  ) {
-    client.join(streamId);
-    this.logger.log(`Client ${client.id} joined stream room ${streamId}`);
-    client.emit('joinedRoom', { success: true, streamId });
-  }
-
-  @SubscribeMessage('leaveStreamRoom')
-  handleLeaveRoom(
-    @MessageBody() streamId: string,
-    @ConnectedSocket() client: Socket,
-  ) {
-    client.leave(streamId);
-    this.logger.log(`Client ${client.id} left stream room ${streamId}`);
-    client.emit('leftRoom', { success: true, streamId });
-  }
-
-  @SubscribeMessage('streamControl')
-  async handleStreamControl(
-    @MessageBody() data: { streamId: string; action: string; payload?: any },
-    @ConnectedSocket() client: Socket,
-  ) {
-    try {
-      const { streamId, action, payload } = data;
-      this.logger.log(`Stream control request: ${action} for ${streamId}`);
-
-      switch (action) {
-        case 'start':
-          await this.commandBus.execute(
-            new StartScheduledStreamCommand(client.data.userId, streamId, payload),
-          );
-          break;
-        case 'stop':
-          await this.commandBus.execute(
-            new EndStreamCommand(client.data.userId, streamId),
-          );
-          break;
-        default:
-          throw new Error('Invalid action');
-      }
-
-      this.server.to(streamId).emit('streamStatus', {
-        streamId,
-        status: action === 'start' ? 'live' : 'ended',
-        timestamp: new Date().toISOString(),
-      });
-
-      return { success: true, action };
-    } catch (error) {
-      this.logger.error(`Stream control error: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  }
 
   // @Post()
   // async createStream(@Body() createStreamDto: CreateStreamDto) {
@@ -222,9 +147,23 @@ import { GetAllStreamsQuery } from 'src/application/queries/live-stream/get-all-
   // }
 
   @Get()
+  @ApiOperation({ summary: 'Get all streams' })
   async getAllStreams() {
     return this.queryBus.execute(new GetAllStreamsQuery());
   }
+
+  @Get('inactive')
+  @ApiOperation({ summary: 'Get all inactive streams' })
+  async getInactiveStreams() {
+    return this.queryBus.execute(new GetInActiveStreamsQuery());
+  }
+
+  @Get('active')
+  @ApiOperation({ summary: 'Get all active streams' })
+  async getActiveStreams() {
+    return this.queryBus.execute(new GetActiveStreamsQuery());
+  }
+
 
   // @Post(':id/start')
   // async startStream(

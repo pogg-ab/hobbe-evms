@@ -59,6 +59,8 @@ export class StreamService {
 
       stream.url = `${process.env.RTMP_URL}/${streamKey}`;
       stream.streamKey = streamKey;
+      stream.hlsOutputPath = `${process.env.HLS_OUTPUT_BASE_PATH}/${streamKey}`;
+
       if (startDate) {
         stream.startDate = new Date(startDate);
       }
@@ -102,6 +104,7 @@ export class StreamService {
         .split('.')[0];
       const streamKey = `${userId}-${dateString}`;
       stream.url = `${process.env.RTMP_URL}/${streamKey}`;
+      stream.hlsOutputPath = `${process.env.HLS_OUTPUT_BASE_PATH}/${streamKey}`;
       stream.streamKey = streamKey;
 
       const createdStream = await this.streamRepository.create(stream);
@@ -170,6 +173,7 @@ export class StreamService {
       }
 
       const result = await this.startStream(streamId, startStreamDto);
+      console.log(result)
 
       return result;
 
@@ -318,7 +322,7 @@ export class StreamService {
           await this.startStreamFromFile(stream.url, streamId, streamingOptions.source.filePath);
           break;
         case 'camera':
-          result = await this.startStreamFromCamera(stream.url, streamId, streamingOptions);
+          result = await this.startStreamFromCamera(stream.url, stream.hlsOutputPath, streamId, streamingOptions);
           break;
         default:
           throw new Error(`Unsupported source type: ${config.source.type}`);
@@ -421,8 +425,8 @@ export class StreamService {
   async getAllStreams(): Promise<Stream[]> {
     return this.streamRepository.findAll();
   }
-  async getStreamByStatus(): Promise<Stream[]> {
-    return this.streamRepository.findByStatus();
+  async getStreamByStatus(status: string): Promise<Stream[]> {
+    return this.streamRepository.findByStatus(status);
   }
 
   async startStreamFromFile(
@@ -463,18 +467,12 @@ export class StreamService {
     }
   }
 
-  async startStreamFromCamera(rtmpUrl: string, streamId: string, config: StartStreamDto): Promise<FfmpegResponse> {
+  async startStreamFromCamera(rtmpUrl: string, hlsOutputPath: string, streamId: string, config: StartStreamDto): Promise<FfmpegResponse> {
     try {
       console.log(`Starting stream to RTMP URL: ${rtmpUrl} for stream ID: ${streamId}`);
 
       const stream = await this.streamRepository.findById(streamId);
-      if (stream && stream.status === 'active') {
-        console.log(`Stream ID: ${streamId} is active, stopping the current stream before starting a new one.`);
-        await this.stopStream(streamId);
-      }
-
-
-      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(config, rtmpUrl, streamId);
+      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(config, rtmpUrl, hlsOutputPath, streamId);
       if (streamStatus.status === 'started') {
         console.log(`Stream started successfully for stream ID: ${streamId}`);
         return streamStatus;
