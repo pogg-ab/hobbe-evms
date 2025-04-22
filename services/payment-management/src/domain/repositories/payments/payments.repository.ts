@@ -11,4 +11,9 @@ export interface IPaymentsRepository{
     // findByEvent(event:any):Promise<BankAccounts[] | null>
     // update(id:string,bank_account: BankAccounts): Promise<BankAccounts>
     // delete(id:string): Promise<void>
+
+    getCurrentMonthTransactions(): Promise<any>;
+    getLastMonthTransactions(): Promise<any>;
+    getTodayTransactions(): Promise<any>;
+    getYesterdayTransactions(): Promise<any>;
 }
