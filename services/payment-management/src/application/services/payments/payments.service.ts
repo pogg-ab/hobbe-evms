@@ -13,4 +13,42 @@ export class PaymentsService {
     async create(createPaymentDto:CreatePaymentDto){
         return this.paymentRepository.create(createPaymentDto);
     }
+
+
+    async getMonthlyAndTodaySummary() {
+        const [monthly, lastMonth] = await Promise.all([
+          this.paymentRepository.getCurrentMonthTransactions(),
+          this.paymentRepository.getLastMonthTransactions(),
+        ]);
+    
+        const [today, yesterday] = await Promise.all([
+          this.paymentRepository.getTodayTransactions(),
+          this.paymentRepository.getYesterdayTransactions(),
+        ]);
+    
+        const monthChange = this.calculateChange(
+          monthly.total_value,
+          lastMonth.total_value,
+        );
+    
+        const dayChange = this.calculateChange(
+          today.total_value,
+          yesterday.total_value,
+        );
+    
+        return {
+          today,
+          yesterday,
+          today_vs_yesterday: `${dayChange}%`,
+    
+          current_month: monthly,
+          last_month: lastMonth,
+          month_vs_last_month: `${monthChange}%`,
+        };
+      }
+    
+      private calculateChange(current: number, previous: number): number {
+        if (!previous || previous === 0) return current > 0 ? 100 : 0;
+        return +(((current - previous) / previous) * 100).toFixed(2);
+      }
 }

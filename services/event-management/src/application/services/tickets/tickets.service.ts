@@ -193,6 +193,11 @@ export class TicketsService {
     return { groupedTickets, total, page, limit };
   }
 
+  async qrCodeScannedLog(ticket_id: string, metadata: string): Promise<void> {
+    return await this.createTicketsRepository.qrCodeScannedLog(ticket_id, metadata);
+  
+  }
+
 
   //        async findByCategory(category:string):Promise<Events[]>{
   //         const event  = await this.createEventRepository.findByCategory(category);

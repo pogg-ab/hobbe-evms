@@ -1,6 +1,7 @@
 import { Controller, Get, HttpCode, Param, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AnalyticsEventCommand } from 'src/application/queries/analytics/analytics-events.query';
 import { CountMyEventCommand } from 'src/application/queries/analytics/count-my-events.query';
 import { SingleEventAnalyticsCommand } from 'src/application/queries/analytics/single-event-analytics.query';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
@@ -14,11 +15,23 @@ export class AnalyticsController {
             private readonly commandBus: CommandBus,
             private readonly queryBus: QueryBus,
       ) { }
-      @ApiOperation({ description: "Count All Events" })
+      @ApiOperation({ description: "Analytics of All Events" })
       @HttpCode(200)
       @ApiBearerAuth('access-token')
       @UseGuards(JwtAuthGuard, RolesGuard)
       @Get("general")
+      async allEvents(
+            @CurrentUserId() user: any,
+      ) {
+            const query = new AnalyticsEventCommand();
+            return await this.queryBus.execute(query);
+      }
+
+      @ApiOperation({ description: "Analytics of All Users Events" })
+      @HttpCode(200)
+      @ApiBearerAuth('access-token')
+      @UseGuards(JwtAuthGuard, RolesGuard)
+      @Get("users-all-events")
       async myEvents(
             @CurrentUserId() user: any,
       ) {

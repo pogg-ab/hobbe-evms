@@ -46,6 +46,7 @@ import { GetEventsByStatusQueryHandler } from 'src/application/handlers/events/g
 import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
 import { UserInfoService } from 'src/application/services/user-info/user-info.service';
 import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/get-all-events-by-auth.handler';
+import { AnalyticsEventCommandHandler } from 'src/application/handlers/analytics/analytics-events.handler';
 
 
 @Module({
@@ -106,6 +107,7 @@ import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/
     FindEventsByDateRangeQueryQueryHandler,
     CountMyEventCommandHandler,
     SingleEventAnalyticsCommandHandler,
+    AnalyticsEventCommandHandler,
     SearchEventQueryHandler,
     EventsProfile,
     UserValidationService,

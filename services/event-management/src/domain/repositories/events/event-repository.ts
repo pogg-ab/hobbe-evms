@@ -21,6 +21,7 @@ export interface IEventRepository{
     search(keyword:string,page:number,limit:number):Promise<{events:Events[] | null,total:number, page: number; limit: number}>
 
     // Analytics
+    analyticsEvents():Promise<any>
     countMyEvents(user:string):Promise<any>
     singleEventAnalytics(user:string,event:string):Promise<any>
 

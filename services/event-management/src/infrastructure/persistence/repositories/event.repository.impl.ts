@@ -1,4 +1,4 @@
-  import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { start } from 'repl';
@@ -13,7 +13,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
     public readonly createTicketsDto: CreateTicketsDto,
-  ) { }
+  ) {}
 
   async create(event: Events, user: any): Promise<Events> {
     try {
@@ -32,7 +32,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
   }
 
-  async findAll( 
+  async findAll(
     page: number,
     limit: number,
   ): Promise<{
@@ -43,7 +43,6 @@ export class EventRepositoryEmpl implements IEventRepository {
   }> {
     const offset = (page - 1) * limit;
     const currentDate = new Date().toISOString(); // outputs in UTC
-
 
     const [events, total] = await this.eventRepository
       .createQueryBuilder('event')
@@ -61,15 +60,14 @@ export class EventRepositoryEmpl implements IEventRepository {
     if (events.length === 0) {
       return { events: [], total, page, limit };
     }
-  
+
     return { events, total, page, limit };
   }
 
-
   async findAllByAuth(
-    user: string, 
-    page: number, 
-    limit: number
+    user: string,
+    page: number,
+    limit: number,
   ): Promise<{
     events: any[];
     total: number;
@@ -79,7 +77,6 @@ export class EventRepositoryEmpl implements IEventRepository {
     const offset = (page - 1) * limit;
     const currentDate = new Date().toISOString(); // outputs in UTC
 
-  
     // Fetch the user's liked events
     const likedEventIds = await this.eventRepository
       .createQueryBuilder('event')
@@ -87,14 +84,16 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('like.user_id = :userId', { userId: user })
       .select('event.id')
       .getRawMany();
-    
+
     const likedEventIdsSet = new Set(likedEventIds.map((e) => e.event_id));
-  
+
     // Now fetch all events and add the likedByUser flag based on likedEventIdsSet
     const [events, total] = await this.eventRepository
       .createQueryBuilder('event')
       .where('event.event_end_date >= :currentDate', { currentDate })
-      .leftJoinAndSelect('event.likes', 'like', 'like.user_id = :userId', { userId: user })
+      .leftJoinAndSelect('event.likes', 'like', 'like.user_id = :userId', {
+        userId: user,
+      })
       .loadRelationCountAndMap('event.likes', 'event.likes')
       .loadRelationCountAndMap('event.favorites', 'event.favorites')
       .loadRelationCountAndMap('event.shares', 'event.shares')
@@ -102,28 +101,22 @@ export class EventRepositoryEmpl implements IEventRepository {
       .loadRelationCountAndMap('event.bookings', 'event.bookings')
       .addSelect([
         // This ensures we know if the user liked the event without needing a separate set
-        '(CASE WHEN like.user_id IS NOT NULL THEN true ELSE false END) AS isLiked'
+        '(CASE WHEN like.user_id IS NOT NULL THEN true ELSE false END) AS isLiked',
       ])
       .orderBy('event.event_start_date', 'DESC')
       .skip(offset)
       .take(limit)
       .cache(30000)
       .getManyAndCount();
-  
+
     // Add the likedByUser flag
-    const eventsWithLikeStatus = events.map(event => ({
+    const eventsWithLikeStatus = events.map((event) => ({
       ...event,
       isLiked: likedEventIdsSet.has(event.id), // Check if the event is in the user's liked set
     }));
-  
+
     return { events: eventsWithLikeStatus, total, page, limit };
   }
-  
-  
-  
-
-  
-
 
   async findOneEventOnly(id: string): Promise<Events | null> {
     const event = await this.eventRepository.findOne({
@@ -139,7 +132,6 @@ export class EventRepositoryEmpl implements IEventRepository {
       );
     }
 
-
     const bookedTicketCount = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoin('event.ticket_heading', 'ticket_heading')
@@ -149,36 +141,41 @@ export class EventRepositoryEmpl implements IEventRepository {
       .andWhere('ticket.status = :status', { status: 'Booked' })
       .getRawOne();
 
-    const my_event = { ...event, soldOutTickets: parseInt(bookedTicketCount.count, 10) };
-
+    const my_event = {
+      ...event,
+      soldOutTickets: parseInt(bookedTicketCount.count, 10),
+    };
 
     return my_event;
   }
   async findOne(id: string): Promise<Events | null> {
     const event = await this.eventRepository
-    .createQueryBuilder('event')
-    .leftJoinAndSelect('event.promocodes', 'promocode')
-    .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
-    .leftJoinAndSelect('event.bookings', 'bookings')
-    .leftJoin('ticket_heading.tickets', 'ticket')
-    .loadRelationCountAndMap('event.likes', 'event.likes')
-    .loadRelationCountAndMap('event.share', 'event.shares')
-    .loadRelationCountAndMap('event.comments', 'event.comments')
-    .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
-    .loadRelationCountAndMap('event.bookings', 'event.bookings')
-    .addSelect(subQuery => {
-      return subQuery
-        .select(`json_agg(bank_accounts)`)
-        .from('bank_accounts', 'bank_accounts')
-        .where('bank_accounts.event_id = event.id::varchar');
-    }, 'bank_accounts')
-    .where('event.id = :id', { id })
-    .getRawAndEntities();
-  
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.promocodes', 'promocode')
+      .leftJoinAndSelect('event.ticket_heading', 'ticket_heading')
+      .leftJoinAndSelect('event.bookings', 'bookings')
+      .leftJoin('ticket_heading.tickets', 'ticket')
+      .loadRelationCountAndMap('event.likes', 'event.likes')
+      .loadRelationCountAndMap('event.share', 'event.shares')
+      .loadRelationCountAndMap('event.comments', 'event.comments')
+      .loadRelationCountAndMap('event.total_ticket', 'ticket_heading.tickets')
+      .loadRelationCountAndMap('event.bookings', 'event.bookings')
+      .addSelect((subQuery) => {
+        return subQuery
+          .select(`json_agg(bank_accounts)`)
+          .from('bank_accounts', 'bank_accounts')
+          .where('bank_accounts.event_id = event.id::varchar');
+      }, 'bank_accounts')
+      .where('event.id = :id', { id })
+      .getRawAndEntities();
+
     if (!event.entities[0]) {
-      throw new HttpException(`Event with ID ${id} not found`, HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        `Event with ID ${id} not found`,
+        HttpStatus.NOT_FOUND,
+      );
     }
-    
+
     const bookedTicketCount = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoin('event.ticket_heading', 'ticket_heading')
@@ -187,14 +184,13 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('event.id = :id', { id })
       .andWhere('ticket.status = :status', { status: 'Booked' })
       .getRawOne();
-    
-      const my_event = {
-        ...event.entities[0],
-        bank_accounts: event.raw[0].bank_accounts ?? [],
-        soldOutTickets: parseInt(bookedTicketCount.count, 10),
-      };
-      
-    
+
+    const my_event = {
+      ...event.entities[0],
+      bank_accounts: event.raw[0].bank_accounts ?? [],
+      soldOutTickets: parseInt(bookedTicketCount.count, 10),
+    };
+
     return my_event;
   }
 
@@ -220,7 +216,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     const events = await this.eventRepository
       .createQueryBuilder('event')
       .where('event.categories @> :category', {
-        category: [category],  // Pass category as an array
+        category: [category], // Pass category as an array
         order: {
           event_start_date: 'DESC', // or 'DESC' for descending order
         },
@@ -236,7 +232,6 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
 
     return events;
-
   }
   async findByStatus(status: string): Promise<Events[]> {
     const events = await this.eventRepository.find({
@@ -276,8 +271,6 @@ export class EventRepositoryEmpl implements IEventRepository {
     return events;
   }
 
-
-
   async findByOrganiser(organiser: string): Promise<Events[]> {
     const events = await this.eventRepository.find({
       where: { user_id: organiser },
@@ -297,14 +290,16 @@ export class EventRepositoryEmpl implements IEventRepository {
     return events;
   }
 
-
-  async findByDateRange(startOfDay: Date, endOfDay:Date): Promise<Events[] | []> {
-      const events = await this.eventRepository.find({
-        where: { event_start_date: Between(startOfDay,endOfDay) },
-        order: {
-          event_start_date: 'DESC', // or 'DESC' for descending order
-        },
-      });
+  async findByDateRange(
+    startOfDay: Date,
+    endOfDay: Date,
+  ): Promise<Events[] | []> {
+    const events = await this.eventRepository.find({
+      where: { event_start_date: Between(startOfDay, endOfDay) },
+      order: {
+        event_start_date: 'DESC', // or 'DESC' for descending order
+      },
+    });
 
     // Check if no events were found
     if (events.length === 0) {
@@ -327,7 +322,6 @@ export class EventRepositoryEmpl implements IEventRepository {
     page: number;
     limit: number;
   }> {
-
     const offset = (page - 1) * limit;
     const [events, total] = await this.eventRepository
       .createQueryBuilder('event')
@@ -343,7 +337,6 @@ export class EventRepositoryEmpl implements IEventRepository {
       .orWhere('LOWER(event.description) LIKE LOWER(:keyword)', {
         keyword: `%${keyword}%`,
       })
-
 
       .skip(offset)
       .take(limit)
@@ -388,8 +381,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     await this.eventRepository.delete(id);
   }
 
-
-  // Analitics 
+  // Analitics
   // async countMyEvents(user:string):Promise<any>{
   //   const eventCount = await this.eventRepository.count({
   //     where: { 'user_id': user },
@@ -417,6 +409,68 @@ export class EventRepositoryEmpl implements IEventRepository {
   //   };
 
   // }
+  async analyticsEvents(): Promise<any> {
+    // Count total events
+    const eventCount = await this.eventRepository.count();
+
+    // Count tickets grouped by status
+    const ticketStatusCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.tickets', 'ticket')
+      .select('ticket.status', 'status')
+      .addSelect('COUNT(ticket.id)', 'count')
+      .groupBy('ticket.status')
+      .getRawMany();
+
+    const qrcodeStats = await await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.tickets', 'ticket')
+      .leftJoin('ticket.qrcode_scanned', 'scanlog')
+      .select('COUNT(DISTINCT ticket.id)', 'total-qrcode-generated')
+      .addSelect(
+        'COUNT(DISTINCT CASE WHEN scanlog.id IS NOT NULL THEN ticket.id END)',
+        'scanned-qrcode-count',
+      )
+      .getRawOne();
+
+    const grossRevenue = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('event.tickets', 'ticket')
+      .select('SUM(ticket.price)', 'grossRevenue')
+      .where('ticket.status = :status', { status: 'paid' })
+      .getRawOne();
+
+    // Count total comments for the user
+    const commentCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.comments', 'comment')
+      .select('COUNT(comment.id)', 'count')
+      .getRawOne();
+
+    // Count total likes for the user
+    const likeCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.likes', 'like')
+      .select('COUNT(like.id)', 'count')
+      .getRawOne();
+
+    // Helper function to process ticket status counts
+    const processTicketStatusData = (data: any[]): Record<string, number> =>
+      data.reduce((acc, item) => {
+        acc[item.status] = parseInt(item.count, 10);
+        return acc;
+      }, {});
+
+    return {
+      TotalCreatedEvents: eventCount,
+      AllEventsTicketsCount: processTicketStatusData(ticketStatusCount),
+      GrossRevenue: grossRevenue.grossRevenue,
+      TotalCommentsCount: parseInt(commentCount.count, 10),
+      TotalLikesCount: parseInt(likeCount.count, 10),
+      qrcodeStats,
+    };
+  }
+
   async countMyEvents(user: string): Promise<any> {
     // Count total events
     const eventCount = await this.eventRepository.count({
@@ -432,6 +486,26 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('event.user_id = :userId', { userId: user })
       .groupBy('ticket.status')
       .getRawMany();
+
+    const qrcodeStats = await await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.tickets', 'ticket')
+      .leftJoin('ticket.qrcode_scanned', 'scanlog')
+      .select('COUNT(DISTINCT ticket.id)', 'total-qrcode-generated')
+      .addSelect(
+        'COUNT(DISTINCT CASE WHEN scanlog.id IS NOT NULL THEN ticket.id END)',
+        'scanned-qrcode-count',
+      )
+      .where('event.user_id = :userId', { userId: user })
+      .getRawOne();
+
+    const userGrossRevenue = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('event.tickets', 'ticket')
+      .where('event.user_id = :userId', { userId: user })
+      .andWhere('ticket.status = :status', { status: 'paid' })
+      .select('SUM(ticket.price)', 'userGrossRevenue')
+      .getRawOne();
 
     // Count total comments for the user
     const commentCount = await this.eventRepository
@@ -459,16 +533,16 @@ export class EventRepositoryEmpl implements IEventRepository {
     return {
       TotalCreatedEvents: eventCount,
       AllEventsTicketsCount: processTicketStatusData(ticketStatusCount),
+      UsergrossRevenue: userGrossRevenue.userGrossRevenue,
       TotalCommentsCount: parseInt(commentCount.count, 10),
       TotalLikesCount: parseInt(likeCount.count, 10),
+      qrcodeStats,
     };
   }
 
-
-
   async singleEventAnalytics(user: string, event: string): Promise<any> {
     const events = await this.eventRepository.find({
-      where: { 'id': event, 'user_id': user },
+      where: { id: event, user_id: user },
     });
 
     // Count tickets grouped by status
@@ -480,6 +554,27 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('event.id = :id', { id: event })
       .groupBy('ticket.status')
       .getRawMany();
+
+    const qrcodeStats = await await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.tickets', 'ticket')
+      .leftJoin('ticket.qrcode_scanned', 'scanlog')
+      .select('COUNT(DISTINCT ticket.id)', 'total-qrcode-generated')
+      .addSelect(
+        'COUNT(DISTINCT CASE WHEN scanlog.id IS NOT NULL THEN ticket.id END)',
+        'scanned-qrcode-count',
+      )
+      .where('event.id = :id', { id: event })
+      .getRawOne();
+
+      const eventGrossRevenue = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('event.tickets', 'ticket')
+      .where('event.id = :id', { id: event })
+      .andWhere('ticket.status = :status', { status: 'paid' }) // make sure casing matches your DB values
+      .select('SUM(ticket.price)', 'eventGrossRevenue')
+      .getRawOne();
+    
 
     // Count total comments for the user
     const commentCount = await this.eventRepository
@@ -505,10 +600,12 @@ export class EventRepositoryEmpl implements IEventRepository {
       }, {});
 
     return {
-      TotalCreatedEvents: events,
-      AllEventsTicketsCount: processTicketStatusData(ticketStatusCount),
+      events,
+      TicketsCount: processTicketStatusData(ticketStatusCount),
+      EventGrossRevenue: eventGrossRevenue.eventGrossRevenue,
       TotalCommentsCount: parseInt(commentCount.count, 10),
       TotalLikesCount: parseInt(likeCount.count, 10),
+      qrcodeStats,
     };
   }
 }

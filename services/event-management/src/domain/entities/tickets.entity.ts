@@ -3,6 +3,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { IdValueObject } from '../value-objects/event-id.value-object';
@@ -10,6 +11,7 @@ import { Events } from './events.entity';
 import { Promocodes } from './promocodes.entity';
 import { TicketsHeading } from './tickets-heading.entity';
 import { TicketBooking } from './ticket-booking.entity';
+import { QrScanLogs } from './qrcode-scan-logs.entity';
 
 @Entity()
 export class Tickets {
@@ -93,6 +95,13 @@ export class Tickets {
   @ManyToOne(() => Promocodes, (promocode) => promocode.id)
   @JoinColumn({ name: 'promocode_id' })
   promocode_id: Promocodes;
+
+  @OneToMany(() => QrScanLogs, (qrcode_scanned) => qrcode_scanned.ticket, {
+    onDelete: 'CASCADE',
+    nullable:true
+  })
+  @JoinColumn({ name: 'ticket_id' })
+  qrcode_scanned: QrScanLogs[];
 
   @Column({ nullable: true })
   created_by: string;

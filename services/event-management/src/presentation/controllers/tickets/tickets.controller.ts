@@ -5,12 +5,17 @@ import {
   HttpCode,
   Param,
   Query,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
+import { QrCodeScannedLogCommand } from 'src/application/commands/ticket/qr-scanned-log.command';
 import { GetEventsByIdQuery } from 'src/application/queries/events/get-events-by-id.query';
 import { FindTicketByHeadingQuery } from 'src/application/queries/tickets/find-all-tickets-by-heading.query';
+import { FindOneQuery } from 'src/application/queries/tickets/find-one.query';
 import { GetAllTicketsQuery } from 'src/application/queries/tickets/get-all-tickets.query';
 import { GetUserTicketsQuery } from 'src/application/queries/tickets/get-user-tickets.query';
 import { Tickets } from 'src/domain/entities/tickets.entity';
@@ -20,6 +25,7 @@ import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorat
 import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
+
 
 @Controller('tickets')
 @ApiTags('Tickets')
@@ -56,6 +62,15 @@ export class TicketsController {
     limit: number;
   }> {
     return this.queryBus.execute(new GetAllTicketsQuery(page, limit));
+  }
+
+  @ApiOperation({ description: 'Find Tickets By ID' })
+  @HttpCode(200)
+  @Get('/:id')
+  async findOne(@Param('id') id:string): Promise<{
+    ticketsList: Tickets | null;
+  }> {
+    return this.queryBus.execute(new FindOneQuery(id));
   }
 
   @ApiOperation({ description: 'Get Tickets for Upcoming Events for the User' })
@@ -202,4 +217,20 @@ export class TicketsController {
     return this.queryBus.execute(new FindTicketByHeadingQuery(ticket_heading_id));
   }
 
+
+  @Get('get/ticket-info/:ticket_id')
+  @ApiOperation({ description: 'Get Tickets Info By ID' })
+  @ApiParam({ name: 'ticket_id', required: true, description: 'Ticket ID' })
+  @HttpCode(200)
+  async getTicketsInfoById(
+    @Param('ticket_id') ticket_id: string,
+    @Req() req: Request,
+  ): Promise<any> {
+    const ip = req.ip;
+    const userAgent = req.headers['user-agent'];
+    const metadata = JSON.stringify({ ip, userAgent });
+    await this.commandBus.execute(new QrCodeScannedLogCommand(ticket_id, metadata));    
+
+    return(` Deep or APP Link or Web view will present event detail information  `)
+  }
 }
