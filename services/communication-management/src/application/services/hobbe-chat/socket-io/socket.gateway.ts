@@ -39,14 +39,17 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const validatedUser =
         await this.userValidationService.validateUser(payload);
       if (!validatedUser) throw new Error('User validation failed');
-
       const userId = validatedUser.user.user_id.toString();
       const profileId = validatedUser.user.profile_id.toString();
       const profileName = validatedUser.user.profile_name.toString();
+      const profileImage = validatedUser.user.personal_account.profile_image.toString();
       this.usersMap.set(userId, client.id);
       client.data.user = validatedUser;
 
-      await this.chatUserService.chatUser(userId, profileId, profileName);
+      // console.dir(profileImage, { depth: null});
+
+
+      await this.chatUserService.chatUser(userId, profileId, profileName,profileImage);
       const chats = await this.hobbeChatService.getUserChats(userId);
       const userName = client.data?.user?.user?.user_name?.toString();
 

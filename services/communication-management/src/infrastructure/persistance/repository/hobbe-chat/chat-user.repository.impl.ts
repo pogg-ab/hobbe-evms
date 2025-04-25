@@ -25,8 +25,8 @@ export class ChatUserRepositoryImpl implements ChatUserRepository {
   // }
 
   
-  async create(userId: string, userName: string, profileName: string): Promise<ChatUser> {
-    return await this.chatUserRepo.save({ id: userId, username: userName, profileName });
+  async create(userId: string, userName: string, profileName: string,profileImage:string): Promise<ChatUser> {
+    return await this.chatUserRepo.save({ id: userId, username: userName, profileName, avatarUrl:profileImage});
   }
 
   async findOne(userId: string): Promise<ChatUser> {
@@ -34,8 +34,8 @@ export class ChatUserRepositoryImpl implements ChatUserRepository {
   }
   
   
-  async update(userId: string, userName: string, profileName: string): Promise<void> {
-    await this.chatUserRepo.update(userId, { username: userName, profileName });
+  async update(userId: string, userName: string, profileName: string,profileImage:string): Promise<void> {
+    await this.chatUserRepo.update(userId, { username: userName, profileName, avatarUrl:profileImage });
   }
   
 

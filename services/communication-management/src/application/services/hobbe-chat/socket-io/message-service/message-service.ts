@@ -22,6 +22,7 @@ export class MessageService {
          user.user.user_id.toString(),
          user.user.profile_id.toString(),
          user.user.profile_name.toString(),
+         user.user.personal_account.profile_image.toString(),
       )
          const message =  await this.commandBus.execute(new SendMessageCommand(chatUser,createMessageDto));
          return message;
