@@ -41,6 +41,7 @@ export class ChatService {
     const chat_user = user.user.user_id.toString();
     const profile_id = user.user.profile_id.toString();
     const profile_name = user.user.profile_name.toString();
+    const profileImage = user.user.personal_account.profile_image.toString();
     // Check if private chat exists
     if (createChatDto.friendId) {
       const existingChat = await this.chatRepo.findPrivateChat(
@@ -58,7 +59,7 @@ export class ChatService {
       'private',
       '@chat' + randomInt(100000000000, 999999999999),
     );
-    const chatUser = await this.chatUserRepo.create(chat_user,profile_id,profile_name);
+    const chatUser = await this.chatUserRepo.create(chat_user,profile_id,profile_name,profileImage);
     await this.chatMemberRepo.addMember(chat, chatUser);
 
     await this.chatMemberRepo.addMember(chat, friend);

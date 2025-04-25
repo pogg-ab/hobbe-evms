@@ -36,16 +36,16 @@ export class E2EERepositoryImpl implements IE2EERepository{
             const keyPair = await this.e2eeRepository.findOne(findOptions);
     
             if (!keyPair) {
-                console.log(`No E2EE key pair found for user ID: ${userId}`);
+                // console.log(`No E2EE key pair found for user ID: ${userId}`);
                 return null;
             }
 
-            console.log(`Found E2EE key pair for user ID: ${userId}`, {
-                id: keyPair.id,
-                userId: keyPair.user,  // Access the id from the related user
-                hasPublicKey: !!keyPair.public_key,
-                hasPrivateKey: !!keyPair.private_key
-            });
+            // console.log(`Found E2EE key pair for user ID: ${userId}`, {
+            //     id: keyPair.id,
+            //     userId: keyPair.user,  // Access the id from the related user
+            //     hasPublicKey: !!keyPair.public_key,
+            //     hasPrivateKey: !!keyPair.private_key
+            // });
     
             return keyPair;
         } catch (error) {

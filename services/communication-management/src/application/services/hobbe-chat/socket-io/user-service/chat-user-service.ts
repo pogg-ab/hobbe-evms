@@ -12,8 +12,8 @@ export class ChatUserService {
    private readonly e2eeService: E2eeService
 ) {}
     
-async chatUser(userId: string,profileId:string,profileName:string): Promise<ChatUser> {     
-     const user = await this.chatUserRepository.create(userId,profileId,profileName);
+async chatUser(userId: string,profileId:string,profileName:string,profileImage:string): Promise<ChatUser> {     
+     const user = await this.chatUserRepository.create(userId,profileId,profileName,profileImage);
      const doseUserHaveKey = await this.e2eeService.findOne(userId);
    
      if (!doseUserHaveKey) {  // Ensure key is created only if the user doesn't have one

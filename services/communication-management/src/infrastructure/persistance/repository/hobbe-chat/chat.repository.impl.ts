@@ -78,6 +78,7 @@ export class ChatRepositoryImpl implements ChatRepository {
       .select([
         'chat.id AS chat_id',
         'chat.type AS chat_type',
+        'friend.id AS user_id',
         'friend.username AS username',
         'friend.profileName AS profile_name',
         'friend.avatarUrl AS avatar',
