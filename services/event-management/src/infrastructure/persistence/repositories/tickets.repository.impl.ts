@@ -37,6 +37,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { id: id },
+        relations:['event_id','ticket_heading_id']
       });
 
       if (!ticket) {
@@ -45,6 +46,8 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
           HttpStatus.NOT_FOUND,
         );
       }
+      // console.log(ticket);
+            
       return ticket;
     } catch (error) {
       throw new HttpException(
@@ -471,6 +474,35 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     } catch (error) {
       throw new HttpException(
         `Error counting tickets for Event ID ${eventId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async qrCodeScannedLog(
+    ticket_id: string,
+    metadata: string,
+  ): Promise<void> {
+    try {
+      const ticket = await this.ticketsListRepository.findOne({
+        where: { ticket_no: ticket_id },
+      });
+
+      if (!ticket) {
+        throw new NotFoundException(`Ticket with ID ${ticket_id} not found`);
+      }
+
+      // Assuming you have a QrScanLogs entity to log the scan
+      const qrScanLog = this.dataSource.getRepository('QrScanLogs').create({
+        ticket: ticket,
+        action_taken: 'scanned',
+        scanned_at: new Date(),
+        metadata: metadata,
+      });
+      await this.dataSource.getRepository('QrScanLogs').save(qrScanLog);
+    } catch (error) {
+      throw new HttpException(
+        `Error logging QR code scan: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

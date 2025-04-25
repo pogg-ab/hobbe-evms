@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler, IQueryHandler, QueryHandler } from "@nestjs/cqrs";
+import {  IQueryHandler, QueryHandler } from "@nestjs/cqrs";
 import { CountMyEventCommand } from "src/application/queries/analytics/count-my-events.query";
 import { EventsService } from "src/application/services/events/events.service";
 

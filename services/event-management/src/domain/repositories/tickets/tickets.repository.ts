@@ -80,4 +80,9 @@ export interface ITicketsRepository {
     manager: EntityManager,
     eventId: string,
   ): Promise<number>;
+
+  qrCodeScannedLog(
+    ticket_id: string,
+    metadata: string,
+  ): Promise<void>;
 }

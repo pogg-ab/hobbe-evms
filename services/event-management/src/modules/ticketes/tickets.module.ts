@@ -23,6 +23,8 @@ import { Events } from 'src/domain/entities/events.entity';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { FindOneQueryHandler } from 'src/application/handlers/tickets/find-one.query.handler';
+import { QrCodeScannedLogHandler } from 'src/application/handlers/tickets/qrcode-scanned-log.handler';
 
 @Module({
 
@@ -38,10 +40,12 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     TicktesProfile,
     CreateTicketsCommandHandler,
     GetAllTicketsQueryHandler,
+    FindOneQueryHandler,
     GetAllTicketsHandler,
     GetUserTicketsQueryHandler,
     TicketsFindByIdQueryHandler,
     TicketsFindByHeadingQueryHandler,
+    QrCodeScannedLogHandler,
     {
       provide: TICKETS_LIST_REPOSITORY_TOKEN,
       useClass: TicketsRepositoryEmpl,

@@ -2,6 +2,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
+  MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
@@ -66,5 +67,4 @@ async handleChatRoom(client: Socket, dto: CreatePrivateChatDto): Promise<void> {
       client.emit('chat-conversation-error', `An error occurred while fetching the chat conversation: ${error.message}`);
     }
   }
-
 }
