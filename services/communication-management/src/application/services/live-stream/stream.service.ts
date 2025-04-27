@@ -173,7 +173,6 @@ export class StreamService {
       }
 
       const result = await this.startStream(streamId, startStreamDto);
-      console.log(result)
 
       return result;
 

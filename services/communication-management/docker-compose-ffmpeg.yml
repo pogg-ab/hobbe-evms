@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  ffmpeg:
+    image: jrottenberg/ffmpeg
+    container_name: ffmpeg
+    volumes:
+      - type: bind
+        source: D:\hobbe-evms\services\communication-management\media\hls
+        target: /media/hls
+        read_only: false
+    entrypoint: [ "/bin/bash" ]
+    tty: true
+    restart: unless-stopped
+    stdin_open: true

@@ -146,6 +146,7 @@ export class FluentFFmpegService {
 
         tcpProxyServer.listen(port + 1, () => {
           this.logger.log(`[${streamId}] TCP proxy server started on port ${port + 1}`);
+
           const { command } = this.buildFfmpegCommand(port + 1, rtmpUrl, hlsOutputPath, config);
           this.logger.debug(`[${streamId}] FFmpeg command: ${command}`);
           ffmpegProcess = exec(command);
@@ -190,12 +191,11 @@ export class FluentFFmpegService {
             this.logger.debug(`[${streamId}] FFmpeg stderr: ${output}`);
 
             // Check for FFmpeg ready signal
-            if (output) {
+            if (output.includes('Listening on')) {
               clearTimeout(ffmpegStartTimeout);
               isFfmpegReady = true;
               const initTime = Date.now() - stats.ffmpegStartTime;
               this.logger.log(`[${streamId}] FFmpeg ready in ${initTime}ms`);
-              console.log(pendingData)
 
               // Process pending data
               if (pendingData.length > 0) {
@@ -274,7 +274,6 @@ export class FluentFFmpegService {
                 }
 
                 if (tcpSocket.writable) {
-                  console.log(data)
                   tcpSocket.write(data, (error) => {
                     if (error) {
                       this.logger.error(`[${streamId}] TCP write error: ${error.message}`);
@@ -371,9 +370,11 @@ export class FluentFFmpegService {
 
     // Input configuration
     const inputParams = [
+      `-loglevel debug`,
+      `-protocol_whitelist file,udp,rtp,tcp,http,https`,
       `-f mp4`,
       `-listen 1`,
-      `-i tcp://0.0.0.0:${tcpPort}?listen`,
+      `-i tcp://0.0.0.0:${tcpPort}?listen&timeout=-1&listen_timeout=-1`,
       `-fflags +genpts+igndts`,
       `-analyzeduration 100M`,
       `-probesize 100M`,
