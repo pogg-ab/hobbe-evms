@@ -146,7 +146,6 @@ export class FluentFFmpegService {
 
         tcpProxyServer.listen(port + 1, () => {
           this.logger.log(`[${streamId}] TCP proxy server started on port ${port + 1}`);
-
           const { command } = this.buildFfmpegCommand(port + 1, rtmpUrl, hlsOutputPath, config);
           this.logger.debug(`[${streamId}] FFmpeg command: ${command}`);
           ffmpegProcess = exec(command);
@@ -191,11 +190,12 @@ export class FluentFFmpegService {
             this.logger.debug(`[${streamId}] FFmpeg stderr: ${output}`);
 
             // Check for FFmpeg ready signal
-            if (output.includes('Listening on')) {
+            if (output) {
               clearTimeout(ffmpegStartTimeout);
               isFfmpegReady = true;
               const initTime = Date.now() - stats.ffmpegStartTime;
               this.logger.log(`[${streamId}] FFmpeg ready in ${initTime}ms`);
+              console.log(pendingData)
 
               // Process pending data
               if (pendingData.length > 0) {
@@ -274,6 +274,7 @@ export class FluentFFmpegService {
                 }
 
                 if (tcpSocket.writable) {
+                  console.log(data)
                   tcpSocket.write(data, (error) => {
                     if (error) {
                       this.logger.error(`[${streamId}] TCP write error: ${error.message}`);
@@ -366,6 +367,7 @@ export class FluentFFmpegService {
       this.logger.error(`Failed to create HLS directory: ${err.message}`);
       throw new Error(`Could not create HLS output directory: ${absoluteHlsPath}`);
     }
+
 
     // Input configuration
     const inputParams = [
