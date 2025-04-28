@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   ffmpeg:
-    image: jrottenberg/ffmpeg
+    image: jrottenberg/ffmpeg:6-ubuntu
     container_name: ffmpeg
     volumes:
       - type: bind
