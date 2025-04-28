@@ -122,7 +122,19 @@ export class FluentFFmpegService {
           throw new Error('Valid RTMP URL is required (starting with rtmp://)');
         }
 
-        const port = 9000 + Math.floor(Math.random() * 1000);
+        function getRandomStreamPort(): number {
+          const excludedPorts = [9000, 9200];
+          let port: number;
+
+          do {
+            const randomOffset = Math.floor(Math.random() * 999);
+            port = 9001 + randomOffset;
+          } while (excludedPorts.includes(port));
+
+          return port;
+        }
+        const port = getRandomStreamPort();
+
         const wsServer = new WebSocketServer({ port });
         const tcpProxyServer = net.createServer();
 
@@ -233,6 +245,10 @@ export class FluentFFmpegService {
 
           tcpSocket.on('close', () => {
             this.logger.log(`[${streamId}] FFmpeg disconnected from TCP proxy`);
+          });
+
+          tcpSocket.on('data', (data) => {
+            this.logger.debug(`[${streamId}] TCP received ${data.length} bytes`);
           });
         });
 
@@ -355,8 +371,8 @@ export class FluentFFmpegService {
     const useDocker = process.env.FFMPEG_DOCKER === 'true';
     const ffmpegPath = useDocker ? 'docker exec ffmpeg ffmpeg' : (process.env.FFMPEG_PATH || 'ffmpeg');
 
-    // Ensure HLS directory exists (using absolute path)
     const absoluteHlsPath = path.resolve(hlsOutputPath);
+    console.log(absoluteHlsPath)
     try {
       if (!fs.existsSync(absoluteHlsPath)) {
         fs.mkdirSync(absoluteHlsPath, { recursive: true });
@@ -366,12 +382,15 @@ export class FluentFFmpegService {
       this.logger.error(`Failed to create HLS directory: ${err.message}`);
       throw new Error(`Could not create HLS output directory: ${absoluteHlsPath}`);
     }
+    const testPath = '/media/hls/bdbcbb3a-0073-45c0-a94b-41b42f650345-20231015110000'
+
 
     // Input configuration
     const inputParams = [
-      `-f mp4`,
+      `-loglevel trace`,
+      `-protocol_whitelist tcp,file,udp,rtp,http,https`,
       `-listen 1`,
-      `-i tcp://0.0.0.0:${tcpPort}?listen`,
+      `-i tcp://0.0.0.0:${tcpPort}?listen&timeout=-1&listen_timeout=-1`,
       `-fflags +genpts+igndts`,
       `-analyzeduration 100M`,
       `-probesize 100M`,
@@ -418,10 +437,10 @@ export class FluentFFmpegService {
       `-hls_time 4`,
       `-hls_list_size 6`,
       `-hls_flags delete_segments+append_list+temp_file`,
-      `-hls_segment_filename ${absoluteHlsPath}/segment_%03d.ts`,
+      `-hls_segment_filename ${testPath}/segment_%03d.ts`,
       `-hls_allow_cache 1`,
-      `-hls_base_url ${absoluteHlsPath}/`, // Ensure proper paths in playlist
-      `${absoluteHlsPath}/playlist.m3u8`,
+      `-hls_base_url ${testPath}/`, // Ensure proper paths in playlist
+      `${testPath}/playlist.m3u8`,
     ];
 
     // RTMP Output (must come after HLS)
