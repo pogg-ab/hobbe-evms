@@ -1,9 +1,9 @@
 version: "1.0"
 
 services:
-  communication-management:
+  payment-management:
     build:
-      context: ./communication-management
+      context: ./payment-management
       dockerfile: Dockerfile
     ports:
       - "4000:4000"

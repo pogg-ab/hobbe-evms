@@ -5,6 +5,7 @@ import { Chat } from 'src/domain/entities/hobbe-chat/chat.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatMember } from 'src/domain/entities/hobbe-chat/chat-member.entity';
+import { retryWhen } from 'rxjs';
 
 @Injectable()
 export class ChatRepositoryImpl implements ChatRepository {
@@ -68,7 +69,7 @@ export class ChatRepositoryImpl implements ChatRepository {
   // }
 
   async getUserChats(userId: string): Promise<any[]> {
-    return await this.chatRepo
+      return await this.chatRepo
       .createQueryBuilder('chat')
       .leftJoin('chat.members', 'chatMember')
       .leftJoin('chat.members', 'friendMember', 'friendMember.userId != :userId', { userId })

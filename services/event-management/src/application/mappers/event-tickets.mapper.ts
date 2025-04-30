@@ -15,7 +15,7 @@ export class CustomEventTicketMapper{
      // Generate a unique ticket number (UUID)
      const ticketNumber = uuidv4();
      // Generate the QR Code based on the ticket number
-     const qrCode = await qrcode.toDataURL(`http://localhost:4001/tickets/get/ticket-info/${ticketNumber}`);
+     const qrCode = await qrcode.toDataURL(`http://89.117.37.84/:4001/tickets/get/ticket-info/${ticketNumber}`);
 
      // Create the ticket DTO and assign values
      const ticketDto = createTicketsDto;

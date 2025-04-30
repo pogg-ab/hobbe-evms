@@ -55,7 +55,7 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           }
         }
     
-    async verifyChapaPayment(tx_ref:string,charge:string):Promise<void>{
+    async verifyChapaPayment(tx_ref:string,charge:string):Promise<any>{
       try {
         const paymentToBeVerify = await this.findOneChapa(tx_ref);
   
@@ -67,7 +67,9 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
        await this.kafkaProducerService.produce({
         topic: 'payment_status',
         messages: [{ value: JSON.stringify(paymentToBeVerify) }],
-      });   
+      });  
+      
+      return {message :"Payment verified successfully",paymentStatus};
       
       } catch (error) {
         throw new HttpException(
