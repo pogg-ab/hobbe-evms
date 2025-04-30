@@ -99,11 +99,18 @@ export class ChatService {
   }
   
 
-  async getChatById(userId:string,chatId: string): Promise<Chat> {
+  async getChatById(userId:string,chatId: string): Promise<Chat> {    
     const chat = await this.chatRepo.findById(chatId);
     if (!chat) {
       throw new NotFoundException('Chat not found');
     }    
+    const user = await this.chatUserRepo.findOne(userId);
+    if (!user) {  
+      throw new NotFoundException('User not found');
+    }
+
+    await this.chatMemberRepo.resetUnreadCount(chat, user);
+
     const receiverId = this.getReceiverId(chat.members, userId);
     const [friendPrivateKey, currentUserPrivateKey] = await Promise.all([
       this.e2eeService.getPrivateKey(receiverId),
@@ -112,6 +119,8 @@ export class ChatService {
     chat.messages.forEach(msg => {
       msg.content =  this.e2eeService.decryptMessage(msg.content, msg.senderId, userId, currentUserPrivateKey.privateKey.toString(), friendPrivateKey.privateKey.toString());
     });
+
+   
     return chat;
   }
 

@@ -56,7 +56,10 @@ export class ChatMemberRepositoryImpl implements ChatMemberRepository {
     .createQueryBuilder()
     .update(ChatMember)
     .set({ unreadCount: 0 }) // Reset the unread count to 0
-    .where('chatId = :chatId AND userId = :userId', { chat, user })
+    .where('chatId = :chatId AND userId = :userId', {
+      chatId: chat.id,
+      userId: user.id,
+    })
     .execute();
   }
 }
