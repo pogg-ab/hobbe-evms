@@ -14,6 +14,7 @@ import { ChapaSDKService } from './application/services/payment-methods/chapa/ch
 import { KafkaProducerService } from './infrastructure/kafka/kafka.producer.servicce';
 import { StripeModule } from './modules/payment-methods/stripe/stripe.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { AnalyticsModule } from './modules/reports/analytics.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     ChapaModule,
     StripeModule,
     ReportsModule,
+    AnalyticsModule,
   ],
   providers: [
     AppService, 
