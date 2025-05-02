@@ -28,6 +28,9 @@ import { Server, Socket } from 'socket.io';
 import { GetAllStreamsQuery } from 'src/application/queries/live-stream/get-all-streams.query';
 import { GetActiveStreamsQuery } from 'src/application/queries/live-stream/get-active-streams.query';
 import { GetInActiveStreamsQuery } from 'src/application/queries/live-stream/get-inactive-streams.query';
+import { MediasoupService } from 'src/infrastructure/mediasoup/mediasoup.service';
+import * as mediasoup from 'mediasoup';
+
 @Controller('streams')
 export class StreamController {
   private readonly logger = new Logger(StreamController.name);
@@ -35,6 +38,7 @@ export class StreamController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly mediasoupService: MediasoupService
   ) { }
 
 
@@ -228,4 +232,40 @@ export class StreamController {
   // async getStreamsByUserId(@Param('userId') userId: string) {
   //   return this.queryBus.execute(new GetStreamsByUserIdQuery(userId));
   // }
+
+  @Get(':id/router-capabilities')
+  getRouterCapabilities(@Param('id') streamId: string) {
+    this.logger.log(`Fetching router capabilities for stream ${streamId}`);
+    return {
+      routerRtpCapabilities: this.mediasoupService.getRouterCapabilities()
+    };
+  }
+
+  @Post(':id/create-transport')
+  async createTransport(
+    @Param('id') streamId: string,
+    @Body() body: { forceTcp: boolean; producing: boolean }
+  ) {
+    this.logger.log(`Creating new WebRTC transport for stream ${streamId}`);
+    return this.mediasoupService.createWebRtcTransport(body);
+  }
+
+  @Post(':id/connect-transport')
+  async connectTransport(
+    @Param('id') streamId: string,
+    @Body() body: { transportId: string; dtlsParameters: any }
+  ) {
+    this.logger.log(`Connecting transport ${body.transportId} for stream ${streamId}`);
+    await this.mediasoupService.connectTransport(body);
+    return { success: true };
+  }
+
+  @Post(':id/produce')
+  async produce(
+    @Param('id') streamId: string,
+    @Body() body: { transportId: string; kind: mediasoup.types.MediaKind; rtpParameters: any },
+  ) {
+    this.logger.log(`Producing ${body.kind} for stream ${streamId}`);
+    return this.mediasoupService.produce({ ...body, streamId });
+  }
 }
