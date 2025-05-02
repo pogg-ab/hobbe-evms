@@ -11,6 +11,7 @@ import { Server, WebSocket } from 'ws';
 import { WebSocketServer } from 'ws';
 import * as net from 'net';
 import * as path from 'path';
+import { MediasoupService } from '../mediasoup/mediasoup.service';
 
 
 type StreamStatus = 'started' | 'stopped' | 'paused' | 'error';
@@ -19,7 +20,7 @@ interface FfmpegResponse {
   success: boolean;
   message: string;
   status: StreamStatus;
-  data?: { streamId: string; rtmpUrl: string; wsPort: number };
+  data?: { streamId: string; rtmpUrl: string; transportId: string };
 }
 
 @Injectable()
@@ -31,7 +32,8 @@ export class FluentFFmpegService {
 
   constructor(
     @Inject(STREAM_REPOSITORY_TOKEN)
-    private readonly streamRepository: IStreamRepository,) {
+    private readonly streamRepository: IStreamRepository,
+    private readonly mediasoupService: MediasoupService,) {
     ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || 'ffmpeg')
 
   }
@@ -112,8 +114,7 @@ export class FluentFFmpegService {
     hlsOutputPath: string,
     streamId: string,
   ): Promise<FfmpegResponse> {
-    return new Promise((resolve, reject) => {
-      // Track initialization time
+    return new Promise(async (resolve, reject) => {
       const streamStartTime = Date.now();
       let ffmpegStartTimeout: NodeJS.Timeout;
 
@@ -122,28 +123,11 @@ export class FluentFFmpegService {
           throw new Error('Valid RTMP URL is required (starting with rtmp://)');
         }
 
-        function getRandomStreamPort(): number {
-          const excludedPorts = [9000, 9200];
-          let port: number;
-
-          do {
-            const randomOffset = Math.floor(Math.random() * 999);
-            port = 9001 + randomOffset;
-          } while (excludedPorts.includes(port));
-
-          return port;
-        }
-        const port = getRandomStreamPort();
-
-        const wsServer = new WebSocketServer({ port });
-        const tcpProxyServer = net.createServer();
-
-        this.webSocketServers.set(streamId, wsServer);
-        this.logger.log(`[${streamId}] WebSocket server started on port ${port}`);
-
-        let ffmpegProcess: ChildProcess;
-        let isFfmpegReady = false;
-        const pendingData: Buffer[] = [];
+        // Create Mediasoup transport for producing
+        const transport = await this.mediasoupService.createWebRtcTransport({
+          forceTcp: false,
+          producing: true
+        });
 
         // Enhanced statistics
         const stats = {
@@ -156,178 +140,120 @@ export class FluentFFmpegService {
           bufferingStartTime: Date.now()
         };
 
-        tcpProxyServer.listen(port + 1, () => {
-          this.logger.log(`[${streamId}] TCP proxy server started on port ${port + 1}`);
+        let ffmpegProcess: ChildProcess;
+        let isFfmpegReady = false;
+        const pendingData: Buffer[] = [];
 
-          const { command } = this.buildFfmpegCommand(port + 1, rtmpUrl, hlsOutputPath, config);
-          this.logger.debug(`[${streamId}] FFmpeg command: ${command}`);
-          ffmpegProcess = exec(command);
-          stats.ffmpegStartTime = Date.now();
-          this.activeProcesses.set(streamId, ffmpegProcess);
+        const { command } = this.buildFfmpegCommand(transport.id, rtmpUrl, hlsOutputPath, config);
+        this.logger.debug(`[${streamId}] FFmpeg command: ${command}`);
 
-          // FFmpeg initialization timeout (15 seconds)
-          ffmpegStartTimeout = setTimeout(() => {
-            if (!isFfmpegReady) {
-              this.logger.error(`[${streamId}] FFmpeg initialization timeout (15s)`);
-              this.cleanupStream(streamId);
-              reject({
-                success: false,
-                message: 'FFmpeg initialization timeout',
-                status: 'error',
-                stats,
-                initializationTime: Date.now() - streamStartTime
-              });
-            }
-          }, 15000);
+        ffmpegProcess = exec(command);
+        stats.ffmpegStartTime = Date.now();
+        this.activeProcesses.set(streamId, ffmpegProcess);
 
-          // FFmpeg process handlers
-          ffmpegProcess.on('error', (error) => {
-            clearTimeout(ffmpegStartTimeout);
-            this.logger.error(`[${streamId}] FFmpeg error: ${error.message}`);
+        // FFmpeg initialization timeout (15 seconds)
+        ffmpegStartTimeout = setTimeout(() => {
+          if (!isFfmpegReady) {
+            this.logger.error(`[${streamId}] FFmpeg initialization timeout (15s)`);
             this.cleanupStream(streamId);
             reject({
               success: false,
-              message: `FFmpeg error: ${error.message}`,
+              message: 'FFmpeg initialization timeout',
               status: 'error',
               stats,
               initializationTime: Date.now() - streamStartTime
             });
+          }
+        }, 15000);
+
+        // FFmpeg process handlers
+        ffmpegProcess.on('error', (error) => {
+          clearTimeout(ffmpegStartTimeout);
+          this.logger.error(`[${streamId}] FFmpeg error: ${error.message}`);
+          this.cleanupStream(streamId);
+          reject({
+            success: false,
+            message: `FFmpeg error: ${error.message}`,
+            status: 'error',
+            stats,
+            initializationTime: Date.now() - streamStartTime
           });
+        });
 
-          ffmpegProcess.stdout?.on('data', (data) => {
-            this.logger.debug(`[${streamId}] FFmpeg stdout: ${data.toString().trim()}`);
-          });
-
-          ffmpegProcess.stderr?.on('data', (data) => {
-            const output = data.toString().trim();
-            this.logger.debug(`[${streamId}] FFmpeg stderr: ${output}`);
-
-            // Check for FFmpeg ready signal
-            if (output.includes('Listening on')) {
-              clearTimeout(ffmpegStartTimeout);
-              isFfmpegReady = true;
-              const initTime = Date.now() - stats.ffmpegStartTime;
-              this.logger.log(`[${streamId}] FFmpeg ready in ${initTime}ms`);
-
-              // Process pending data
-              if (pendingData.length > 0) {
-                const totalBytes = pendingData.reduce((sum, chunk) => sum + chunk.length, 0);
-                this.logger.log(`[${streamId}] Flushing ${pendingData.length} buffered chunks (${totalBytes} bytes)`);
-
-                pendingData.forEach(chunk => {
-                  stats.bytesForwarded += chunk.length;
-                  stats.packetsForwarded++;
-                  tcpProxyServer?.emit('data', chunk);
-                });
-                pendingData.length = 0;
-              }
-            }
-          });
-
-          ffmpegProcess.on('exit', (code, signal) => {
+        ffmpegProcess.stdout?.on('data', (data) => {
+          this.logger.debug(`[${streamId}] FFmpeg stdout: ${data.toString().trim()}`);
+          // Consider FFmpeg ready when we get first stdout
+          if (!isFfmpegReady) {
+            isFfmpegReady = true;
             clearTimeout(ffmpegStartTimeout);
-            const runtime = Date.now() - stats.ffmpegStartTime;
-            this.logger.log(`[${streamId}] FFmpeg exited after ${runtime}ms | Code: ${code} | Signal: ${signal}`);
-            this.logger.log(`[${streamId}] Final stats: ` +
-              `Received: ${stats.packetsReceived} packets (${this.formatBytes(stats.bytesReceived)}) | ` +
-              `Forwarded: ${stats.packetsForwarded} packets (${this.formatBytes(stats.bytesForwarded)})`);
-            this.cleanupStream(streamId);
-          });
+            const initTime = Date.now() - stats.ffmpegStartTime;
+            this.logger.log(`[${streamId}] FFmpeg ready in ${initTime}ms`);
+
+            // Process pending data if any
+            if (pendingData.length > 0) {
+              const totalBytes = pendingData.reduce((sum, chunk) => sum + chunk.length, 0);
+              this.logger.log(`[${streamId}] Flushing ${pendingData.length} buffered chunks (${totalBytes} bytes)`);
+
+              pendingData.forEach(chunk => {
+                stats.bytesForwarded += chunk.length;
+                stats.packetsForwarded++;
+                this.forwardToMediasoup(transport.id, chunk);
+              });
+              pendingData.length = 0;
+            }
+          }
         });
 
-        // TCP proxy handlers
-        tcpProxyServer.on('connection', (tcpSocket) => {
-          this.logger.log(`[${streamId}] FFmpeg connected to TCP proxy`);
+        ffmpegProcess.stderr?.on('data', (data) => {
+          const output = data.toString().trim();
+          this.logger.debug(`[${streamId}] FFmpeg stderr: ${output}`);
 
-          tcpSocket.on('error', (error) => {
-            this.logger.error(`[${streamId}] TCP error: ${error.message}`);
-          });
-
-          tcpSocket.on('close', () => {
-            this.logger.log(`[${streamId}] FFmpeg disconnected from TCP proxy`);
-          });
-
-          tcpSocket.on('data', (data) => {
-            this.logger.debug(`[${streamId}] TCP received ${data.length} bytes`);
-          });
+          // Alternative readiness check - look for specific FFmpeg output
+          if (!isFfmpegReady && output.includes('Stream mapping')) {
+            isFfmpegReady = true;
+            clearTimeout(ffmpegStartTimeout);
+            const initTime = Date.now() - stats.ffmpegStartTime;
+            this.logger.log(`[${streamId}] FFmpeg ready in ${initTime}ms`);
+          }
         });
 
-        // WebSocket connection handler
-        wsServer.on('connection', (ws) => {
-          this.logger.log(`[${streamId}] New WebSocket connection`);
-          let tcpSocket: net.Socket;
-
-          const clientStats = {
-            bytesReceived: 0,
-            packetsReceived: 0,
-            lastActivity: Date.now(),
-            connectedAt: Date.now()
-          };
-
-          const connectToFfmpeg = () => {
-            tcpSocket = net.connect({ port: port + 1 }, () => {
-              this.logger.log(`[${streamId}] TCP proxy connected`);
-            });
-
-            // Data forwarding
-            ws.on('message', (data: Buffer) => {
-              try {
-                const now = Date.now();
-                clientStats.lastActivity = now;
-                stats.lastPacketTime = now;
-
-                clientStats.packetsReceived++;
-                stats.packetsReceived++;
-
-                const chunkSize = data.length;
-                clientStats.bytesReceived += chunkSize;
-                stats.bytesReceived += chunkSize;
-
-                if (!isFfmpegReady) {
-                  pendingData.push(data);
-                  // this.logger.debug(`[${streamId}] Buffering chunk (${this.formatBytes(chunkSize)})`);
-                  return;
-                }
-
-                if (tcpSocket.writable) {
-                  tcpSocket.write(data, (error) => {
-                    if (error) {
-                      this.logger.error(`[${streamId}] TCP write error: ${error.message}`);
-                    } else {
-                      stats.packetsForwarded++;
-                      stats.bytesForwarded += chunkSize;
-                    }
-                  });
-                } else {
-                  this.logger.warn(`[${streamId}] TCP socket not writable - buffering chunk`);
-                  pendingData.push(data);
-                }
-              } catch (error) {
-                this.logger.error(`[${streamId}] Message handling error: ${error.message}`);
-              }
-            });
-
-            tcpSocket.on('error', (error) => {
-              this.logger.error(`[${streamId}] TCP proxy error: ${error.message}`);
-              ws.close();
-            });
-          };
-
-          // Connect with slight delay
-          setTimeout(connectToFfmpeg, 500);
-
-          ws.on('close', () => {
-            const duration = Date.now() - clientStats.connectedAt;
-            this.logger.log(`[${streamId}] Client disconnected after ${duration}ms | ` +
-              `Received: ${clientStats.packetsReceived} packets (${this.formatBytes(clientStats.bytesReceived)})`);
-            if (tcpSocket) tcpSocket.end();
-          });
-
-          ws.on('error', (error) => {
-            this.logger.error(`[${streamId}] WebSocket error: ${error.message}`);
-            if (tcpSocket) tcpSocket.destroy();
-          });
+        ffmpegProcess.on('exit', (code, signal) => {
+          clearTimeout(ffmpegStartTimeout);
+          const runtime = Date.now() - stats.ffmpegStartTime;
+          this.logger.log(`[${streamId}] FFmpeg exited after ${runtime}ms | Code: ${code} | Signal: ${signal}`);
+          this.logger.log(`[${streamId}] Final stats: ` +
+            `Received: ${stats.packetsReceived} packets (${this.formatBytes(stats.bytesReceived)}) | ` +
+            `Forwarded: ${stats.packetsForwarded} packets (${this.formatBytes(stats.bytesForwarded)})`);
+          this.cleanupStream(streamId);
         });
+
+        // Handle incoming RTP packets from Mediasoup
+        this.setupMediasoupConsumer(transport.id, (data) => {
+          try {
+            const now = Date.now();
+            stats.lastPacketTime = now;
+
+            stats.packetsReceived++;
+            const chunkSize = data.length;
+            stats.bytesReceived += chunkSize;
+
+            if (!isFfmpegReady) {
+              pendingData.push(data);
+              return;
+            }
+
+            stats.packetsForwarded++;
+            stats.bytesForwarded += chunkSize;
+            this.forwardToMediasoup(transport.id, data);
+          } catch (error) {
+            this.logger.error(`[${streamId}] Data handling error: ${error.message}`);
+          }
+        });
+
+        // Consider FFmpeg ready immediately for Mediasoup implementation
+        isFfmpegReady = true;
+        clearTimeout(ffmpegStartTimeout);
+        this.logger.log(`[${streamId}] FFmpeg process started`);
 
         resolve({
           success: true,
@@ -336,7 +262,7 @@ export class FluentFFmpegService {
           data: {
             streamId,
             rtmpUrl,
-            wsPort: port,
+            transportId: transport.id,
           },
         });
 
@@ -360,8 +286,72 @@ export class FluentFFmpegService {
     return `${(bytes / 1048576).toFixed(2)} MB`;
   }
 
+  private async forwardToMediasoup(transportId: string, data: Buffer) {
+    try {
+      const transport = this.mediasoupService.getTransport(transportId);
+
+      // In mediasoup, we don't send raw data directly to producers.
+      // Instead, we need to:
+      // 1. Ensure we have a producer created
+      // 2. The actual data sending happens through the transport's RTP capabilities
+
+      // For raw data forwarding, we would typically:
+      // - Parse the data into proper RTP packets
+      // - Send through the transport's underlying RTP capabilities
+      // This is a simplified example:
+
+      // Convert buffer to Uint8Array (mediasoup expects ArrayBuffer or Uint8Array)
+      const rtpPacket = new Uint8Array(data);
+
+      // Send via transport (this is a simplified approach)
+      // Note: In production, you'd want proper RTP packet parsing
+      transport.send({
+        data: rtpPacket,
+        encoding: 'binary'
+      });
+
+    } catch (error) {
+      this.logger.error(`Error forwarding to Mediasoup: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async setupMediasoupConsumer(transportId: string, callback: (data: Buffer) => void) {
+    try {
+      const transport = this.mediasoupService.getTransport(transportId);
+
+      // In mediasoup, we don't directly listen for 'data' events on transports.
+      // Instead, we need to:
+      // 1. Create a consumer for the transport
+      // 2. Listen for the consumer's events
+
+      // Here's a basic implementation:
+      const consumer = await transport.consume({
+        // You'll need to specify which producer to consume from
+        // This would typically come from your application logic
+        producerId: 'your-producer-id', // Replace with actual producer ID
+        rtpCapabilities: this.mediasoupService.getRouterCapabilities(),
+        paused: false
+      });
+
+      consumer.on('rtp', (rtpPacket) => {
+        // Convert RTP packet to Buffer
+        const buffer = Buffer.from(rtpPacket);
+        callback(buffer);
+      });
+
+      consumer.on('error', (error) => {
+        this.logger.error(`Consumer error: ${error}`);
+      });
+
+    } catch (error) {
+      this.logger.error(`Error setting up Mediasoup consumer: ${error.message}`);
+      throw error;
+    }
+  }
+
   private buildFfmpegCommand(
-    tcpPort: number,
+    transportId: string,
     rtmpUrl: string,
     hlsOutputPath: string,
     config: StartStreamDto,
@@ -372,7 +362,6 @@ export class FluentFFmpegService {
     const ffmpegPath = useDocker ? 'docker exec ffmpeg ffmpeg' : (process.env.FFMPEG_PATH || 'ffmpeg');
 
     const absoluteHlsPath = path.resolve(hlsOutputPath);
-    console.log(absoluteHlsPath)
     try {
       if (!fs.existsSync(absoluteHlsPath)) {
         fs.mkdirSync(absoluteHlsPath, { recursive: true });
@@ -382,26 +371,19 @@ export class FluentFFmpegService {
       this.logger.error(`Failed to create HLS directory: ${err.message}`);
       throw new Error(`Could not create HLS output directory: ${absoluteHlsPath}`);
     }
-    const testPath = '/media/hls/bdbcbb3a-0073-45c0-a94b-41b42f650345-20231015110000'
 
-
-    // Input configuration
+    // Modified input configuration for Mediasoup RTP
     const inputParams = [
       `-loglevel trace`,
-      `-protocol_whitelist tcp,file,udp,rtp,http,https`,
-      `-listen 1`,
-      `-i tcp://0.0.0.0:${tcpPort}?listen&timeout=-1&listen_timeout=-1`,
+      `-protocol_whitelist rtp,srtp,udp`,
+      `-f rtp`,
+      `-i rtp://127.0.0.1:${this.mediasoupService.getTransportPort(transportId)}`,
       `-fflags +genpts+igndts`,
       `-analyzeduration 100M`,
       `-probesize 100M`,
-      `-reconnect 1`,
-      `-re`,
-      `-reconnect_at_eof 1`,
-      `-reconnect_streamed 1`,
-      `-reconnect_delay_max 2`,
     ];
 
-    // Video encoding
+    // Rest of the FFmpeg command remains the same...
     const videoParams = [
       `-c:v libx264`,
       `-preset veryfast`,
@@ -419,7 +401,6 @@ export class FluentFFmpegService {
       `-async 1`,
     ];
 
-    // Audio encoding
     const audioParams = audioConfig.enabled
       ? [
         `-c:a aac`,
@@ -431,33 +412,30 @@ export class FluentFFmpegService {
       ]
       : ['-an'];
 
-    // HLS Output (must come before RTMP)
     const hlsParams = [
       `-f hls`,
       `-hls_time 4`,
       `-hls_list_size 6`,
       `-hls_flags delete_segments+append_list+temp_file`,
-      `-hls_segment_filename ${testPath}/segment_%03d.ts`,
+      `-hls_segment_filename ${absoluteHlsPath}/segment_%03d.ts`,
       `-hls_allow_cache 1`,
-      `-hls_base_url ${testPath}/`, // Ensure proper paths in playlist
-      `${testPath}/playlist.m3u8`,
+      `-hls_base_url ${absoluteHlsPath}/`,
+      `${absoluteHlsPath}/playlist.m3u8`,
     ];
 
-    // RTMP Output (must come after HLS)
     const outputParams = [
       `-f flv`,
       `-flvflags no_duration_filesize`,
       `"${rtmpUrl}"`,
     ];
 
-    // Build the full command
     const command = [
       ffmpegPath,
       ...inputParams,
       ...videoParams,
       ...audioParams,
-      ...hlsParams, // HLS output first
-      ...outputParams, // RTMP output second
+      ...hlsParams,
+      ...outputParams,
     ].join(' ');
 
     this.logger.debug(`Generated FFmpeg command: ${command}`);
