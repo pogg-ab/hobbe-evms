@@ -1,23 +1,29 @@
 // rpc-consumer.service.ts
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
 import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
+import { StripeService } from 'src/application/services/payment-methods/stripe/stripe.service';
 
 @Injectable()
 export class KafkaPaymentRpcConsumerService implements OnModuleInit {
   private kafka = new Kafka({ brokers: [process.env.KAFKA_BROKER] });
-  private consumer = this.kafka.consumer({ groupId: 'payment-link-rpc-server-group' });
+  private consumer = this.kafka.consumer({
+    groupId: 'payment-link-rpc-server-group',
+  });
   private producer = this.kafka.producer();
-
 
   constructor(
     private readonly chapaSdkService: ChapaSDKService,
-  ) { }
+    private readonly stripeService: StripeService,
+  ) {}
 
   async onModuleInit() {
     await this.consumer.connect();
     await this.producer.connect();
-    await this.consumer.subscribe({ topic: 'payment-link-request-topic', fromBeginning: false });
+    await this.consumer.subscribe({
+      topic: 'payment-link-request-topic',
+      fromBeginning: false,
+    });
 
     this.consumer.run({
       eachMessage: async ({ message }) => {
@@ -30,31 +36,52 @@ export class KafkaPaymentRpcConsumerService implements OnModuleInit {
 
           if (!value) return;
 
-          const { event_id, booking_id, amount, user_id } = JSON.parse(value.value);
-          const paymentLink = await this.chapaSdkService.paymentInit({
-            event_id,
-            booking_id,
-            user_id,
-            amount,
-            currency: 'ETB',
-            phone_number: '0900123456',
-          });
+          const { event_id, booking_id, amount, user_id,payment_method } = JSON.parse(
+            value.value,
+          );
+          let paymentLink: any = null;
+          switch (payment_method) {
+            case 'Chapa':
+              paymentLink = await this.chapaSdkService.paymentInit({
+                event_id,
+                booking_id,
+                user_id,
+                amount,
+                currency: 'ETB',
+                phone_number: '0900123456',
+              });
 
-          const response = {
-            success: true,
-            data: paymentLink,
-          };
+            break;
+            case 'Stripe':
+              paymentLink = await this.stripeService.createCheckoutSession({
+                event_id,
+                booking_id,
+                user_id,
+                amount,
+                currency: 'USD',
+                phone_number: '0900123456',
+              });
+            break;
+            default:
+              throw new BadRequestException('Unsupported payment method');
+              break;
+            }
 
-          await this.producer.send({
-            topic: replyTopic!,
-            messages: [
-              {
-                key,
-                value: JSON.stringify(response),
-              },
-            ],
-          });
+              const response = {
+                success: true,
+                data: paymentLink,
+              };
 
+              await this.producer.send({
+                topic: replyTopic!,
+                messages: [
+                  {
+                    key,
+                    value: JSON.stringify(response),
+                  },
+                ],
+              });
+          
         } catch (err: any) {
           // console.error('❌ Error processing message:', err?.message || err);
 
@@ -78,6 +105,5 @@ export class KafkaPaymentRpcConsumerService implements OnModuleInit {
         }
       },
     });
-
   }
 }
