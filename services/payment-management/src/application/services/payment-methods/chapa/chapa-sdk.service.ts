@@ -67,7 +67,7 @@ export class ChapaSDKService {
         headers: { Authorization: `Bearer ${this.API_KEY}` },
       });
 
-      return await this.paymentRepository.verifyChapaPayment(txRef,response.data.data.charge)
+      return await this.paymentRepository.verifyChapaPayment("Chapa",txRef,response.data.data.charge)
     } catch (error) {
       console.error('Error verifying payment:', error.response?.data);
       throw new Error('Failed to verify payment');
