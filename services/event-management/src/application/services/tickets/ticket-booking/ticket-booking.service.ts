@@ -285,7 +285,19 @@ export class TicketBookingService {
       }
 
 
-      const paymentLink = await this.kafkaPaymentRpcService.sendRequest('payment-link-request-topic', { value: JSON.stringify({ ...createdBooking, amount: calculatedPrice }) });
+      const paymentLink = await this.kafkaPaymentRpcService.sendRequest(
+        'payment-link-request-topic', 
+        { 
+          value: JSON.stringify({ 
+             ...createdBooking,
+             payment_method: createTicketBookingDto.payment_method,
+             amount: calculatedPrice,
+          })
+      });
+
+     if(paymentLink.success === false) {
+        throw new BadRequestException(paymentLink.error);
+     }
 
       for (let i = 0; i < ticketCount; i++) {
         const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
@@ -311,7 +323,7 @@ export class TicketBookingService {
       }
       const allTicketsCounter = await this.ticketRepository.countAllTicketsForEvent(queryRunner.manager, eventId);
 
-
+     
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, eventId);
 
       await queryRunner.commitTransaction();
