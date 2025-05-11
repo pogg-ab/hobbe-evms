@@ -130,7 +130,7 @@ export class SubAccountService {
         where: {
           owner_user: { user_id: eventOrganizerId },
           sub_account_user: { user_id: staffUserId },
-          expire_date: MoreThanOrEqual(new Date())
+          // expire_date: MoreThanOrEqual(new Date())
         },
         relations: ['owner_user', 'sub_account_user']
       });

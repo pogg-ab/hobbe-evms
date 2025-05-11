@@ -36,6 +36,10 @@ export class SubAccountProfile extends AutomapperProfile {
           mapFrom((src) => src.expire_date),
         ),
         forMember(
+          (destination) => destination.privileges,
+          mapFrom((src) => src.privileges),
+        ),
+        forMember(
           (destination) => destination.created_at,
           mapFrom(() => new Date()),
         ),

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsDate, IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsArray, IsDate, IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
 
 export enum Privileges {
   ADD_SUB_ACCOUNTS = 'add_sub_accounts',
@@ -22,12 +22,15 @@ export class CreateSubAccountDto {
 
   @ApiProperty({
     description: 'The privileges assigned to the sub-account',
+    type: [String],
     enum: Privileges,
-    example: 'add_sub_accounts',
+    example: ['create_events', 'manage_guests'],
+    isArray: true,
   })
-  @IsEnum(Privileges)
-  @IsNotEmpty()
-  privileges: Privileges;
+  @IsArray()
+  @IsEnum(Privileges, { each: true })
+  @IsNotEmpty({ each: true })
+  privileges: Privileges[];
 
   @ApiProperty({
     description: 'The expiration date of the sub-account',
