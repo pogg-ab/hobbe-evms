@@ -98,13 +98,15 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
             : user.organizational_account,
       };
 
-      const followersCount = await this.followerRepository.count({
-        where: { following: user },
-      });
+      const followersCount = await this.followerRepository
+        .createQueryBuilder('follower')
+        .where('follower.following_user_id = :userId', { userId: user.user_id })
+        .getCount();
 
-      const followingCount = await this.followerRepository.count({
-        where: { follower: user },
-      });
+      const followingCount = await this.followerRepository
+        .createQueryBuilder('follower')
+        .where('follower.follower_user_id = :userId', { userId: user.user_id })
+        .getCount();
 
       userAccountInfo['followers_count'] = followersCount;
       userAccountInfo['following_count'] = followingCount;
@@ -141,13 +143,16 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
             ? user.personal_account
             : user.organizational_account,
       };
-      const followersCount = await this.followerRepository.count({
-        where: { following: user },
-      });
 
-      const followingCount = await this.followerRepository.count({
-        where: { follower: user },
-      });
+      const followersCount = await this.followerRepository
+        .createQueryBuilder('follower')
+        .where('follower.following_user_id = :userId', { userId: user.user_id })
+        .getCount();
+
+      const followingCount = await this.followerRepository
+        .createQueryBuilder('follower')
+        .where('follower.follower_user_id = :userId', { userId: user.user_id })
+        .getCount();
 
       userAccountInfo['followers_count'] = followersCount;
       userAccountInfo['following_count'] = followingCount;
@@ -194,17 +199,16 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
 
       const userAccountInfo = await Promise.all(
         users.map(async (user) => {
-          const followersCount = await this.followerRepository.count({
-            where: {
-              following: user,
-            },
-          });
 
-          const followingCount = await this.followerRepository.count({
-            where: {
-              follower: user,
-            },
-          });
+          const followersCount = await this.followerRepository
+            .createQueryBuilder('follower')
+            .where('follower.following_user_id = :userId', { userId: user.user_id })
+            .getCount();
+
+          const followingCount = await this.followerRepository
+            .createQueryBuilder('follower')
+            .where('follower.follower_user_id = :userId', { userId: user.user_id })
+            .getCount();
 
           return {
             user_id: user.user_id,

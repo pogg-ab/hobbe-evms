@@ -1,50 +1,59 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Button, Stack, IconButton, Typography, Box, TextField, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent } from '@mui/material';
+import { Button, Stack, IconButton, Typography, Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { Mic, MicOff, Videocam, VideocamOff, PlayArrow, Stop } from '@mui/icons-material';
 import axios from 'axios';
-import io from 'socket.io-client';
-
+import { Device } from 'mediasoup-client';
 
 const Streamer = () => {
     const webcamRef = useRef(null);
-    const mediaRecorderRef = useRef(null);
     const [recording, setRecording] = useState(false);
     const [devices, setDevices] = useState([]);
     const [audioEnabled, setAudioEnabled] = useState(true);
     const [videoEnabled, setVideoEnabled] = useState(true);
     const [stream, setStream] = useState(null);
     const [status, setStatus] = useState('Ready');
-    const [eventId, setEventId] = useState('');
-    const [scheduledDate, setScheduledDate] = useState('');
-    const [scheduledTime, setScheduledTime] = useState('');
-    const [timezone, setTimezone] = useState('');
     const [existingStreams, setExistingStreams] = useState([]);
     const [selectedStream, setSelectedStream] = useState(null);
-    const [socket, setSocket] = useState(null);
 
+    // MediaSoup related state
+    const [mediaSoupDevice, setMediaSoupDevice] = useState(null);
+    const [sendTransport, setSendTransport] = useState(null);
+    const [videoProducer, setVideoProducer] = useState(null);
+    const [audioProducer, setAudioProducer] = useState(null);
 
     const videoConstraints = {
         width: 1280,
         height: 720,
         facingMode: "user"
     };
+
     useEffect(() => {
-        const newSocket = io('http://localhost:4003/stream', {
+        // Initialize MediaSoup device
+        const device = new Device();
+        setMediaSoupDevice(device);
 
-        });
-        setSocket(newSocket);
-
-        return () => newSocket.disconnect();
+        return () => {
+            if (sendTransport) {
+                sendTransport.close();
+            }
+            if (videoProducer) {
+                videoProducer.close();
+            }
+            if (audioProducer) {
+                audioProducer.close();
+            }
+        };
     }, []);
 
     useEffect(() => {
         const fetchStreams = async () => {
             try {
                 const response = await axios.get('http://localhost:4003/streams/inactive');
-                setExistingStreams(response.data);
+                setExistingStreams(Array.isArray(response.data) ? response.data : []);
             } catch (error) {
                 console.error('Error fetching streams:', error);
+                setExistingStreams([]);
             }
         };
 
@@ -67,7 +76,7 @@ const Streamer = () => {
                 audio: audioEnabled
             });
 
-            if (webcamRef.current) {
+            if (webcamRef.current && webcamRef.current.video) {
                 webcamRef.current.video.srcObject = mediaStream;
             }
 
@@ -104,6 +113,93 @@ const Streamer = () => {
         setVideoEnabled(!videoEnabled);
     };
 
+    const initializeMediaSoup = async () => {
+        if (!mediaSoupDevice || !selectedStream) {
+            console.error('MediaSoup device or stream not selected');
+            return null;
+        }
+
+        try {
+            setStatus('Initializing WebRTC connection...');
+
+            // 1. Get router capabilities (should be GET request)
+            const { data: { routerRtpCapabilities } } = await axios.get(
+                `http://localhost:4003/streams/${selectedStream.id}/router-capabilities`
+            );
+
+            // Load the device with router capabilities
+            await mediaSoupDevice.load({ routerRtpCapabilities });
+
+            // 2. Create WebRTC transport
+            const { data: transportOptions } = await axios.post(
+                `http://localhost:4003/streams/${selectedStream.id}/create-transport`,
+                {
+                    forceTcp: false,
+                    producing: true,
+                    consuming: false
+                }
+            );
+
+            // Create the send transport
+            const transport = mediaSoupDevice.createSendTransport(transportOptions);
+
+            // Set up transport event handlers
+            transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                try {
+                    await axios.post(
+                        `http://localhost:4003/streams/${selectedStream.id}/connect-transport`,
+                        {
+                            transportId: transport.id,
+                            dtlsParameters
+                        }
+                    );
+                    callback();
+                } catch (error) {
+                    console.error('Transport connect failed:', error);
+                    errback(error);
+                }
+            });
+
+            transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
+                try {
+                    const { data: { id } } = await axios.post(
+                        `http://localhost:4003/streams/${selectedStream.id}/produce`,
+                        {
+                            transportId: transport.id,
+                            kind,
+                            rtpParameters
+                        }
+                    );
+                    callback({ id });
+                } catch (error) {
+                    console.error('Produce failed:', error);
+                    errback(error);
+                }
+            });
+
+            transport.on('connectionstatechange', (state) => {
+                console.log('Transport connection state:', state);
+                if (state === 'failed' || state === 'disconnected') {
+                    setStatus(`WebRTC connection ${state}`);
+                }
+            });
+
+            setSendTransport(transport);
+            return transport;
+        } catch (error) {
+            console.error('MediaSoup initialization failed:', error);
+            setStatus('WebRTC connection failed');
+
+            // Clean up if anything failed
+            if (sendTransport) {
+                sendTransport.close();
+                setSendTransport(null);
+            }
+
+            throw error;
+        }
+    };
+
     const startStreaming = async () => {
         if (!stream || !selectedStream) {
             setStatus('Start media and select a stream first');
@@ -111,10 +207,15 @@ const Streamer = () => {
         }
 
         try {
-            const response = await axios.post(`http://localhost:4003/streams/${selectedStream.id}/start-scheduled`, {
+            // Initialize MediaSoup connection
+            const transport = await initializeMediaSoup();
+            if (!transport) throw new Error('Transport not initialized');
+
+            // Start the stream on the server
+            await axios.post(`http://localhost:4003/streams/${selectedStream.id}/start-scheduled`, {
                 source: {
-                    type: 'camera',
-                    filePath: ''
+                    type: 'webrtc',
+                    streamId: selectedStream.id
                 },
                 video: {
                     enabled: true,
@@ -135,68 +236,70 @@ const Streamer = () => {
                 },
                 hardwareAcceleration: false
             });
-            console.log(response.data)
 
-            const wsPort = response.data.port; // Get the TCP port from response
-            const wsUrl = `ws://localhost:${wsPort}`;
-            const socket = new WebSocket(wsUrl);
-            setStatus('Connecting to WebSocket...');
-
-            const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'video/webm;codecs=vp9,opus',
-                videoBitsPerSecond: 2000000
-            });
-
-            mediaRecorderRef.current = mediaRecorder;
-
-            socket.onopen = () => {
-                setStatus('Streaming...');
-                setRecording(true);
-
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
-                        // Convert Blob to ArrayBuffer before sending
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            socket.send(reader.result);
-                        };
-                        reader.readAsArrayBuffer(event.data);
+            // Send video track
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+                const videoProducer = await transport.produce({
+                    track: videoTrack,
+                    encodings: [
+                        { maxBitrate: 2500000 }
+                    ],
+                    codecOptions: {
+                        videoGoogleStartBitrate: 2000
                     }
-                };
+                });
+                setVideoProducer(videoProducer);
+            }
 
-                mediaRecorder.start(100); // Collect data every 100ms
-            };
+            // Send audio track
+            const audioTrack = stream.getAudioTracks()[0];
+            if (audioTrack) {
+                const audioProducer = await transport.produce({
+                    track: audioTrack
+                });
+                setAudioProducer(audioProducer);
+            }
 
-            socket.onerror = (err) => {
-                console.error('WebSocket error:', err);
-                setStatus('WebSocket error');
-            };
-
-            socket.onclose = () => {
-                console.log('WebSocket closed');
-                setStatus('Stream ended');
-                setRecording(false);
-            };
-
+            setRecording(true);
+            setStatus('Streaming via WebRTC...');
         } catch (err) {
             console.error('Error starting stream:', err);
-            setStatus('Stream failed to start');
+            setStatus(`Stream failed to start: ${err.message}`);
         }
     };
 
+    const stopStreaming = async () => {
+        try {
+            if (videoProducer) {
+                videoProducer.close();
+                setVideoProducer(null);
+            }
+            if (audioProducer) {
+                audioProducer.close();
+                setAudioProducer(null);
+            }
+            if (sendTransport) {
+                sendTransport.close();
+                setSendTransport(null);
+            }
 
-    const stopStreaming = () => {
-        if (mediaRecorderRef.current) {
-            mediaRecorderRef.current.stop();
+            if (selectedStream) {
+                await axios.post(`http://localhost:4003/streams/${selectedStream.id}/stop`);
+            }
+
+            setRecording(false);
+            setStatus('Stream Stopped');
+        } catch (err) {
+            console.error('Error stopping stream:', err);
+            setStatus(`Error stopping stream: ${err.message}`);
         }
-        setRecording(false);
-        setStatus('Stream Stopped');
     };
 
-    const handleStreamChange = (event: SelectChangeEvent) => {
+    const handleStreamChange = (event) => {
         const streamId = event.target.value;
-        const selectedStream = existingStreams.find(stream => stream.id === streamId);
-        setSelectedStream(selectedStream);
+        const selected = existingStreams.find(stream => stream.id === streamId) || null;
+        setSelectedStream(selected);
         setStream(null);
     };
 
