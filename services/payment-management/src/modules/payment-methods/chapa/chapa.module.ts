@@ -5,12 +5,14 @@ import { ChapaController } from 'src/presentation/controllers/payment-methods/ch
 import { PaymentsModule } from '../payments/payments.module';
 
 import { KafkaPaymentRpcConsumerService } from 'src/infrastructure/kafka/kafka-payment-rpc-consumer.service';
+import { StripeService } from 'src/application/services/payment-methods/stripe/stripe.service';
 
 @Module({
   imports: [ScheduleModule.forRoot(), PaymentsModule],
   controllers: [ChapaController],
   providers: [
     ChapaSDKService,
+    StripeService,
     KafkaPaymentRpcConsumerService,
   ],
 

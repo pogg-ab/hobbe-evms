@@ -34,19 +34,40 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
 
 
 
-     async findOneChapa(tx_ref:string):Promise<Payments | null>{
+     async findOneChapaPayment(tx_ref:string):Promise<Payments | null>{
           try {
-            const bank_account = await this.paymentRepository.findOne({
+            const chapa_payment = await this.paymentRepository.findOne({
               where: { tx_ref: tx_ref,payment_method:"Chapa" },
             });
       
-            if (!bank_account) {
+            if (!chapa_payment) {
               throw new HttpException(
                 `Payment with tx_ref ${tx_ref} not found`,
                 HttpStatus.NOT_FOUND,
               );
             }
-            return bank_account;
+            return chapa_payment;
+          } catch (error) {
+            throw new HttpException(
+              `Error fetching payment with tx_ref ${tx_ref}: ${error.message}`,
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+        }
+
+        async findOneStripePayment(tx_ref:string):Promise<Payments | null>{
+          try {
+            const stripe_payment = await this.paymentRepository.findOne({
+              where: { tx_ref: tx_ref,payment_method:"Stripe" },
+            });
+      
+            if (!stripe_payment) {
+              throw new HttpException(
+                `Payment with tx_ref ${tx_ref} not found`,
+                HttpStatus.NOT_FOUND,
+              );
+            }
+            return stripe_payment;
           } catch (error) {
             throw new HttpException(
               `Error fetching payment with tx_ref ${tx_ref}: ${error.message}`,
@@ -55,9 +76,22 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           }
         }
     
-    async verifyChapaPayment(tx_ref:string,charge:string):Promise<any>{
+    async verifyChapaPayment(payment_method:string,tx_ref:string,charge:string):Promise<any>{
+      let paymentToBeVerify = null;
       try {
-        const paymentToBeVerify = await this.findOneChapa(tx_ref);
+        switch (payment_method) {
+          case "Chapa":
+            paymentToBeVerify = await this.findOneChapaPayment(tx_ref);
+            break;
+          case "Stripe":
+            paymentToBeVerify = await this.findOneStripePayment(tx_ref);
+            break;
+          default:
+            return new HttpException(
+              `Payment method ${payment_method} not supported`,
+              HttpStatus.BAD_REQUEST,
+            );
+        }
   
        paymentToBeVerify.verified_at = new Date();
        paymentToBeVerify.payment_status = "success";
