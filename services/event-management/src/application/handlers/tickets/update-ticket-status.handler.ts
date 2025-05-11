@@ -12,7 +12,6 @@ export class UpdateTicketStatusHandler
   async execute(command: UpdateTicketStatusCommand): Promise<{
     success: boolean;
     message: string;
-    // data: Tickets | null;
   }> {
     const { ticketNumber, scannedBy } = command;
 

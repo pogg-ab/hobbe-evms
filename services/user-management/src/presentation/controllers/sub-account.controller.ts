@@ -23,6 +23,8 @@ import { CreateSubAccountDto } from '../dtos/create-sub-account.dto';
 import { UpdateSubAccountDto } from '../dtos/update-sub-account.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUserId } from '../decorators/currentUserId.decorater';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { SubAccountService } from 'src/application/services/sub-account.service';
 export class ErrorResponseDto {
   @ApiProperty({ example: 400 })
   statusCode: number;
@@ -45,6 +47,7 @@ export class SubAccountController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly subAccountService: SubAccountService
   ) { }
 
   @Post()
@@ -174,6 +177,25 @@ export class SubAccountController {
       await this.commandBus.execute(command);
     } catch (error) {
       throw new BadRequestException('Failed to delete sub-account');
+    }
+  }
+
+  @MessagePattern('check-checkin-privilege')
+  async handleCheckCheckinPrivilege(
+    @Payload() payload: { staffUserId: string; eventOrganizerId: string }
+  ) {
+    try {
+      if (!payload.staffUserId || !payload.eventOrganizerId) {
+        throw new BadRequestException('Staff User ID and Organizer User ID are required');
+      }
+
+      return await this.subAccountService.checkCheckinPrivilege(
+        payload.staffUserId,
+        payload.eventOrganizerId
+      );
+    } catch (error) {
+      console.error('Error in checkCheckinPrivilege handler:', error);
+      throw error;
     }
   }
 }
