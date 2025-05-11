@@ -6,6 +6,8 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
@@ -16,7 +18,6 @@ import { IPersonalAccountRepository } from 'src/domain/repositories/personal-acc
 import { PERSONAL_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/personal-account.repository.token';
 // import { IUserRoleRepository } from 'src/domain/repositories/user-role.repository';
 // import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
-import { Email } from 'src/domain/entities/email.entity';
 import { Role } from 'src/domain/entities/role.entity';
 import { UserRole } from 'src/domain/entities/user-role.entity';
 import { IRoleRepository } from 'src/domain/repositories/role.repository';
@@ -26,12 +27,21 @@ import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.re
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { PersonalAccountID } from 'src/domain/value-objects/personal-account-id.value-object';
-import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
+import { UserID } from 'src/domain/value-objects/user-id.value-object';
+import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
+import { CreatePushNotificationDto } from 'src/presentation/dtos/create-push-notification.dto';
+import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verification.dto';
 import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
 import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
+import { DataSource } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto';
 import { UpdatePersonalAccountDto } from '../../presentation/dtos/update-personal-account.dto';
+import { deleteExistingFile } from 'src/shared/file-deletion.util';
+const logger = new Logger('ProfileImageUpdate');
 
 @Injectable()
 export class PersonalAccountService {
@@ -42,58 +52,113 @@ export class PersonalAccountService {
     private readonly userRepository: IUserRepository,
     @Inject(ROLE_REPOSITORY_TOKEN)
     private readonly roleRepository: IRoleRepository,
-    private readonly emailRepository: EmailRepositoryImpl,
     @Inject(USER_ROLE_REPOSITORY_TOKEN)
     private readonly userRoleRepository: IUserRoleRepository,
     @InjectMapper() private readonly mapper: Mapper,
-  ) {}
+    private dataSource: DataSource,
+    private readonly messageProducerService: MessageProducerService,
+    private readonly notificationConfigService: NotificationConfigService,
+  ) { }
   async create(
     createPersonalAccountDto: CreatePersonalAccountDto,
   ): Promise<PersonalAccount> {
-    if (
-      createPersonalAccountDto.password !==
-      createPersonalAccountDto.confirmPassword
-    ) {
-      throw new BadRequestException(
-        'Password and Confirm Password do not match',
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.startTransaction();
+    try {
+      if (
+        createPersonalAccountDto.password !==
+        createPersonalAccountDto.confirmPassword
+      ) {
+        throw new BadRequestException(
+          'Password and Confirm Password do not match',
+        );
+      }
+      const newAccount = this.mapper.map(
+        createPersonalAccountDto,
+        CreatePersonalAccountDto,
+        PersonalAccount,
       );
+      const existingAccount = await this.personalAccountRepository.findByEmail(
+        newAccount.email_address,
+      );
+      if (existingAccount) {
+        throw new HttpException(
+          `An account with the email ${newAccount.email_address} already exists.`,
+          HttpStatus.CONFLICT,
+        );
+      }
+      const savedAccount = await this.personalAccountRepository.create(
+        queryRunner.manager,
+        newAccount,
+      );
+      const user = this.mapper.map(
+        createPersonalAccountDto,
+        CreatePersonalAccountDto,
+        User,
+      );
+      const otp = this.generateOtp();
+      const otpExpiry = new Date();
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
+      user.password = await this.hashPassword(
+        createPersonalAccountDto.password,
+      );
+      user.personal_account = savedAccount.personal_account_id;
+      user.otp = otp;
+      user.otp_expiry = otpExpiry;
+
+      const newUser = await this.userRepository.create(
+        queryRunner.manager,
+        user,
+      );
+
+      const role = await this.getRoleByName('User');
+
+      const userRole = new UserRole();
+      userRole.user_id = newUser.user_id;
+      userRole.role = role;
+      await this.userRoleRepository.create(queryRunner.manager, userRole);
+
+      await queryRunner.commitTransaction();
+      if (this.notificationConfigService.useSmsNotification) {
+        const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
+
+        const smsPayload = {
+          recipient: createPersonalAccountDto.phoneNumber,
+          message: smsMessage,
+          messageType: MessageType.OTP,
+        };
+
+        await this.messageProducerService.sendSmsToKafka(smsPayload);
+      } else {
+        const email = this.createOtpEmailforActivation(
+          createPersonalAccountDto.emailAddress,
+          otp,
+        );
+
+        await this.messageProducerService.sendEmailToKafka(email);
+      }
+      const notification = this.createAccountPushNotification(newUser.user_id);
+      await this.messageProducerService.sendPushNotificationToKafka(
+        notification,
+      );
+
+      return savedAccount;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      if (error instanceof BadRequestException) {
+        throw new BadRequestException(error.message);
+      } else if (error instanceof HttpException) {
+        throw new HttpException(error.message, error.getStatus());
+      }
+
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while creating the account.',
+      );
+    } finally {
+      await queryRunner.release();
     }
-    const newAccount = this.mapper.map(
-      createPersonalAccountDto,
-      CreatePersonalAccountDto,
-      PersonalAccount,
-    );
-    const savedAccount =
-      await this.personalAccountRepository.create(newAccount);
-    const user = this.mapper.map(
-      createPersonalAccountDto,
-      CreatePersonalAccountDto,
-      User,
-    );
-    const otp = this.generateOtp();
-    const otpExpiry = new Date();
-    otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
-    user.password = await this.hashPassword(createPersonalAccountDto.password);
-    user.personal_account = savedAccount.personal_account_id;
-    user.otp = otp;
-    user.otp_expiry = otpExpiry;
-
-    const role = await this.getRoleByName('Admin');
-
-    const userRole = new UserRole();
-    userRole.user = user;
-    userRole.role = role;
-    await this.userRoleRepository.create(userRole);
-
-    await this.userRepository.create(user);
-
-    const email = this.createOtpEmail(
-      createPersonalAccountDto.emailAddress,
-      otp,
-    );
-    await this.emailRepository.save(email);
-
-    return savedAccount;
   }
 
   private async hashPassword(password: string): Promise<string> {
@@ -104,16 +169,46 @@ export class PersonalAccountService {
   private generateOtp(): string {
     return crypto.randomInt(100000, 999999).toString();
   }
+  private createOtpEmail(recipient: string, otp: string): any {
+    const email = {
+      recipient: recipient,
+      subject: 'Your OTP Code from Hobbe EVMS',
+      body: otp,
+      created_at: new Date(),
+      updated_at: new Date(),
+      sent_at: null,
+    };
 
-  private createOtpEmail(recipient: string, otp: string): Email {
-    const email = new Email();
-    email.recipient = recipient;
-    email.subject = 'Your OTP Code from Hobbe EVMS';
-    email.body = otp;
-    email.created_at = new Date();
-    email.updated_at = new Date();
-    email.sent_at = null;
     return email;
+  }
+
+  private createOtpEmailforActivation(recipient: string, otp: string): any {
+    const email = {
+      recipient: recipient,
+      subject: 'Account Activation',
+      body: otp,
+      created_at: new Date(),
+      updated_at: new Date(),
+      sent_at: null,
+    };
+
+    return email;
+  }
+
+  private createAccountPushNotification(
+    recipientId: UserID,
+  ): CreatePushNotificationDto {
+    const notification: CreatePushNotificationDto = {
+      recipient: recipientId.toString(),
+      title: 'Account Created',
+      message: 'Your account has been successfully created. Welcome!',
+      message_type: 'INFO',
+      platform: 'IOS',
+      status: 'PENDING',
+      priority: null,
+    };
+
+    return notification;
   }
 
   private async getRoleByName(roleName: string): Promise<Role> {
@@ -150,7 +245,7 @@ export class PersonalAccountService {
     id: PersonalAccountID,
     updatePersonalAccountDto: UpdatePersonalAccountDto,
   ): Promise<PersonalAccount> {
-    const account = await this.findOne(id);
+
     const updatedAccount = this.mapper.map(
       updatePersonalAccountDto,
       UpdatePersonalAccountDto,
@@ -158,6 +253,37 @@ export class PersonalAccountService {
     );
     await this.personalAccountRepository.update(id, updatedAccount);
     return updatedAccount;
+  }
+
+  async updateProfileImage(
+    id: PersonalAccountID,
+    profile_image: string,
+  ): Promise<PersonalAccount> {
+    const account = await this.personalAccountRepository.findOneById(id);
+
+    if (!account) {
+      throw new NotFoundException(`Personal account with ID ${id} not found`);
+    }
+
+    const previousImage = account.profile_image;
+    account.profile_image = profile_image;
+
+    try {
+      await this.personalAccountRepository.update(id, account);
+
+      if (account.profile_image) {
+        try {
+          await deleteExistingFile('profile_image', previousImage);
+        } catch (err) {
+          logger.error(`Error deleting previous file: ${err.message}`, err.stack);
+        }
+      }
+
+      return account;
+    } catch (err) {
+      logger.error(`Error updating profile image for account ID ${id}: ${err.message}`, err.stack);
+      throw new Error('Failed to update profile image');
+    }
   }
 
   async deletePersonalAccount(id: PersonalAccountID): Promise<void> {
@@ -194,7 +320,8 @@ export class PersonalAccountService {
         sendEmailVerificationDto.email_address,
         otp,
       );
-      await this.emailRepository.save(email);
+
+      await this.messageProducerService.sendEmailToKafka(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {
@@ -215,7 +342,8 @@ export class PersonalAccountService {
         sendEmailVerificationDto.email_address,
         otp,
       );
-      await this.emailRepository.save(email);
+
+      await this.messageProducerService.sendEmailToKafka(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {

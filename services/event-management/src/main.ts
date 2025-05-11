@@ -12,6 +12,17 @@ async function bootstrap() {
     .setTitle('Event Management API')
     .setDescription('API for managing events')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        description: `Please enter the token`,
+        name: 'Authorization',
+        bearerFormat: 'Bearer',
+        scheme: 'Bearer',
+        type: 'http',
+        in: 'Header'
+      },
+      'access-token',
+    )
     .addTag('Events')
     .build();
   const document = SwaggerModule.createDocument(app, config);
@@ -21,6 +32,7 @@ async function bootstrap() {
 
   app.connectMicroservice<MicroserviceOptions>(kafkaProducerConfig);
   await app.startAllMicroservices();
+  app.enableCors();
 
   await app.listen(4001);
 }

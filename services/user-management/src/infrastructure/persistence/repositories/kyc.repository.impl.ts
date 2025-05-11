@@ -2,19 +2,19 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { IKYCRepository } from 'src/domain/repositories/kyc.repository';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class KYCRepositoryImpl implements IKYCRepository {
   constructor(
     @InjectRepository(KYC)
     private readonly kycRepository: Repository<KYC>,
-  ) {}
+  ) { }
 
-  async create(kyc: KYC): Promise<KYC> {
+  async create(manager: EntityManager, kyc: KYC): Promise<KYC> {
     try {
       const newKyc = this.kycRepository.create(kyc);
-      return await this.kycRepository.save(newKyc);
+      return await manager.save(newKyc);
     } catch (error) {
       throw new HttpException(
         `Error creating KYC: ${error.message}`,

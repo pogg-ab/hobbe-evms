@@ -3,9 +3,26 @@ import { Events } from "../../entities/events.entity";
 
 
 export interface IEventRepository{
-    create(createEventsDto: CreateEventsDto): Promise<Events>;
-    findAll():Promise<Events[]>
+    create(createEventsDto: CreateEventsDto, user: any): Promise<Events>;
+    findAll( page:number, limit:number):Promise<{events:Events[]| null,total: number; page: number; limit: number}>
+    findAllByAuth(user:string, page:number, limit:number):Promise<{events:Events[]| null,total: number; page: number; limit: number}>
     findOne(id:string):Promise<Events | null>
-    update(id:string,event: Events): Promise<Events>
+    findOneEventOnly(id:string):Promise<Events | null>
+    findByUser(user:string):Promise<Events[]>
+    findByCategory(category:string):Promise<Events[]>
+    findByStatus(status:string):Promise<Events[]>
+    findByLocation(location:string):Promise<Events[]>
+    findByOrganiser(organiser:string):Promise<Events[]>
+    findByDateRange(startOfDay:Date, endOfDay:Date):Promise<Events[] | []>
+    update(id:string,event: Events,user: any): Promise<Events>
     delete(id:string): Promise<void>
+
+    // searching for events
+    search(keyword:string,page:number,limit:number):Promise<{events:Events[] | null,total:number, page: number; limit: number}>
+
+    // Analytics
+    analyticsEvents():Promise<any>
+    countMyEvents(user:string):Promise<any>
+    singleEventAnalytics(user:string,event:string):Promise<any>
+
 }

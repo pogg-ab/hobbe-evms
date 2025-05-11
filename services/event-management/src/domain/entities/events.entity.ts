@@ -1,52 +1,150 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { IdValueObject } from "../value-objects/event-id.value-object";
-import { BankAccounts } from "./bank_accounts.entity";
+import {
+  Column,
+  Entity,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { IdValueObject } from '../value-objects/event-id.value-object';
+import { Promocodes } from './promocodes.entity';
+import { TicketsHeading } from './tickets-heading.entity';
+import { Tickets } from './tickets.entity';
+import { Like } from './likes.entity';
+import { TicketBooking } from './ticket-booking.entity';
+import { Comments } from './comments.entity';
+import { FavoriteEvent } from './favorite-event.entity';
+import { EventShare } from './event-share.entity';
 
 @Entity()
 export class Events {
+  @PrimaryGeneratedColumn('uuid')
+  id: IdValueObject;
 
-    @PrimaryGeneratedColumn('uuid')
-    id: IdValueObject;
+  @Column()
+  user_id: string;
 
-    @Column()
-    title: string;
+  @Column()
+  title: string;
 
-    @Column()
-    description: string;
-    
-    @Column()
-    location: string;
+  @Column()
+  thumbnail: string;
 
-    @Column({ enum: ['public', 'private', 'group'] })
-    privacy: string;
+  @Column({ nullable: true })
+  cover_image: string;
 
-    @Column({default:'drafted', enum: ['drafted', 'pending', 'cancelled','rejected','postponed','active'] })
-    status: string;
+  @Column()
+  event_type: string;
 
-    @Column()
-    event_start_date: Date;
+  @Column({ type: 'boolean', default: true })
+  isPaid: boolean;
 
-    @Column()
-    event_end_date: Date;
+  @Column({ type: 'boolean', default: false })
+  hasPromocode: boolean;
 
-    @Column({nullable:true})
-    catagory: string;
+  @Column({ type: 'text' })
+  description: string;
 
-    @Column({nullable: true })
-    created_by: string;
+  @Column()
+  location: string;
 
-    @Column({nullable: true  })
-    update_by: string;
+  @Column()
+  latitude: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    created_at: Date;
+  @Column()
+  longitude: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', nullable: true })
-    updated_att: Date;
+  @Column({ enum: ['public', 'private', 'group'] })
+  privacy: string;
 
-    @OneToMany(() => BankAccounts, (bankAccount) => bankAccount.event_id, {
-        cascade: true, // Ensures related BankAccounts are automatically saved
-        onDelete: 'CASCADE', 
-      })
-      bank_accounts: BankAccounts[];
+  @Column({
+    default: 'drafted',
+    enum: [
+      'drafted',
+      'pending',
+      'cancelled',
+      'rejected',
+      'postponed',
+      'active',
+    ],
+  })
+  status: string;
+
+  @Column({ type: 'timestamptz' })
+  event_start_date: Date;
+
+  @Column({ type: 'timestamptz' })
+  event_end_date: Date;
+
+  // @Column({ nullable: true })
+  // category: string;
+
+  @Column({ nullable: true })
+  created_by: string;
+
+  @Column({ nullable: true })
+  update_by: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  created_at: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  updated_at: Date;
+
+  @Column('text', { array: true })
+  categories: string[];
+
+  @OneToOne(() => TicketsHeading, (ticket) => ticket.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  ticket_heading: TicketsHeading;
+
+  @OneToMany(() => Tickets, (ticket) => ticket.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  tickets: Tickets[];
+
+  @OneToMany(() => Promocodes, (promocode) => promocode.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  promocodes: Promocodes[];
+
+
+  @OneToMany(() => Like, (like) => like.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  likes: Like[];
+
+
+  @OneToMany(() => FavoriteEvent, (favorite) => favorite.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  favorites: FavoriteEvent[];
+  
+  @OneToMany(() => EventShare, (share) => share.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  shares: EventShare[];
+
+
+  @OneToMany(() => Comments, (comment) => comment.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  comments: Comments[];
+
+
+  @OneToMany(() => TicketBooking, (booking) => booking.event_id, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  bookings: TicketBooking[];
+
+  
+
 }

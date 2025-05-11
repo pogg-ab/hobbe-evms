@@ -32,7 +32,7 @@ export class OrganizationalAccountController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new organizational account' })
@@ -56,7 +56,6 @@ export class OrganizationalAccountController {
     };
   }
 
-  // Get All Organizational Accounts
   @Get()
   @ApiOperation({ summary: 'Get all organizational accounts' })
   @ApiResponse({
@@ -69,7 +68,6 @@ export class OrganizationalAccountController {
     return this.queryBus.execute(query);
   }
 
-  // Get Organizational Account by ID
   @Get(':id')
   @ApiOperation({ summary: 'Get an organizational account by ID' })
   @ApiResponse({
@@ -88,7 +86,6 @@ export class OrganizationalAccountController {
     return this.queryBus.execute(query);
   }
 
-  // Update Organizational Account
   @Patch(':id')
   @ApiOperation({ summary: 'Update an existing organizational account' })
   @ApiBody({ type: UpdateOrganizationalAccountDto })

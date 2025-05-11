@@ -3,26 +3,23 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { IOrganizationalAccountRepository } from 'src/domain/repositories/organizational-account.repository';
 import { OrganizationalAccountID } from 'src/domain/value-objects/organizational-account-id.value-object';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class OrganizationalAccountRepositoryImpl
-  implements IOrganizationalAccountRepository
-{
+  implements IOrganizationalAccountRepository {
   constructor(
     @InjectRepository(OrganizationalAccount)
     private readonly organizationalAccountRepository: Repository<OrganizationalAccount>,
-  ) {}
+  ) { }
 
-  async create(
+  async create(manager: EntityManager,
     organizationalAccount: OrganizationalAccount,
   ): Promise<OrganizationalAccount> {
     try {
       const newOrganizationalAccount =
         this.organizationalAccountRepository.create(organizationalAccount);
-      return await this.organizationalAccountRepository.save(
-        newOrganizationalAccount,
-      );
+      return await manager.save(newOrganizationalAccount);
     } catch (error) {
       throw new HttpException(
         `Error creating Organizational Account: ${error.message}`,
@@ -60,22 +57,40 @@ export class OrganizationalAccountRepositoryImpl
   async update(
     id: OrganizationalAccountID,
     organizationalAccount: OrganizationalAccount,
-  ): Promise<OrganizationalAccount> {
+  ): Promise<any | null> {
     try {
       const existingAccount = await this.findOneById(id);
       if (!existingAccount) {
         throw new HttpException(
-          `Personal account with ID ${id} not found`,
+          `Organizational account with ID ${id} not found`,
           HttpStatus.NOT_FOUND,
         );
       }
 
-      const updatedAccount = Object.assign(
-        existingAccount,
-        organizationalAccount,
-      );
+      if (organizationalAccount.company_email) {
+        const existingWithEmail = await this.organizationalAccountRepository.findOne({
+          where: { company_email: organizationalAccount.company_email },
+        });
 
-      return await this.organizationalAccountRepository.save(updatedAccount);
+
+        if (existingWithEmail && existingWithEmail.organizational_account_id !== id) {
+          throw new HttpException(
+            `Email ${organizationalAccount.company_email} is already in use.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
+      const updatedAccount = Object.assign(existingAccount, organizationalAccount);
+      const savedAccount = await this.organizationalAccountRepository.save(updatedAccount);
+
+      const result = await this.organizationalAccountRepository.findOne({
+        where: { organizational_account_id: savedAccount.organizational_account_id },
+        relations: ['kyc', 'owner'],
+      });
+
+      return result;
+
     } catch (error) {
       throw new HttpException(
         `Error updating Organizational Account with ID ${id}: ${error.message}`,
@@ -83,6 +98,7 @@ export class OrganizationalAccountRepositoryImpl
       );
     }
   }
+
 
   async delete(organizationalAccountId: string): Promise<void> {
     try {
@@ -133,6 +149,21 @@ export class OrganizationalAccountRepositoryImpl
     } catch (error) {
       throw new HttpException(
         `Error fetching PersonalAccount by email ${company_email}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  async findByPhoneNumber(
+    company_phone_number: string,
+  ): Promise<OrganizationalAccount | null> {
+    try {
+      const account = await this.organizationalAccountRepository.findOne({
+        where: { company_phone_number },
+      });
+      return account || null;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching OrganizationalAccount by phone number ${company_phone_number}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -6,10 +6,10 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { Email } from 'src/domain/entities/email.entity';
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { Owner } from 'src/domain/entities/owner.entity';
@@ -26,11 +26,14 @@ import { SOCIAL_MEDIA_REPOSITORY_TOKEN } from 'src/domain/repositories/social-me
 import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
 import { OrganizationalAccountID } from 'src/domain/value-objects/organizational-account-id.value-object';
-import { EmailRepositoryImpl } from 'src/infrastructure/persistence/repositories/email.repository.impl';
+import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
+import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verification.dto';
 import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
 import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
 import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
+import { DataSource } from 'typeorm';
 import { CreateOrganizationalAccountDto } from '../../presentation/dtos/create-organizational-account.dto';
 
 @Injectable()
@@ -51,75 +54,115 @@ export class OrganizationalAccountService {
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
 
-    private readonly emailRepository: EmailRepositoryImpl,
+    private dataSource: DataSource,
 
     @InjectMapper() private readonly mapper: Mapper,
+    private readonly messageProducerService: MessageProducerService,
+    private readonly notificationConfigService: NotificationConfigService,
   ) {}
   async create(createOrganizationalAccountDto: CreateOrganizationalAccountDto) {
-    if (
-      createOrganizationalAccountDto.password !==
-      createOrganizationalAccountDto.confirmPassword
-    ) {
-      throw new BadRequestException(
-        'Password and Confirm Password do not match',
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.startTransaction();
+    try {
+      if (
+        createOrganizationalAccountDto.password !==
+        createOrganizationalAccountDto.confirmPassword
+      ) {
+        throw new BadRequestException(
+          'Password and Confirm Password do not match',
+        );
+      }
+      const organizationalAccount = this.mapper.map(
+        createOrganizationalAccountDto,
+        CreateOrganizationalAccountDto,
+        OrganizationalAccount,
+      );
+
+      const owner = this.mapper.map(
+        createOrganizationalAccountDto,
+        CreateOrganizationalAccountDto,
+        Owner,
+      );
+      const savedOwner = await this.ownerRepository.create(
+        queryRunner.manager,
+        owner,
+      );
+
+      const kyc = this.mapper.map(
+        createOrganizationalAccountDto,
+        CreateOrganizationalAccountDto,
+        KYC,
+      );
+      const savedKYC = await this.kycRepository.create(
+        queryRunner.manager,
+        kyc,
+      );
+
+      organizationalAccount.owner = savedOwner.owner_id;
+      organizationalAccount.kyc = savedKYC.kyc_id;
+
+      const savedAccount = await this.organizationalAccountRepository.create(
+        queryRunner.manager,
+        organizationalAccount,
+      );
+
+      const user = this.mapper.map(
+        createOrganizationalAccountDto,
+        CreateOrganizationalAccountDto,
+        User,
+      );
+      user.password = await this.hashPassword(
+        createOrganizationalAccountDto.password,
+      );
+      user.organizational_account = savedAccount.organizational_account_id;
+      await this.userRepository.create(queryRunner.manager, user);
+
+      const socialMedia = this.mapper.map(
+        createOrganizationalAccountDto,
+        CreateOrganizationalAccountDto,
+        SocialMedia,
+      );
+
+      socialMedia.organizational_account =
+        savedAccount.organizational_account_id;
+
+      await this.socialMediaRepository.create(queryRunner.manager, socialMedia);
+
+      await queryRunner.commitTransaction();
+
+      const otp = this.generateOtp();
+
+      if (this.notificationConfigService.useSmsNotification) {
+        const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
+
+        const smsPayload = {
+          recipient: createOrganizationalAccountDto.companyPhoneNumber,
+          message: smsMessage,
+          messageType: MessageType.OTP,
+        };
+
+        await this.messageProducerService.sendSmsToKafka(smsPayload);
+      } else {
+        const email = this.createOtpEmail(
+          createOrganizationalAccountDto.companyEmail,
+          otp,
+        );
+
+        await this.messageProducerService.sendEmailToKafka(email);
+      }
+
+      return savedAccount;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw new BadRequestException(error.message);
+      } else if (error instanceof HttpException) {
+        throw new HttpException(error.message, error.getStatus());
+      }
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while creating the account.',
       );
     }
-    const organizationalAccount = this.mapper.map(
-      createOrganizationalAccountDto,
-      CreateOrganizationalAccountDto,
-      OrganizationalAccount,
-    );
-
-    const owner = this.mapper.map(
-      createOrganizationalAccountDto,
-      CreateOrganizationalAccountDto,
-      Owner,
-    );
-    const savedOwner = await this.ownerRepository.create(owner);
-
-    const kyc = this.mapper.map(
-      createOrganizationalAccountDto,
-      CreateOrganizationalAccountDto,
-      KYC,
-    );
-    const savedKYC = await this.kycRepository.create(kyc);
-
-    organizationalAccount.owner = savedOwner.owner_id;
-    organizationalAccount.kyc = savedKYC.kyc_id;
-
-    const savedAccount = await this.organizationalAccountRepository.create(
-      organizationalAccount,
-    );
-
-    const user = this.mapper.map(
-      createOrganizationalAccountDto,
-      CreateOrganizationalAccountDto,
-      User,
-    );
-    user.password = await this.hashPassword(
-      createOrganizationalAccountDto.password,
-    );
-    user.organizational_account = savedAccount.organizational_account_id;
-    await this.userRepository.create(user);
-
-    const socialMedia = this.mapper.map(
-      createOrganizationalAccountDto,
-      CreateOrganizationalAccountDto,
-      SocialMedia,
-    );
-
-    socialMedia.organizational_account = savedAccount.organizational_account_id;
-
-    await this.socialMediaRepository.create(socialMedia);
-
-    const otp = this.generateOtp();
-    const email = this.createOtpEmail(
-      createOrganizationalAccountDto.companyEmail,
-      otp,
-    );
-    await this.emailRepository.save(email);
-
-    return savedAccount;
   }
 
   private async hashPassword(password: string): Promise<string> {
@@ -131,14 +174,16 @@ export class OrganizationalAccountService {
     return crypto.randomInt(100000, 999999).toString();
   }
 
-  private createOtpEmail(recipient: string, otp: string): Email {
-    const email = new Email();
-    email.recipient = recipient;
-    email.subject = 'Your OTP Code from Hobbe EVMS';
-    email.body = otp;
-    email.created_at = new Date();
-    email.updated_at = new Date();
-    email.sent_at = null;
+  private createOtpEmail(recipient: string, otp: string): any {
+    const email = {
+      recipient: recipient,
+      subject: 'Your OTP Code from Hobbe EVMS',
+      body: otp,
+      created_at: new Date(),
+      updated_at: new Date(),
+      sent_at: null,
+    };
+
     return email;
   }
 
@@ -194,7 +239,7 @@ export class OrganizationalAccountService {
         sendEmailVerificationDto.email_address,
         otp,
       );
-      await this.emailRepository.save(email);
+      await this.messageProducerService.sendEmailToKafka(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {
@@ -215,7 +260,7 @@ export class OrganizationalAccountService {
         sendEmailVerificationDto.email_address,
         otp,
       );
-      await this.emailRepository.save(email);
+      await this.messageProducerService.sendEmailToKafka(email);
 
       return { message: 'Email verification code sent successfully.' };
     } catch (error) {

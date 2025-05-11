@@ -1,0 +1,29 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.1
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD="P@ssw0rd" 
+      - xpack.security.http.ssl.enabled=false 
+      - xpack.security.enabled=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - elastic-net
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+
+networks:
+  elastic-net:
+    driver: bridge
+
+volumes:
+  elasticsearch_data:
+    driver: local

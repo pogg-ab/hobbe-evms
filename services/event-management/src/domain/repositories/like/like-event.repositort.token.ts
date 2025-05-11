@@ -1,0 +1,3 @@
+
+
+export const LIKE_EVENT_TOKEN = 'LIKE_EVENT_TOKEN';

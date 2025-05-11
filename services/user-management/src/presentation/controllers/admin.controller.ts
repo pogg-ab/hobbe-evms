@@ -9,10 +9,10 @@ import {
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CreatePermissionCommand } from 'src/application/commands/admin/create-permission.command';
-import { CreateRoleCommand } from 'src/application/commands/admin/create-role.command';
-import { GetAllPermissionQuery } from 'src/application/queries/admin/get-all-permissions.query';
-import { GetAllRolesQuery } from 'src/application/queries/admin/get-all-roles.query';
+import { CreatePermissionCommand } from 'src/application/commands/role-permission/create-permission.command';
+import { CreateRoleCommand } from 'src/application/commands/role-permission/create-role.command';
+import { GetAllPermissionQuery } from 'src/application/queries/role-permission/get-all-permissions.query';
+import { GetAllRolesQuery } from 'src/application/queries/role-permission/get-all-roles.query';
 import { AdminService } from 'src/application/services/admin.service';
 import { Permission } from 'src/domain/entities/permission.entity';
 import { Role } from 'src/domain/entities/role.entity';
@@ -22,8 +22,8 @@ import { GetRoleDto } from '../dtos/get-role.dto';
 import { UpdatePermissionDto } from '../dtos/update-permission.dto';
 import { UpdateRoleDto } from '../dtos/update-role.dto';
 
-@ApiTags('Admin')
-@Controller('admin')
+@ApiTags('Role and Permission')
+@Controller('role-permission')
 export class AdminController {
   constructor(
     private readonly commandBus: CommandBus,
