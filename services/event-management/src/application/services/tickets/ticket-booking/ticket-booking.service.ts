@@ -456,11 +456,14 @@ export class TicketBookingService {
         eventOrganizerId: eventJson.user_id
       });
 
-      console.log(privilegeCheck)
 
       if (!privilegeCheck || !privilegeCheck.hasPrivilege) {
+        if (privilegeCheck.isExpired) {
+          throw new ForbiddenException(privilegeCheck.message);
+        }
         throw new ForbiddenException('You do not have permission to check in attendees for this event');
       }
+
 
       const updatedTicket = await this.ticketRepository.markAsAttended(ticketNumber, scannedBy);
 

@@ -2,7 +2,7 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SubAccount } from 'src/domain/entities/sub-account.entity';
+import { Privileges, SubAccount } from 'src/domain/entities/sub-account.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { ISubAccountRepository } from 'src/domain/repositories/sub-account.repository';
 import { SUB_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/sub-account.repository.token';
@@ -110,6 +110,8 @@ export class SubAccountService {
     eventOrganizerId: string
   ): Promise<{
     hasPrivilege: boolean;
+    canManageGuests: boolean;
+    isExpired: boolean;
     message?: string;
     subAccount?: SubAccount;
   }> {
@@ -121,6 +123,8 @@ export class SubAccountService {
       if (staffUserId === eventOrganizerId) {
         return {
           hasPrivilege: true,
+          canManageGuests: true,
+          isExpired: false,
           message: 'Organizer has inherent check-in privileges',
           subAccount: null
         };
@@ -130,22 +134,53 @@ export class SubAccountService {
         where: {
           owner_user: { user_id: eventOrganizerId },
           sub_account_user: { user_id: staffUserId },
-          // expire_date: MoreThanOrEqual(new Date())
         },
         relations: ['owner_user', 'sub_account_user']
       });
 
+
       if (!subAccount) {
         return {
           hasPrivilege: false,
+          canManageGuests: false,
+          isExpired: false,
           message: 'No valid sub-account relationship found',
           subAccount: null
+        };
+      }
+
+      const today = new Date()
+      const expire_date = new Date(subAccount.expire_date)
+
+      if (expire_date < today) {
+        const formattedDate = `${expire_date.getFullYear()}-${(expire_date.getMonth() + 1).toString().padStart(2, '0')}-${expire_date.getDate().toString().padStart(2, '0')}`;
+        return {
+          hasPrivilege: false,
+          canManageGuests: false,
+          isExpired: true,
+          message: `Sub-account expired on ${formattedDate}`,
+          subAccount: null
+        };
+      }
+
+      const canManageGuests = subAccount.privileges?.includes(Privileges.MANAGE_GUESTS) ?? false;
+      const hasPrivilege = canManageGuests;
+
+      if (!hasPrivilege) {
+        return {
+          hasPrivilege: false,
+          canManageGuests: false,
+          isExpired: false,
+          message: 'Sub-account lacks required privileges',
+          subAccount: subAccount
         };
       }
 
       if (!subAccount.status || subAccount.status.toString() !== 'active') {
         return {
           hasPrivilege: false,
+          canManageGuests: false,
+          isExpired: false,
           message: `Sub-account status is ${subAccount.status?.toString() || 'undefined'} - must be active`,
           subAccount
         };
@@ -153,6 +188,8 @@ export class SubAccountService {
 
       return {
         hasPrivilege: true,
+        canManageGuests: true,
+        isExpired: false,
         subAccount
       };
 
