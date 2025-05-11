@@ -6,6 +6,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   RequestTimeoutException,
 } from '@nestjs/common';
@@ -44,10 +45,12 @@ import { KafkaPaymentRpcService } from 'src/infrastructure/kafka/kafka-payment-r
 import { firstValueFrom } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientKafka } from '@nestjs/microservices';
+import { Events } from 'src/domain/entities/events.entity';
 
 
 @Injectable()
 export class TicketBookingService {
+  private readonly logger = new Logger(TicketBookingService.name);
   constructor(
     @Inject(CREATE_TICKET_BOOKING_REPOSITORY_TOKEN)
     private readonly ticketBookingRepository: ITicketBookingRepository,
@@ -74,7 +77,7 @@ export class TicketBookingService {
     private readonly socket: SocketIo,
     private readonly kafkaConsumerService: KafkaConsumerService,
     private readonly kafkaPaymentRpcService: KafkaPaymentRpcService,
-    @Inject('KAFKA_USER_SERVICE') private readonly kafkaClient: ClientKafka,
+    @Inject('KAFKA_CHECKIN_PRIVILEGE_SERVICE') private readonly kafkaClient: ClientKafka,
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
 
@@ -446,11 +449,14 @@ export class TicketBookingService {
       if (!ticket) {
         throw new NotFoundException(`Ticket with ID ${ticketNumber} not found`);
       }
+      const eventJson: Events = JSON.parse(JSON.stringify(ticket.event_id));
 
       const privilegeCheck = await this.checkCheckinPrivilege({
         staffUserId: scannedBy,
-        eventOrganizerId: ticket.event_id.toString()
+        eventOrganizerId: eventJson.user_id
       });
+
+      console.log(privilegeCheck)
 
       if (!privilegeCheck || !privilegeCheck.hasPrivilege) {
         throw new ForbiddenException('You do not have permission to check in attendees for this event');
@@ -496,6 +502,14 @@ export class TicketBookingService {
 
 
   async onModuleInit() {
+    this.kafkaClient.subscribeToResponseOf('check-checkin-privilege');
+
+    try {
+      await this.kafkaClient.connect();
+      this.logger.log('Kafka client connected successfully');
+    } catch (error) {
+      this.logger.error('Failed to connect Kafka client:', error);
+    }
     await this.kafkaConsumerService.paymentStatusConsumer(
       { topics: ['payment_status'] },
       {
@@ -524,6 +538,8 @@ export class TicketBookingService {
       },
     );
   }
+
+
 
 
 
