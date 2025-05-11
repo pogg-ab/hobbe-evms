@@ -2,8 +2,10 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   RequestTimeoutException,
 } from '@nestjs/common';
@@ -37,8 +39,11 @@ import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { CreateTicketBookingDto } from 'src/presentation/dtos/tickets/create-ticket-booking.dto';
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 import { EventEmitter } from 'stream';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { KafkaPaymentRpcService } from 'src/infrastructure/kafka/kafka-payment-rpc.service';
+import { firstValueFrom } from 'rxjs';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ClientKafka } from '@nestjs/microservices';
 
 
 @Injectable()
@@ -67,9 +72,12 @@ export class TicketBookingService {
     @InjectMapper() private readonly mapper: Mapper,
     private dataSource: DataSource,
     private readonly socket: SocketIo,
-    // private readonly kafkaProducerService: KafkaProducerService,
     private readonly kafkaConsumerService: KafkaConsumerService,
     private readonly kafkaPaymentRpcService: KafkaPaymentRpcService,
+    @Inject('KAFKA_USER_SERVICE') private readonly kafkaClient: ClientKafka,
+    @InjectRepository(Tickets)
+    private ticketsListRepository: Repository<Tickets>,
+
   ) { }
 
   async create(
@@ -286,18 +294,18 @@ export class TicketBookingService {
 
 
       const paymentLink = await this.kafkaPaymentRpcService.sendRequest(
-        'payment-link-request-topic', 
-        { 
-          value: JSON.stringify({ 
-             ...createdBooking,
-             payment_method: createTicketBookingDto.payment_method,
-             amount: calculatedPrice,
+        'payment-link-request-topic',
+        {
+          value: JSON.stringify({
+            ...createdBooking,
+            payment_method: createTicketBookingDto.payment_method,
+            amount: calculatedPrice,
           })
-      });
+        });
 
-     if(paymentLink.success === false) {
+      if (paymentLink.success === false) {
         throw new BadRequestException(paymentLink.error);
-     }
+      }
 
       for (let i = 0; i < ticketCount; i++) {
         const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
@@ -323,7 +331,7 @@ export class TicketBookingService {
       }
       const allTicketsCounter = await this.ticketRepository.countAllTicketsForEvent(queryRunner.manager, eventId);
 
-     
+
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, eventId);
 
       await queryRunner.commitTransaction();
@@ -427,13 +435,63 @@ export class TicketBookingService {
   ): Promise<{
     success: boolean;
     message: string;
-    // data: Tickets | null;
   }> {
-    const updatedTicket = await this.ticketRepository.markAsAttended(ticketNumber, scannedBy);
-    if (!updatedTicket) {
-      throw new NotFoundException(`Ticket with ID ${ticketNumber} not found`);
+
+    try {
+      const ticket = await this.ticketsListRepository.findOne({
+        where: { ticket_no: ticketNumber },
+        relations: ['event_id']
+      });
+
+      if (!ticket) {
+        throw new NotFoundException(`Ticket with ID ${ticketNumber} not found`);
+      }
+
+      const privilegeCheck = await this.checkCheckinPrivilege({
+        staffUserId: scannedBy,
+        eventOrganizerId: ticket.event_id.toString()
+      });
+
+      if (!privilegeCheck || !privilegeCheck.hasPrivilege) {
+        throw new ForbiddenException('You do not have permission to check in attendees for this event');
+      }
+
+      const updatedTicket = await this.ticketRepository.markAsAttended(ticketNumber, scannedBy);
+
+      return updatedTicket;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      console.error('Error marking ticket as attended:', error);
+      throw new InternalServerErrorException('Failed to mark ticket as attended');
     }
-    return updatedTicket;
+  }
+
+  async checkCheckinPrivilege(payload: { staffUserId: string; eventOrganizerId: string }): Promise<any> {
+    try {
+      if (!payload.staffUserId || !payload.eventOrganizerId) {
+        throw new BadRequestException('Staff User ID and Organizer User ID are required');
+      }
+
+      const response = await firstValueFrom(
+        this.kafkaClient.send('check-checkin-privilege', payload),
+      );
+
+      if (!response) {
+        throw new Error('Invalid response format from checkin privilege service');
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Error checking checkin privilege via Kafka:', error);
+      if (error instanceof Error) {
+        throw new Error(`Failed to check checkin privilege: ${error.message}`);
+      }
+      throw new Error(
+        'Unexpected error occurred while checking checkin privilege',
+      );
+    }
   }
 
 
@@ -466,6 +524,8 @@ export class TicketBookingService {
       },
     );
   }
+
+
 
 
 

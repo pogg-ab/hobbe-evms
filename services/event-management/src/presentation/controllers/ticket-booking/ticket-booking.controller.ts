@@ -156,6 +156,7 @@ export class TicketBookingController {
     @Param('ticket_number') ticket_number: string,
     @CurrentUserId() user: any,
   ): Promise<{ message: string }> {
+    const user_id = user.user.user_id.toString()
     const command = new UpdateTicketStatusCommand(
       ticket_number,
       user.user.user_id.toString(),

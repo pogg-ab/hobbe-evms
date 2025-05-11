@@ -20,7 +20,7 @@ interface FfmpegResponse {
   success: boolean;
   message: string;
   status: StreamStatus;
-  data?: { streamId: string; rtmpUrl: string; transportId: string };
+  data?: { streamId: string; rtmpUrl: string; wsPort: number };
 }
 
 @Injectable()
@@ -197,7 +197,7 @@ export class FluentFFmpegService {
               pendingData.forEach(chunk => {
                 stats.bytesForwarded += chunk.length;
                 stats.packetsForwarded++;
-                this.forwardToMediasoup(transport.id, chunk);
+                // this.forwardToMediasoup(transport.id, chunk);
               });
               pendingData.length = 0;
             }
@@ -244,7 +244,7 @@ export class FluentFFmpegService {
 
             stats.packetsForwarded++;
             stats.bytesForwarded += chunkSize;
-            this.forwardToMediasoup(transport.id, data);
+            // this.forwardToMediasoup(transport.id, data);
           } catch (error) {
             this.logger.error(`[${streamId}] Data handling error: ${error.message}`);
           }
@@ -262,7 +262,7 @@ export class FluentFFmpegService {
           data: {
             streamId,
             rtmpUrl,
-            transportId: transport.id,
+            wsPort: 9000,
           },
         });
 
@@ -286,35 +286,35 @@ export class FluentFFmpegService {
     return `${(bytes / 1048576).toFixed(2)} MB`;
   }
 
-  private async forwardToMediasoup(transportId: string, data: Buffer) {
-    try {
-      const transport = this.mediasoupService.getTransport(transportId);
+  // private async forwardToMediasoup(transportId: string, data: Buffer) {
+  //   try {
+  //     const transport = this.mediasoupService.getTransport(transportId);
 
-      // In mediasoup, we don't send raw data directly to producers.
-      // Instead, we need to:
-      // 1. Ensure we have a producer created
-      // 2. The actual data sending happens through the transport's RTP capabilities
+  //     // In mediasoup, we don't send raw data directly to producers.
+  //     // Instead, we need to:
+  //     // 1. Ensure we have a producer created
+  //     // 2. The actual data sending happens through the transport's RTP capabilities
 
-      // For raw data forwarding, we would typically:
-      // - Parse the data into proper RTP packets
-      // - Send through the transport's underlying RTP capabilities
-      // This is a simplified example:
+  //     // For raw data forwarding, we would typically:
+  //     // - Parse the data into proper RTP packets
+  //     // - Send through the transport's underlying RTP capabilities
+  //     // This is a simplified example:
 
-      // Convert buffer to Uint8Array (mediasoup expects ArrayBuffer or Uint8Array)
-      const rtpPacket = new Uint8Array(data);
+  //     // Convert buffer to Uint8Array (mediasoup expects ArrayBuffer or Uint8Array)
+  //     const rtpPacket = new Uint8Array(data);
 
-      // Send via transport (this is a simplified approach)
-      // Note: In production, you'd want proper RTP packet parsing
-      transport.send({
-        data: rtpPacket,
-        encoding: 'binary'
-      });
+  //     // Send via transport (this is a simplified approach)
+  //     // Note: In production, you'd want proper RTP packet parsing
+  //     transport.send({
+  //       data: rtpPacket,
+  //       encoding: 'binary'
+  //     });
 
-    } catch (error) {
-      this.logger.error(`Error forwarding to Mediasoup: ${error.message}`);
-      throw error;
-    }
-  }
+  //   } catch (error) {
+  //     this.logger.error(`Error forwarding to Mediasoup: ${error.message}`);
+  //     throw error;
+  //   }
+  // }
 
   private async setupMediasoupConsumer(transportId: string, callback: (data: Buffer) => void) {
     try {
@@ -340,9 +340,9 @@ export class FluentFFmpegService {
         callback(buffer);
       });
 
-      consumer.on('error', (error) => {
-        this.logger.error(`Consumer error: ${error}`);
-      });
+      // consumer.on('error', (error) => {
+      //   this.logger.error(`Consumer error: ${error}`);
+      // });
 
     } catch (error) {
       this.logger.error(`Error setting up Mediasoup consumer: ${error.message}`);
