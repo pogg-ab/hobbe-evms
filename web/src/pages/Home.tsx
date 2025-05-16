@@ -31,10 +31,8 @@ export default function Home() {
     queryFn: streams.list,
   });
 
-  // Filter only live streams
   const liveStreams: any[] =
     allStreams?.events?.filter((stream: any) => stream.event_type == "Virtual") || [];
-  console.log(allStreams)
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

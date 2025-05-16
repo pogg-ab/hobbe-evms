@@ -20,18 +20,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SelectItem } from "@radix-ui/react-select";
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const formSchema = z.object({
-  title: z.string().min(3, {
-    message: "Title must be at least 3 characters.",
-  }),
-  description: z.string().optional(),
-  thumbnailUrl: z
-    .string()
-    .url({ message: "Please enter a valid URL." })
-    .optional(),
+  event: z.string().min(1, "Please select an event"),
+  scheduleDate: z.string().min(1, "Please select a date"),
+  scheduleTime: z.string().min(1, "Please select a time"),
+  timeZone: z.string().min(1, "Please select a time zone"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -41,20 +36,19 @@ export default function CreateStream() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      thumbnailUrl: "",
+      event: "",
+      scheduleDate: "",
+      scheduleTime: "",
+      timeZone: "",
     },
   });
 
   const {
     data: eventsData,
     isLoading: eventsLoading,
-    error
   } = useQuery({
     queryKey: ["events", organizerId],
     queryFn: () => {
@@ -66,6 +60,29 @@ export default function CreateStream() {
     enabled: !!organizerId,
   });
 
+  const events: any[] = eventsData?.filter((event: any) => event.event_type == "Virtual") || [];
+
+  const handleEventChange = (eventId: string) => {
+    const selectedEvent = events.find(event => event.id === eventId);
+    if (selectedEvent && selectedEvent.event_start_date) {
+      const dateObj = new Date(selectedEvent.event_start_date);
+
+      // Format date as YYYY-MM-DD
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+
+      // Format time as HH:MM
+      const hours = String(dateObj.getHours()).padStart(2, '0');
+      const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+      const formattedTime = `${hours}:${minutes}`;
+
+      form.setValue('scheduleDate', formattedDate);
+      form.setValue('scheduleTime', formattedTime);
+    }
+    form.setValue('event', eventId);
+  };
 
   const { mutate: createStream, isPending } = useMutation({
     mutationFn: (values: FormValues) => streams.create(values),
@@ -106,30 +123,32 @@ export default function CreateStream() {
                   <FormItem>
                     <FormLabel>Event</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={handleEventChange}
+                      value={field.value}
                       defaultValue={field.value}
-                      disabled={eventsLoading}
+                      disabled={eventsLoading || !events?.length}
                     >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={
-                            eventsLoading ? "Loading events..." : "Select an event"
+                            eventsLoading
+                              ? "Loading events..."
+                              : !events?.length
+                                ? "No virtual events available"
+                                : "Select an event"
                           } />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {eventsData?.events?.map((event: any) => (
-                          <SelectItem
-                            key={event.id}
-                            value={event.id}
-                          >
+                        {events?.map((event) => (
+                          <SelectItem key={event.id} value={event.id}>
                             {event.title}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Select the event you're streaming.
+                      Select the virtual event you're streaming
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
