@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stream Test</title>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      button {
+        padding: 10px 15px;
+        margin: 5px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      video {
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+      }
+      .status {
+        margin: 10px 0;
+        padding: 10px;
+        background: #f0f0f0;
+        border-radius: 4px;
+      }
+      .log {
+        height: 200px;
+        overflow-y: auto;
+        background: #f5f5f5;
+        padding: 10px;
+        font-family: monospace;
+        border-radius: 4px;
+      }
+      input {
+        padding: 8px;
+        width: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebRTC Stream Test</h1>
+
+    <div>
+      <label
+        >Stream ID:
+        <input id="streamId" value="" placeholder="Enter stream ID to join"
+      /></label>
+      <button id="connect">Connect</button>
+    </div>
+
+    <div class="status" id="status">Disconnected</div>
+
+    <h2>Video Stream</h2>
+    <video id="video" autoplay playsinline controls></video>
+
+    <h2>Connection Log</h2>
+    <div class="log" id="log"></div>
+
+    <script>
+      // Setup elements
+      const logEl = document.getElementById("log");
+      const videoEl = document.getElementById("video");
+      const statusEl = document.getElementById("status");
+      const streamIdInput = document.getElementById("streamId");
+
+      // Add logging
+      function log(message, type = "info") {
+        const entry = document.createElement("div");
+        const time = new Date().toLocaleTimeString();
+        entry.textContent = `[${time}] ${message}`;
+        entry.style.color =
+          type === "error" ? "red" : type === "success" ? "green" : "black";
+        logEl.appendChild(entry);
+        logEl.scrollTop = logEl.scrollHeight;
+        console.log(message);
+      }
+
+      // Setup WebRTC
+      let peerConnection = null;
+      let socket = null;
+
+      document.getElementById("connect").addEventListener("click", () => {
+        const streamId = streamIdInput.value.trim();
+        if (!streamId) {
+          log("Please enter a stream ID", "error");
+          return;
+        }
+
+        log(`Connecting to stream: ${streamId}`);
+        statusEl.textContent = "Connecting...";
+
+        // Connect to socket
+        socket = io("http://localhost:3000/stream", {
+          transports: ["websocket", "polling"],
+          reconnection: true,
+          auth: { token: "debug-token" }, // Temporary debug token
+        });
+
+        socket.on("connect", () => {
+          log(`Socket connected with ID: ${socket.id}`, "success");
+          statusEl.textContent = "Socket Connected, joining stream...";
+
+          // Join stream
+          socket.emit("joinStream", streamId);
+          log(`Sent joinStream request for: ${streamId}`);
+
+          // Setup WebRTC peer connection
+          setupPeerConnection();
+        });
+
+        socket.on("connect_error", (error) => {
+          log(`Socket connection error: ${error.message}`, "error");
+          statusEl.textContent = `Connection Error: ${error.message}`;
+        });
+
+        // Handle offer from streamer
+        socket.on("offer", async ({ streamId: sid, offer }) => {
+          log(`Received offer from stream: ${sid}`);
+
+          try {
+            log(`Setting remote description from offer`);
+            await peerConnection.setRemoteDescription(
+              new RTCSessionDescription(offer)
+            );
+
+            log(`Creating answer`);
+            const answer = await peerConnection.createAnswer();
+
+            log(`Setting local description with answer`);
+            await peerConnection.setLocalDescription(answer);
+
+            log(`Sending answer to streamer`);
+            socket.emit("answer", { streamId: sid, answer });
+          } catch (error) {
+            log(`Error handling offer: ${error.message}`, "error");
+          }
+        });
+
+        // Handle ICE candidates from streamer
+        socket.on("iceCandidate", async ({ streamId: sid, candidate }) => {
+          log(`Received ICE candidate from streamer`);
+
+          if (peerConnection && peerConnection.remoteDescription) {
+            try {
+              await peerConnection.addIceCandidate(
+                new RTCIceCandidate(candidate)
+              );
+              log(`Added ICE candidate successfully`);
+            } catch (error) {
+              log(`Error adding ICE candidate: ${error.message}`, "error");
+            }
+          } else {
+            log(`Ignoring ICE candidate - no remote description yet`);
+          }
+        });
+
+        socket.on("streamerDisconnected", () => {
+          log(`Streamer disconnected`, "error");
+          statusEl.textContent = "Streamer Disconnected";
+          if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+          }
+        });
+      });
+
+      function setupPeerConnection() {
+        log("Setting up WebRTC peer connection");
+
+        // Create peer connection
+        peerConnection = new RTCPeerConnection({
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+          ],
+        });
+
+        // Handle incoming stream
+        peerConnection.ontrack = (event) => {
+          log(`Received track: ${event.track.kind}`);
+
+          if (event.streams && event.streams[0]) {
+            log(`Setting video source to received stream`);
+            videoEl.srcObject = event.streams[0];
+            statusEl.textContent = "Receiving Video Stream";
+          } else {
+            log(`Track received without stream`, "error");
+          }
+        };
+
+        // Handle ICE candidates
+        peerConnection.onicecandidate = (event) => {
+          if (event.candidate && socket) {
+            log(`Generated ICE candidate, sending to streamer`);
+            socket.emit("iceCandidate", {
+              streamId: streamIdInput.value.trim(),
+              candidate: event.candidate,
+            });
+          }
+        };
+
+        // Handle connection state changes
+        peerConnection.onconnectionstatechange = () => {
+          log(`Connection state changed: ${peerConnection.connectionState}`);
+
+          if (peerConnection.connectionState === "connected") {
+            log(`WebRTC connected successfully!`, "success");
+            statusEl.textContent = "WebRTC Connected";
+          } else if (
+            ["failed", "disconnected", "closed"].includes(
+              peerConnection.connectionState
+            )
+          ) {
+            log(`WebRTC connection ${peerConnection.connectionState}`, "error");
+            statusEl.textContent = `WebRTC ${peerConnection.connectionState}`;
+          }
+        };
+
+        // Log ICE gathering state changes
+        peerConnection.onicegatheringstatechange = () => {
+          log(`ICE gathering state: ${peerConnection.iceGatheringState}`);
+        };
+
+        // Log signaling state changes
+        peerConnection.onsignalingstatechange = () => {
+          log(`Signaling state: ${peerConnection.signalingState}`);
+        };
+      }
+
+      // Debug video element events
+      videoEl.onloadedmetadata = () => {
+        log(
+          `Video metadata loaded: ${videoEl.videoWidth}x${videoEl.videoHeight}`
+        );
+      };
+
+      videoEl.onplay = () => {
+        log(`Video playback started`, "success");
+      };
+
+      videoEl.onerror = (e) => {
+        log(`Video error: ${videoEl.error?.message || e}`, "error");
+      };
+    </script>
+  </body>
+</html>

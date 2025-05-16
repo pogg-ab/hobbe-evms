@@ -14,7 +14,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
   // const app = await NestFactory.create(AppModule);
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.enableCors({ credentials: true, origin: '*' });
+  app.enableCors({ credentials: true, origin: true, });
   const config = new DocumentBuilder()
     .setTitle('User Management API')
     .setDescription('API for managing users')
