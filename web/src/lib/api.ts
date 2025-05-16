@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 // API URL configuration
 const API_URL = "http://localhost:4000";
 const EVENT_URL = "http://localhost:4001";
+const STREAM_URL = "http://localhost:4003";
 
 // Helper function to get token
 const getToken = () => {
@@ -97,7 +98,7 @@ export const getOrganizerId = () => {
 
 export const streams = {
   create: async (data: any) => {
-    const response = await fetch(`${API_URL}/streams`, {
+    const response = await fetch(`${STREAM_URL}/streams/schedule`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -32,7 +32,7 @@ export default function Home() {
   });
 
   const liveStreams: any[] =
-    allStreams?.events?.filter((stream: any) => stream.event_type == "Virtual") || [];
+    allStreams?.events?.filter((stream: any) => stream.location == "Live") || [];
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

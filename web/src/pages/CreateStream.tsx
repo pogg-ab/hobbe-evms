@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const formSchema = z.object({
-  event: z.string().min(1, "Please select an event"),
+  eventId: z.string().min(1, "Please select an event"),
   scheduleDate: z.string().min(1, "Please select a date"),
   scheduleTime: z.string().min(1, "Please select a time"),
   timeZone: z.string().min(1, "Please select a time zone"),
@@ -39,7 +39,7 @@ export default function CreateStream() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      event: "",
+      eventId: "",
       scheduleDate: "",
       scheduleTime: "",
       timeZone: "",
@@ -60,28 +60,26 @@ export default function CreateStream() {
     enabled: !!organizerId,
   });
 
-  const events: any[] = eventsData?.filter((event: any) => event.event_type == "Virtual") || [];
+  const events: any[] = eventsData?.filter((event: any) => event.location == "Live") || [];
 
   const handleEventChange = (eventId: string) => {
     const selectedEvent = events.find(event => event.id === eventId);
     if (selectedEvent && selectedEvent.event_start_date) {
       const dateObj = new Date(selectedEvent.event_start_date);
 
-      // Format date as YYYY-MM-DD
       const year = dateObj.getFullYear();
       const month = String(dateObj.getMonth() + 1).padStart(2, '0');
       const day = String(dateObj.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
 
-      // Format time as HH:MM
       const hours = String(dateObj.getHours()).padStart(2, '0');
       const minutes = String(dateObj.getMinutes()).padStart(2, '0');
       const formattedTime = `${hours}:${minutes}`;
 
-      form.setValue('scheduleDate', formattedDate);
-      form.setValue('scheduleTime', formattedTime);
+      form.setValue('scheduleDate', formattedDate.toString());
+      form.setValue('scheduleTime', formattedTime.toString());
     }
-    form.setValue('event', eventId);
+    form.setValue('eventId', eventId);
   };
 
   const { mutate: createStream, isPending } = useMutation({
@@ -118,7 +116,7 @@ export default function CreateStream() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="event"
+                name="eventId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Event</FormLabel>

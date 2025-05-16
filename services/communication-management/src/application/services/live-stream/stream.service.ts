@@ -88,6 +88,7 @@ export class StreamService {
     timezone?: string
   ): Promise<{ success: boolean; message: string; data: Stream }> {
     try {
+      console.log(eventId, scheduledDate, scheduledTime, timezone)
       const scheduledDateTime = this.combineDateTime(scheduledDate, scheduledTime, timezone);
 
       const stream = new Stream();
