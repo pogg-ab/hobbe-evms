@@ -18,19 +18,4 @@ export class CreateStreamDto {
   @IsUUID()
   eventId: string;
 
-  @ApiProperty({
-    description: 'Start date and time of the stream (ISO 8601 date string)',
-    example: '2023-10-15T14:00:00Z',
-    required: false,
-  })
-  @IsDateString()
-  startDate?: string;
-
-  @ApiProperty({
-    description: 'End date and time of the stream (ISO 8601 date string)',
-    example: '2023-10-15T16:00:00Z',
-    required: false,
-  })
-  @IsDateString()
-  endDate?: string;
 }

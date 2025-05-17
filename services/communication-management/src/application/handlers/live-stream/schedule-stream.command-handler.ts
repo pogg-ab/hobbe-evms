@@ -11,17 +11,11 @@ export class ScheduleStreamHandler implements ICommandHandler<ScheduleStreamComm
         const {
             userId,
             eventId,
-            scheduledDate,
-            scheduledTime,
-            timezone
         } = command;
 
         return this.streamService.scheduleStream(
             userId,
             eventId,
-            scheduledDate,
-            scheduledTime,
-            timezone
         );
     }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Logger, OnModuleInit, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, ConsoleLogger, Controller, Get, HttpCode, Logger, OnModuleInit, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateStreamCommand } from 'src/application/commands/live-stream/create-stream.command';
 // import { StartStreamCommand } from 'src/application/commands/live-stream/start-stream.command';
@@ -30,6 +30,7 @@ import { GetActiveStreamsQuery } from 'src/application/queries/live-stream/get-a
 import { GetInActiveStreamsQuery } from 'src/application/queries/live-stream/get-inactive-streams.query';
 import { MediasoupService } from 'src/infrastructure/mediasoup/mediasoup.service';
 import * as mediasoup from 'mediasoup';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 
 @Controller('streams')
 export class StreamController {
@@ -41,15 +42,6 @@ export class StreamController {
     private readonly mediasoupService: MediasoupService
   ) { }
 
-
-  // @Post()
-  // async createStream(@Body() createStreamDto: CreateStreamDto) {
-  //   const { userId, eventId, startDate, endDate } = createStreamDto;
-
-  //   return this.commandBus.execute(
-  //     new CreateStreamCommand(userId, eventId, startDate, endDate),
-  //   );
-  // }
 
   @Post('schedule')
   @ApiOperation({ description: 'Schedule a new stream' })
@@ -63,16 +55,29 @@ export class StreamController {
   ): Promise<any> {
     const userId = user.user.user_id.toString();
     const { eventId, scheduledDate, scheduledTime, timezone } = scheduleStreamDto;
+    console.log("Stream DTO : ", scheduleStreamDto)
 
     return this.commandBus.execute(
       new ScheduleStreamCommand(
         userId,
         eventId,
-        scheduledDate,
-        scheduledTime,
-        timezone
       ),
     );
+  }
+
+  @MessagePattern('schedule-stream')
+  async handleKafkaPayload(@Payload() payload: CreateStreamDto) {
+    console.log(payload)
+    this.logger.log('Received Kafka message to schedule stream.');
+    try {
+      await this.commandBus.execute(new ScheduleStreamCommand(payload.userId, payload.eventId));
+      this.logger.log('Stream sent successfully.');
+
+      return { message: 'Stream sent from Kafka payload successfully.' };
+    } catch (error) {
+      this.logger.error('Failed to send stream from Kafka payload', error.stack);
+      return { message: 'Failed to send stream from Kafka payload.' };
+    }
   }
 
   @Post(':streamId/start-scheduled')

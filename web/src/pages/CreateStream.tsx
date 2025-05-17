@@ -24,8 +24,8 @@ import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@
 
 const formSchema = z.object({
   eventId: z.string().min(1, "Please select an event"),
-  scheduleDate: z.string().min(1, "Please select a date"),
-  scheduleTime: z.string().min(1, "Please select a time"),
+  scheduledDate: z.string().min(1, "Please select a date"),
+  scheduledTime: z.string().min(1, "Please select a time"),
   timeZone: z.string().min(1, "Please select a time zone"),
 });
 
@@ -40,8 +40,8 @@ export default function CreateStream() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       eventId: "",
-      scheduleDate: "",
-      scheduleTime: "",
+      scheduledDate: "",
+      scheduledTime: "",
       timeZone: "",
     },
   });
@@ -76,8 +76,8 @@ export default function CreateStream() {
       const minutes = String(dateObj.getMinutes()).padStart(2, '0');
       const formattedTime = `${hours}:${minutes}`;
 
-      form.setValue('scheduleDate', formattedDate.toString());
-      form.setValue('scheduleTime', formattedTime.toString());
+      form.setValue('scheduledDate', formattedDate.toString());
+      form.setValue('scheduledTime', formattedTime.toString());
     }
     form.setValue('eventId', eventId);
   };
@@ -156,7 +156,7 @@ export default function CreateStream() {
               <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
-                  name="scheduleDate"
+                  name="scheduledDate"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Date</FormLabel>
@@ -170,7 +170,7 @@ export default function CreateStream() {
 
                 <FormField
                   control={form.control}
-                  name="scheduleTime"
+                  name="scheduledTime"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Time</FormLabel>

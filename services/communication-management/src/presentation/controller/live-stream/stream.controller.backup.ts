@@ -64,9 +64,6 @@ export class StreamController {
             new ScheduleStreamCommand(
                 userId,
                 eventId,
-                scheduledDate,
-                scheduledTime,
-                timezone
             ),
         );
     }

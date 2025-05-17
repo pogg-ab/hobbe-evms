@@ -47,6 +47,7 @@ import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.co
 import { UserInfoService } from 'src/application/services/user-info/user-info.service';
 import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/get-all-events-by-auth.handler';
 import { AnalyticsEventCommandHandler } from 'src/application/handlers/analytics/analytics-events.handler';
+import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
 
 
 @Module({
@@ -89,6 +90,7 @@ import { AnalyticsEventCommandHandler } from 'src/application/handlers/analytics
     EventsService,
     CreateTicketsDto,
     UserInfoService,
+    StreamProducerService,
     CreateEventCommandHandler,
     KafkaProducerService,
     UpdateEventsCommandHandler,
