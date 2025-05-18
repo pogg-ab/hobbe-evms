@@ -28,6 +28,10 @@ export class StreamRepositoryImpl implements IStreamRepository {
     return this.streamRepository.find({ where: { userId }, order: { createdAt: 'DESC' }, });
   }
 
+  async findByEventId(eventId: string): Promise<Stream[]> {
+    return this.streamRepository.find({ where: { eventId }, order: { createdAt: 'DESC' }, });
+  }
+
   async findAll(): Promise<Stream[]> {
     return await this.streamRepository.find({
       order: {

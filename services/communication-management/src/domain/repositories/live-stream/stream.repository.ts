@@ -7,6 +7,7 @@ export interface IStreamRepository {
   findByUserId(userId: string): Promise<Stream[]>;
   findAll(): Promise<Stream[]>;
   findByStatus(status: string): Promise<Stream[]>;
+  findByEventId(eventId: string): Promise<Stream[]>;
   update(stream: Stream): Promise<Stream>;
   delete(id: StreamID): Promise<void>;
 }

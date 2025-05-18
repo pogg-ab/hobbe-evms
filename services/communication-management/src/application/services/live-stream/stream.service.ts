@@ -46,7 +46,6 @@ export class StreamService {
       stream.status = 'inactive';
       stream.userId = userId;
       stream.eventId = eventId;
-      stream.updatedAt = new Date();
       stream.createdBy = userId;
       stream.createdAt = new Date();
 
@@ -60,13 +59,6 @@ export class StreamService {
       stream.url = `${process.env.RTMP_URL}/${streamKey}`;
       stream.streamKey = streamKey;
       stream.hlsOutputPath = `${process.env.HLS_OUTPUT_BASE_PATH}/${streamKey}`;
-
-      if (startDate) {
-        stream.startDate = new Date(startDate);
-      }
-      if (endDate) {
-        stream.endDate = new Date(endDate);
-      }
       const createdStream = await this.streamRepository.create(stream);
 
       return {
@@ -83,22 +75,15 @@ export class StreamService {
   async scheduleStream(
     userId: string,
     eventId: string,
-    scheduledDate: Date,
-    scheduledTime: string,
-    timezone?: string
   ): Promise<{ success: boolean; message: string; data: Stream }> {
     try {
-      const scheduledDateTime = this.combineDateTime(scheduledDate, scheduledTime, timezone);
 
       const stream = new Stream();
       stream.status = 'inactive';
       stream.userId = userId;
       stream.eventId = eventId;
-      stream.startDate = scheduledDateTime;
       stream.createdBy = userId;
-      stream.updatedAt = new Date();
-
-      const dateString = scheduledDateTime
+      const dateString = new Date()
         .toISOString()
         .replace(/[-:T]/g, '')
         .split('.')[0];
@@ -120,13 +105,6 @@ export class StreamService {
     }
   }
 
-
-  private combineDateTime(date: Date, time: string, timezone?: string): Date {
-    const [hours, minutes] = time.split(':').map(Number);
-    const result = new Date(date);
-    result.setHours(hours, minutes);
-    return result;
-  }
 
   async startScheduledStream(
     userId: string,
@@ -163,14 +141,14 @@ export class StreamService {
       }
 
       const now = new Date();
-      if (stream.startDate && now < new Date(stream.startDate)) {
-        throw new BadRequestException({
-          success: false,
-          message: 'Stream cannot start before scheduled time',
-          scheduledTime: stream.startDate,
-          currentTime: now.toISOString()
-        });
-      }
+      // if (stream.startDate && now < new Date(stream.startDate)) {
+      //   throw new BadRequestException({
+      //     success: false,
+      //     message: 'Stream cannot start before scheduled time',
+      //     scheduledTime: stream.startDate,
+      //     currentTime: now.toISOString()
+      //   });
+      // }
 
       const result = await this.startStream(streamId, startStreamDto);
 
@@ -234,12 +212,9 @@ export class StreamService {
         });
       }
 
-      this.fluentFFmpegService.stopStream(streamId);
-
-      this.nodeMediaService.stopStream(streamId);
-
       stream.status = 'completed';
-      stream.endDate = new Date();
+      stream.endedAt = new Date();
+      stream.isLive = false;
       stream.updatedAt = new Date();
       const updatedStream = await this.streamRepository.update(stream);
 
@@ -303,7 +278,7 @@ export class StreamService {
       }
 
       stream.status = 'active';
-      stream.startDate = new Date();
+      // stream.startDate = new Date();
       stream.updatedAt = new Date();
       await this.streamRepository.update(stream);
 
@@ -346,6 +321,37 @@ export class StreamService {
     }
   }
 
+  async startStreamNew(streamId: string, userId: string): Promise<{ success: boolean; message: string; data: Stream | null }> {
+    try {
+      const stream = await this.streamRepository.findById(streamId);
+      if (!stream) {
+        throw new Error(`Stream with ID ${streamId.toString()} not found`);
+      }
+
+      if (stream.status === 'active') {
+        throw new Error(`Stream with ID ${streamId.toString()} is already active`);
+      }
+
+      stream.isLive = true;
+      stream.status = "active";
+      stream.startedAt = new Date();
+      await this.streamRepository.update(stream);
+
+      return {
+        success: true,
+        message: `Stream ${streamId} started successfully`,
+        data: stream,
+
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to start stream ${streamId}: ${error.message}`,
+        data: null,
+      };
+    }
+  }
+
 
   async stopStream(
     streamId: string,
@@ -364,7 +370,7 @@ export class StreamService {
       this.nodeMediaService.stopStream(streamId);
 
       stream.status = 'completed';
-      stream.endDate = new Date();
+      // stream.endDate = new Date();
       stream.updatedAt = new Date();
       await this.streamRepository.update(stream);
 
@@ -417,7 +423,17 @@ export class StreamService {
 
   async getStreamById(streamId: string): Promise<Stream> {
     const stream = await this.streamRepository.findById(streamId);
-    if (!stream) throw new Error('Stream not found');
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
+    return stream;
+  }
+
+  async getStreamByEventId(eventId: string): Promise<any> {
+    const stream = await this.streamRepository.findByEventId(eventId);
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
     return stream;
   }
 
