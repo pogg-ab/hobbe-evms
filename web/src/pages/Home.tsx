@@ -62,7 +62,7 @@ export default function Home() {
     if (!allEvent?.events || !streamsData) return [];
 
     return allEvent.events.map((event: Event) => {
-      const stream = streamsData.find((s: Stream) => s.eventId === event.id);
+      const stream = streamsData.find((s: Stream) => (s.eventId === event.id) && (s.isLive === true));
 
       return {
         id: event.id,

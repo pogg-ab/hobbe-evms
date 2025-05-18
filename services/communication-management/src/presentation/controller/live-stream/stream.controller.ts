@@ -83,64 +83,6 @@ export class StreamController {
     }
   }
 
-  @Post(':streamId/start-scheduled')
-  @ApiOperation({
-    summary: 'Start a scheduled stream',
-    description: 'Transitions a scheduled stream to LIVE status and initiates broadcasting'
-  })
-  @ApiParam({
-    name: 'streamId',
-    description: 'ID of the scheduled stream to start',
-    example: '9ea675ab-19bc-440d-808e-842efbbc467'
-  })
-  // @ApiBearerAuth('access-token')
-  // @Roles('User')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  async startScheduledStream(
-    // @CurrentUserId() user: any,
-    @Param('streamId') streamId: string,
-    @Body() startStreamDto?: StartStreamDto
-  ): Promise<any> {
-    // const userId = user.user.user_id.toString();
-    const userId = "bdbcbb3a-0073-45c0-a94b-41b42f650345"
-    const result = await this.commandBus.execute(
-      new StartScheduledStreamCommand(userId, streamId, startStreamDto)
-    );
-
-    return result
-  }
-
-  @Post(':streamId/end')
-  @ApiOperation({
-    summary: 'End a live stream',
-    description: 'Stops broadcasting and transitions a live stream to ENDED status'
-  })
-  @ApiParam({
-    name: 'streamId',
-    description: 'ID of the stream to end',
-    example: '9ea675ab-19bc-440d-808e-842efbbc467'
-  })
-  @ApiBearerAuth('access-token')
-  @Roles('User')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async endStream(
-    @CurrentUserId() user: any,
-    @Param('streamId') streamId: string,
-  ): Promise<any> {
-    const userId = user.user.user_id.toString();
-    return this.commandBus.execute(
-      new EndStreamCommand(userId, streamId)
-    );
-  }
-
-  // @Post('create-and-start')
-  // async createAndStartStream(@Body() createAndStartStreamDto: CreateAndStartStreamDto) {
-  //   const { userId, eventId, startDate, endDate, source } = createAndStartStreamDto;
-
-  //   return this.commandBus.execute(
-  //     new CreateAndStartStreamCommand(userId, eventId, startDate, endDate, source),
-  //   );
-  // }
 
   // @Patch(':id')
   // async updateStream(
@@ -213,16 +155,29 @@ export class StreamController {
     }
   }
 
+  @Post(':streamId/end')
+  @ApiOperation({
+    summary: 'End a live stream',
+    description: 'Stops broadcasting and transitions a live stream to ENDED status'
+  })
+  @ApiParam({
+    name: 'streamId',
+    description: 'ID of the stream to end',
+    example: '9ea675ab-19bc-440d-808e-842efbbc467'
+  })
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async endStream(
+    @CurrentUserId() user: any,
+    @Param('streamId') streamId: string,
+  ): Promise<any> {
+    const userId = user.user.user_id.toString();
+    return this.commandBus.execute(
+      new EndStreamCommand(userId, streamId)
+    );
+  }
 
-
-  // @Post(':id/stop')
-  // async stopStream(@Param('id') streamId: string) {
-  //   const result = await this.commandBus.execute(
-  //     new StopStreamCommand(streamId),
-  //   );
-
-  //   return result;
-  // }
 
   // @Post(':id/pause')
   // async pauseStream(@Param('id') streamId: string) {
@@ -250,44 +205,5 @@ export class StreamController {
   //   };
   // }
 
-  // @Get('user/:userId')
-  // async getStreamsByUserId(@Param('userId') userId: string) {
-  //   return this.queryBus.execute(new GetStreamsByUserIdQuery(userId));
-  // }
 
-  // @Get(':id/router-capabilities')
-  // getRouterCapabilities(@Param('id') streamId: string) {
-  //   this.logger.log(`Fetching router capabilities for stream ${streamId}`);
-  //   return {
-  //     routerRtpCapabilities: this.mediasoupService.getRouterCapabilities()
-  //   };
-  // }
-
-  // @Post(':id/create-transport')
-  // async createTransport(
-  //   @Param('id') streamId: string,
-  //   @Body() body: { forceTcp: boolean; producing: boolean }
-  // ) {
-  //   this.logger.log(`Creating new WebRTC transport for stream ${streamId}`);
-  //   return this.mediasoupService.createWebRtcTransport(body);
-  // }
-
-  // @Post(':id/connect-transport')
-  // async connectTransport(
-  //   @Param('id') streamId: string,
-  //   @Body() body: { transportId: string; dtlsParameters: any }
-  // ) {
-  //   this.logger.log(`Connecting transport ${body.transportId} for stream ${streamId}`);
-  //   await this.mediasoupService.connectTransport(body);
-  //   return { success: true };
-  // }
-
-  // @Post(':id/produce')
-  // async produce(
-  //   @Param('id') streamId: string,
-  //   @Body() body: { transportId: string; kind: mediasoup.types.MediaKind; rtpParameters: any },
-  // ) {
-  //   this.logger.log(`Producing ${body.kind} for stream ${streamId}`);
-  //   return this.mediasoupService.produce({ ...body, streamId });
-  // }
 }
