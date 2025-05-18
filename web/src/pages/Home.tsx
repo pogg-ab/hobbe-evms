@@ -12,7 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// Define Stream type
 interface Stream {
   id: string;
   event_id: string;
@@ -92,7 +91,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Live Streams</h1>
           {isAuthenticated ? (
-            <Link to="/create-stream">
+            <Link to="/start-stream">
               <Button>Start Streaming</Button>
             </Link>
 
@@ -118,7 +117,7 @@ export default function Home() {
             </p>
             {isAuthenticated && (
               <div className="mt-4">
-                <Link to="/create-stream">
+                <Link to="/start-stream">
                   <Button>Start Your Stream</Button>
                 </Link>
               </div>
