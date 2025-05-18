@@ -70,6 +70,7 @@ export default function Home() {
       return acc;
     }, {});
 
+    console.log(streamsMap)
     return allEvent.events.reduce((result: MergedStream[], event: any) => {
       const eventId = String(event.id).toLowerCase();
       const stream = streamsMap[eventId];

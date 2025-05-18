@@ -67,12 +67,10 @@ export default function Stream() {
     }
 
     try {
-      // First, start the stream in the backend if we have an ID
       if (id) {
         await startStream();
       }
 
-      // Get user media
       log("Requesting camera and microphone access");
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -84,8 +82,6 @@ export default function Stream() {
         videoRef.current.srcObject = mediaStream;
       }
       setLocalStream(mediaStream);
-
-      // Connect to socket
       log(`Connecting to WebSocket server for stream: ${streamId}`);
       setConnectionStatus("Connecting...");
 
@@ -95,8 +91,6 @@ export default function Stream() {
       socket.on("connect", () => {
         log(`Socket connected with ID: ${socket.id}`, "success");
         setConnectionStatus("Socket Connected");
-
-        // Start streaming
         socket.emit("startStreaming", streamId);
         log(`Sent startStreaming request for: ${streamId}`);
       });
@@ -112,11 +106,8 @@ export default function Stream() {
         setConnectionStatus(`Connection Error: ${error.message}`);
       });
 
-      // Handle new viewer joining
       socket.on("viewerJoined", async (viewerId) => {
         log(`New viewer joined: ${viewerId}`);
-
-        // Create a new peer connection for this viewer
         const peerConnection = new RTCPeerConnection({
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
@@ -124,11 +115,9 @@ export default function Stream() {
           ],
         });
 
-        // Store the peer connection immediately in the ref
         peerConnectionsRef.current.set(viewerId, peerConnection);
         setViewerCount((prev) => prev + 1);
 
-        // Add local tracks to the peer connection
         log(
           `Adding ${mediaStream.getTracks().length
           } tracks to peer connection for viewer ${viewerId}`
@@ -140,7 +129,6 @@ export default function Stream() {
           peerConnection.addTrack(track, mediaStream);
         });
 
-        // Create and send offer
         try {
           log(`Creating offer for viewer ${viewerId}`);
           const offer = await peerConnection.createOffer({
@@ -160,8 +148,6 @@ export default function Stream() {
             "error"
           );
         }
-
-        // Handle ICE candidates
         peerConnection.onicecandidate = (event) => {
           if (event.candidate) {
             log(`Generated ICE candidate for viewer ${viewerId}`);
@@ -173,7 +159,6 @@ export default function Stream() {
           }
         };
 
-        // Handle connection state changes
         peerConnection.onconnectionstatechange = () => {
           log(
             `Connection state changed for viewer ${viewerId}: ${peerConnection.connectionState}`
@@ -184,20 +169,16 @@ export default function Stream() {
             peerConnection.connectionState === "failed" ||
             peerConnection.connectionState === "closed"
           ) {
-            // Remove disconnected connections
             peerConnectionsRef.current.delete(viewerId);
             setViewerCount((prev) => Math.max(0, prev - 1));
           }
         };
 
-        // Log ICE gathering state changes
         peerConnection.onicegatheringstatechange = () => {
           log(
             `ICE gathering state for viewer ${viewerId}: ${peerConnection.iceGatheringState}`
           );
         };
-
-        // Log signaling state changes
         peerConnection.onsignalingstatechange = () => {
           log(
             `Signaling state for viewer ${viewerId}: ${peerConnection.signalingState}`
@@ -205,7 +186,6 @@ export default function Stream() {
         };
       });
 
-      // Handle viewer answers
       socket.on("answer", async ({ viewerId, answer }) => {
         log(`Received answer from viewer: ${viewerId}`);
         const peerConnection = peerConnectionsRef.current.get(viewerId);
@@ -227,8 +207,6 @@ export default function Stream() {
           log(`No peer connection found for viewer: ${viewerId}`, "error");
         }
       });
-
-      // Handle viewer ICE candidates
       socket.on("iceCandidate", async ({ viewerId, candidate }) => {
         log(`Received ICE candidate from viewer: ${viewerId}`);
         const peerConnection = peerConnectionsRef.current.get(viewerId);
@@ -247,8 +225,6 @@ export default function Stream() {
           }
         }
       });
-
-      // Handle viewer disconnection
       socket.on("viewerDisconnected", (viewerId) => {
         log(`Viewer disconnected: ${viewerId}`);
         const peerConnection = peerConnectionsRef.current.get(viewerId);
