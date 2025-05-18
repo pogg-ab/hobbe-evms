@@ -36,6 +36,7 @@ interface Event {
 interface MergedStream {
   id: string;
   event_id: string;
+  streamId: string;
   title: string;
   description: string;
   isLive: boolean;
@@ -59,23 +60,35 @@ export default function Home() {
 
 
   const mergedStreams = React.useMemo(() => {
-    if (!allEvent?.events || !streamsData) return [];
+    if (!allEvent?.events?.length || !streamsData?.length) return [];
 
-    return allEvent.events.map((event: Event) => {
-      const stream = streamsData.find((s: Stream) => (s.eventId === event.id) && (s.isLive === true));
+    const streamsMap = streamsData.reduce((acc: Record<string, Stream>, stream: any) => {
+      const eventId = String(stream.eventId).toLowerCase();
+      if (stream.isLive == true || String(stream.isLive).toLowerCase() == 'true') {
+        acc[eventId] = stream;
+      }
+      return acc;
+    }, {});
 
-      return {
+    return allEvent.events.reduce((result: MergedStream[], event: any) => {
+      const eventId = String(event.id).toLowerCase();
+      const stream = streamsMap[eventId];
+
+      if (!stream) return result;
+      result.push({
         id: event.id,
-        streamId: stream ? stream.id : null,
+        streamId: stream.id,
         event_id: event.id,
-        title: stream?.title || event.title,
-        description: stream?.description || event.description,
-        isLive: stream ? stream.isLive : false,
-        viewerCount: stream ? stream.viewerCount : event.viewerCount,
-        startedAt: stream ? stream.startedAt : event.event_start_date,
-        thumbnail: event.thumbnail || stream?.thumbnailUrl,
-      } as MergedStream;
-    });
+        title: stream.title || event.title,
+        description: stream.description || event.description,
+        isLive: stream.isLive,
+        viewerCount: stream.viewerCount ?? event.viewerCount,
+        startedAt: stream.startedAt || event.event_start_date,
+        thumbnail: event.thumbnail || stream.thumbnailUrl,
+      });
+
+      return result;
+    }, []);
   }, [allEvent, streamsData]);
   if (isEventsLoading || isStreamsLoading) {
     return (
@@ -115,17 +128,11 @@ export default function Home() {
                 ? "Be the first to start streaming!"
                 : "Check back later for new streams!"}
             </p>
-            {isAuthenticated && (
-              <div className="mt-4">
-                <Link to="/start-stream">
-                  <Button>Start Your Stream</Button>
-                </Link>
-              </div>
-            )}
+
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mergedStreams.map((stream: any) => (
+            {mergedStreams?.map((stream: any) => (
               <Link key={stream.id} to={`/stream-view/${stream.streamId}`}>
                 <Card className="hover:shadow-lg transition-shadow h-full">
                   {stream.thumbnail && (
