@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 
 // Extract the base URL without the /api prefix
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4003/api";
 const BASE_URL = API_URL.endsWith("/api")
   ? API_URL.substring(0, API_URL.length - 4)
   : API_URL;

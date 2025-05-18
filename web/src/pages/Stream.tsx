@@ -21,14 +21,11 @@ export default function Stream() {
   const { user, accessToken } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // References
   const videoRef = useRef<HTMLVideoElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<any>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
 
-  // State
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState("Disconnected");
@@ -40,7 +37,6 @@ export default function Stream() {
     queryFn: () => streams.get(id!),
   });
 
-  // Log function similar to the HTML example
   const log = (
     message: string,
     type: "info" | "success" | "error" = "info"
@@ -134,8 +130,7 @@ export default function Stream() {
 
         // Add local tracks to the peer connection
         log(
-          `Adding ${
-            mediaStream.getTracks().length
+          `Adding ${mediaStream.getTracks().length
           } tracks to peer connection for viewer ${viewerId}`
         );
         mediaStream.getTracks().forEach((track) => {
@@ -284,8 +279,6 @@ export default function Stream() {
         videoRef.current.srcObject = null;
       }
     }
-
-    // Close all peer connections
     peerConnectionsRef.current.forEach((pc, viewerId) => {
       pc.close();
       log(`Closed connection to viewer ${viewerId}`);
@@ -303,7 +296,6 @@ export default function Stream() {
     setConnectionStatus("Disconnected");
     log("Streaming stopped", "info");
 
-    // If we're on a stream page, end the stream in the backend
     if (id) {
       endStream();
     }
@@ -347,7 +339,6 @@ export default function Stream() {
     },
   });
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (isStreaming) {

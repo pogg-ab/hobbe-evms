@@ -7,6 +7,7 @@ import { EndStreamHandler } from 'src/application/handlers/live-stream/end-strea
 import { GetActiveStreamsHandler } from 'src/application/handlers/live-stream/get-active-streams.query-handler';
 import { GetAllStreamsHandler } from 'src/application/handlers/live-stream/get-all-streams.query-handler';
 import { GetInActiveStreamsHandler } from 'src/application/handlers/live-stream/get-inactive-streams.query-handler';
+import { GetStreamByEventIdHandler } from 'src/application/handlers/live-stream/get-stream-by-user-id.query-handler';
 import { GetStreamHandler } from 'src/application/handlers/live-stream/get-stream.query-handler';
 import { GetStreamsByUserIdQueryHandler } from 'src/application/handlers/live-stream/get-streams-by-user-id.query-handler';
 import { ScheduleStreamHandler } from 'src/application/handlers/live-stream/schedule-stream.command-handler';
@@ -22,6 +23,7 @@ import { FluentFFmpegService } from 'src/infrastructure/ffmpeg/fluent-ffmpeg.ser
 import { NodeMediaService } from 'src/infrastructure/media-server/media-server.service';
 import { MediasoupService } from 'src/infrastructure/mediasoup/mediasoup.service';
 import { StreamRepositoryImpl } from 'src/infrastructure/persistance/repository/stream.repository.impl';
+import { StreamGateway } from 'src/presentation/controller/live-stream/gateways/stream.gateway';
 import { StreamController } from 'src/presentation/controller/live-stream/stream.controller';
 
 @Module({
@@ -42,8 +44,10 @@ import { StreamController } from 'src/presentation/controller/live-stream/stream
     StopStreamCommandHandler,
     ScheduleStreamHandler,
     StartScheduledStreamHandler,
+    GetStreamByEventIdHandler,
     EndStreamHandler,
     MediasoupService,
+    StreamGateway,
     {
       provide: STREAM_REPOSITORY_TOKEN,
       useClass: StreamRepositoryImpl,

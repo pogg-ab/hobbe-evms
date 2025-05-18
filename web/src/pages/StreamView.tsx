@@ -30,7 +30,6 @@ export default function StreamView() {
     queryFn: () => streams.get(id!),
   });
 
-  // Add a logging function like in the HTML file
   const log = (
     message: string,
     type: "info" | "success" | "error" = "info"
@@ -47,7 +46,6 @@ export default function StreamView() {
     }
   };
 
-  // Apply any pending ICE candidates
   const applyPendingCandidates = async (pc: RTCPeerConnection) => {
     if (pendingCandidatesRef.current.length > 0) {
       log(
@@ -69,8 +67,6 @@ export default function StreamView() {
 
   const setupPeerConnection = () => {
     log("Setting up WebRTC peer connection");
-
-    // Create peer connection
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -78,10 +74,8 @@ export default function StreamView() {
       ],
     });
 
-    // Reset remote description set flag
     remoteDescriptionSetRef.current = false;
 
-    // Handle incoming stream
     pc.ontrack = (event) => {
       log(`Received track: ${event.track.kind}`);
 
@@ -96,7 +90,6 @@ export default function StreamView() {
       }
     };
 
-    // Handle ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate && socketRef.current) {
         log(`Generated ICE candidate, sending to streamer`);
@@ -108,7 +101,6 @@ export default function StreamView() {
       }
     };
 
-    // Handle connection state changes
     pc.onconnectionstatechange = () => {
       log(`Connection state changed: ${pc.connectionState}`);
 
@@ -123,12 +115,10 @@ export default function StreamView() {
       }
     };
 
-    // Log ICE gathering state changes
     pc.onicegatheringstatechange = () => {
       log(`ICE gathering state: ${pc.iceGatheringState}`);
     };
 
-    // Log signaling state changes
     pc.onsignalingstatechange = () => {
       log(`Signaling state: ${pc.signalingState}`);
     };
@@ -136,7 +126,6 @@ export default function StreamView() {
     return pc;
   };
 
-  // Connect to stream when component mounts
   useEffect(() => {
     if (!stream?.isLive || !accessToken) {
       return;
@@ -145,11 +134,9 @@ export default function StreamView() {
     log(`Connecting to stream: ${id}`);
     setConnectionStatus("Connecting...");
 
-    // Clear any pending candidates from previous connections
     pendingCandidatesRef.current = [];
     remoteDescriptionSetRef.current = false;
 
-    // Connect to socket
     const socket = websocket.connect(accessToken);
     socketRef.current = socket;
 
@@ -157,11 +144,8 @@ export default function StreamView() {
       log(`Socket connected with ID: ${socket.id}`, "success");
       setConnectionStatus("Socket Connected, joining stream...");
 
-      // Join stream
       socket.emit("joinStream", id);
       log(`Sent joinStream request for: ${id}`);
-
-      // Setup WebRTC peer connection
       const pc = setupPeerConnection();
       peerConnectionRef.current = pc;
     });
@@ -175,8 +159,6 @@ export default function StreamView() {
       log("Disconnected from WebSocket server", "error");
       setConnectionStatus("Disconnected");
     });
-
-    // Handle offer from streamer - EXACTLY like test-socket-with-stream.html
     socket.on("offer", async ({ streamId, viewerId, offer }) => {
       log(`Received offer from stream: ${streamId}`);
 
@@ -186,11 +168,7 @@ export default function StreamView() {
           await peerConnectionRef.current.setRemoteDescription(
             new RTCSessionDescription(offer)
           );
-
-          // Mark remote description as set
           remoteDescriptionSetRef.current = true;
-
-          // Process any pending ICE candidates
           await applyPendingCandidates(peerConnectionRef.current);
 
           log(`Creating answer`);
@@ -214,8 +192,6 @@ export default function StreamView() {
         log(`Error: Peer connection not initialized`, "error");
       }
     });
-
-    // Handle ICE candidates from streamer
     socket.on("iceCandidate", async ({ streamId, viewerId, candidate }) => {
       log(`Received ICE candidate from streamer`);
 
@@ -230,7 +206,6 @@ export default function StreamView() {
         }
       } else {
         log(`Buffering ICE candidate - no remote description yet`);
-        // Store the candidate for later
         pendingCandidatesRef.current.push(candidate);
       }
     });
@@ -270,7 +245,6 @@ export default function StreamView() {
     };
   }, [stream?.isLive, id, accessToken, toast]);
 
-  // Debug video element events
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.onloadedmetadata = () => {

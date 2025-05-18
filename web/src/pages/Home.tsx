@@ -15,8 +15,7 @@ import {
 // Define Stream type
 interface Stream {
   id: string;
-  title: string;
-  description: string;
+  event_id: string;
   userId: string;
   isLive: boolean;
   viewerCount: number;
@@ -24,16 +23,62 @@ interface Stream {
   thumbnailUrl?: string;
 }
 
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  event_start_date: string;
+  location: string;
+  thumbnail?: string;
+  viewerCount: number;
+  isLive: boolean;
+}
+
+interface MergedStream {
+  id: string;
+  event_id: string;
+  title: string;
+  description: string;
+  isLive: boolean;
+  viewerCount: number;
+  startedAt: string;
+  thumbnail?: string;
+}
+
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
-  const { data: allStreams, isLoading } = useQuery({
-    queryKey: ["liveStreams"],
+  const { data: allEvent, isLoading: isEventsLoading } = useQuery({
+    queryKey: ["liveEvents"],
     queryFn: streams.list,
   });
 
-  const liveStreams: any[] =
-    allStreams?.events?.filter((stream: any) => stream.location == "Live") || [];
-  if (isLoading) {
+  const { data: streamsData, isLoading: isStreamsLoading } = useQuery({
+    queryKey: ["streams"],
+    queryFn: streams.getAllStreams,
+  });
+
+
+
+  const mergedStreams = React.useMemo(() => {
+    if (!allEvent?.events || !streamsData) return [];
+
+    return allEvent.events.map((event: Event) => {
+      const stream = streamsData.find((s: Stream) => s.eventId === event.id);
+
+      return {
+        id: event.id,
+        streamId: stream ? stream.id : null,
+        event_id: event.id,
+        title: stream?.title || event.title,
+        description: stream?.description || event.description,
+        isLive: stream ? stream.isLive : false,
+        viewerCount: stream ? stream.viewerCount : event.viewerCount,
+        startedAt: stream ? stream.startedAt : event.event_start_date,
+        thumbnail: event.thumbnail || stream?.thumbnailUrl,
+      } as MergedStream;
+    });
+  }, [allEvent, streamsData]);
+  if (isEventsLoading || isStreamsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Loading streams...</div>
@@ -61,7 +106,7 @@ export default function Home() {
           )}
         </div>
 
-        {liveStreams.length === 0 ? (
+        {mergedStreams.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <h2 className="text-xl font-semibold text-gray-600">
               No live streams at the moment
@@ -81,8 +126,8 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {liveStreams.map((stream: any) => (
-              <Link key={stream.id} to={`/stream-view/${stream.id}`}>
+            {mergedStreams.map((stream: any) => (
+              <Link key={stream.id} to={`/stream-view/${stream.streamId}`}>
                 <Card className="hover:shadow-lg transition-shadow h-full">
                   {stream.thumbnail && (
                     <div className="relative aspect-video">
@@ -91,9 +136,15 @@ export default function Home() {
                         alt={stream.title}
                         className="w-full h-full object-cover rounded-t-lg"
                       />
-                      <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-sm">
-                        LIVE
-                      </div>
+                      {stream.isLive ? (
+                        <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-sm">
+                          LIVE
+                        </div>
+                      ) : (
+                        <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-sm">
+                          OFFLINE
+                        </div>
+                      )}
                     </div>
                   )}
                   <CardHeader>
@@ -101,8 +152,17 @@ export default function Home() {
                       {stream.title}
                     </CardTitle>
                     <CardDescription>
-                      {stream.viewerCount} watching • Started{" "}
-                      {new Date(stream.event_start_date).toLocaleString()}
+                      {stream.isLive ? (
+                        <>
+                          {stream.viewerCount} watching • Started{" "}
+                          {new Date(stream.startedAt).toLocaleString()}
+                        </>
+                      ) : (
+                        <>
+                          Stream not live • Starts at{" "}
+                          {new Date(stream.startedAt).toLocaleString()}
+                        </>
+                      )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

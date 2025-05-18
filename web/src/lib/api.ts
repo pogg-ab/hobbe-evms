@@ -130,12 +130,21 @@ export const streams = {
   },
 
   get: async (id: string) => {
-    const response = await fetch(`${EVENT_URL}/streams/${id}`);
+    const response = await fetch(`${STREAM_URL}/streams/${id}`);
+    return handleResponse(response);
+  },
+  getAllStreams: async () => {
+    const response = await fetch(`${STREAM_URL}/streams`);
+    return handleResponse(response);
+  },
+
+  getStreamByEventId: async (eventId: string) => {
+    const response = await fetch(`${STREAM_URL}/streams/${eventId}`);
     return handleResponse(response);
   },
 
   start: async (id: string) => {
-    const response = await fetch(`${API_URL}/streams/${id}/start`, {
+    const response = await fetch(`${STREAM_URL}/streams/${id}/start`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -145,7 +154,7 @@ export const streams = {
   },
 
   end: async (id: string) => {
-    const response = await fetch(`${API_URL}/streams/${id}/end`, {
+    const response = await fetch(`${STREAM_URL}/streams/${id}/end`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${getToken()}`,

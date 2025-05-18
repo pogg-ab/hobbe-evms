@@ -212,12 +212,9 @@ export class StreamService {
         });
       }
 
-      this.fluentFFmpegService.stopStream(streamId);
-
-      this.nodeMediaService.stopStream(streamId);
-
       stream.status = 'completed';
-      // stream.endDate = new Date();
+      stream.endedAt = new Date();
+      stream.isLive = false;
       stream.updatedAt = new Date();
       const updatedStream = await this.streamRepository.update(stream);
 
@@ -324,6 +321,37 @@ export class StreamService {
     }
   }
 
+  async startStreamNew(streamId: string, userId: string): Promise<{ success: boolean; message: string; data: Stream | null }> {
+    try {
+      const stream = await this.streamRepository.findById(streamId);
+      if (!stream) {
+        throw new Error(`Stream with ID ${streamId.toString()} not found`);
+      }
+
+      if (stream.status === 'active') {
+        throw new Error(`Stream with ID ${streamId.toString()} is already active`);
+      }
+
+      stream.isLive = true;
+      stream.status = "active";
+      stream.startedAt = new Date();
+      await this.streamRepository.update(stream);
+
+      return {
+        success: true,
+        message: `Stream ${streamId} started successfully`,
+        data: stream,
+
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to start stream ${streamId}: ${error.message}`,
+        data: null,
+      };
+    }
+  }
+
 
   async stopStream(
     streamId: string,
@@ -395,7 +423,17 @@ export class StreamService {
 
   async getStreamById(streamId: string): Promise<Stream> {
     const stream = await this.streamRepository.findById(streamId);
-    if (!stream) throw new Error('Stream not found');
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
+    return stream;
+  }
+
+  async getStreamByEventId(eventId: string): Promise<any> {
+    const stream = await this.streamRepository.findByEventId(eventId);
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
     return stream;
   }
 
