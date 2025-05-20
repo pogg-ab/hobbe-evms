@@ -8,6 +8,8 @@ export class SSOResponseDto {
   })
   access_token: string;
 
+
+  
   @ApiProperty({
     description: 'User information',
     type: GoogleUserDto
