@@ -30,7 +30,7 @@ export class User {
   @Column({ nullable: true })
   profile_name: string;
 
-  @Column()
+  @Column({ nullable: true})
   password: string;
 
   @Column({
@@ -39,6 +39,13 @@ export class User {
     default: AccountType.PERSONAL,
   })
   account_type: AccountType;
+
+  @Column({ nullable: true, unique: true })
+  googleId?: string;
+
+  @Column({ nullable: true, unique: true })
+  facebookId?: string;
+  
 
   @OneToOne(() => PersonalAccount, {
     cascade: true,

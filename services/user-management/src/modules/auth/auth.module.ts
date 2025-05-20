@@ -24,8 +24,12 @@ import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repo
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { Follower } from 'src/domain/entities/follower.entity';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { CqrsModule } from '@nestjs/cqrs';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { GoogleLoginHandler } from 'src/application/handlers/sso/google-login.handler';
 @Module({
   imports: [
+    CqrsModule,
     TypeOrmModule.forFeature([
       User,
       AdminUser,
@@ -54,8 +58,11 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
     AuthService,
     ElasticsearchConfig,
     JwtStrategy,
+    GoogleStrategy,
     MessageProducerService,
     NotificationConfigService,
+
+    GoogleLoginHandler, 
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,
