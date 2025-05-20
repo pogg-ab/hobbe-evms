@@ -173,10 +173,10 @@ export class StreamService {
             stream.hlsOutputPath = `${process.env.HLS_OUTPUT_BASE_PATH}/${streamKey}`;
 
             if (startDate) {
-                stream.startDate = new Date(startDate);
+                stream.startedAt = new Date(startDate);
             }
             if (endDate) {
-                stream.endDate = new Date(endDate);
+                stream.endedAt = new Date(endDate);
             }
             const createdStream = await this.streamRepository.create(stream);
 
@@ -205,7 +205,7 @@ export class StreamService {
             stream.status = 'inactive';
             stream.userId = userId;
             stream.eventId = eventId;
-            stream.startDate = scheduledDateTime;
+            stream.startedAt = scheduledDateTime;
             stream.createdBy = userId;
             stream.updatedAt = new Date();
 
@@ -274,11 +274,11 @@ export class StreamService {
             }
 
             const now = new Date();
-            if (stream.startDate && now < new Date(stream.startDate)) {
+            if (stream.startedAt && now < new Date(stream.startedAt)) {
                 throw new BadRequestException({
                     success: false,
                     message: 'Stream cannot start before scheduled time',
-                    scheduledTime: stream.startDate,
+                    scheduledTime: stream.startedAt,
                     currentTime: now.toISOString()
                 });
             }
@@ -350,7 +350,7 @@ export class StreamService {
             this.nodeMediaService.stopStream(streamId);
 
             stream.status = 'completed';
-            stream.endDate = new Date();
+            stream.endedAt = new Date();
             stream.updatedAt = new Date();
             const updatedStream = await this.streamRepository.update(stream);
 
@@ -414,7 +414,7 @@ export class StreamService {
             }
 
             stream.status = 'active';
-            stream.startDate = new Date();
+            stream.startedAt = new Date();
             stream.updatedAt = new Date();
             await this.streamRepository.update(stream);
 
@@ -475,7 +475,7 @@ export class StreamService {
             this.nodeMediaService.stopStream(streamId);
 
             stream.status = 'completed';
-            stream.endDate = new Date();
+            stream.endedAt = new Date();
             stream.updatedAt = new Date();
             await this.streamRepository.update(stream);
 

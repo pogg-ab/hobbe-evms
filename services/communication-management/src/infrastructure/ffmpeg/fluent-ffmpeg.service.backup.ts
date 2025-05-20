@@ -395,7 +395,7 @@ export class FluentFFmpegService {
 
 
                 stream.status = 'completed';
-                stream.endDate = new Date();
+                stream.endedAt = new Date();
                 stream.updatedAt = new Date();
                 await this.streamRepository.update(stream);
 

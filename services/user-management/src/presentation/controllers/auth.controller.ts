@@ -14,9 +14,10 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from 'src/application/services/auth.service';
 import { AdminUserAuthDto } from '../dtos/create-admin-user-auth.dto';
 import { AuthDto } from '../dtos/create-auth.dto';
@@ -27,13 +28,72 @@ import { ResendOtpDto } from '../dtos/resend-otp.dto';
 import { VerifyOtpDto } from '../dtos/verify-otp.dto';
 import { Request, Response } from 'express';
 import { createHash } from 'crypto';
-import { log } from 'console';
+
+import { AuthGuard } from '@nestjs/passport';
+import { CommandBus } from '@nestjs/cqrs';
+import { GoogleLoginCommand } from 'src/application/commands/sso/google-login.command';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(
+    private readonly authService: AuthService,
+    private readonly commandBus: CommandBus,
+  
+  ) { }
   private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
+
+
+
+  @ApiOperation({ summary: 'Redirects to Google OAuth2 consent screen' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to Google OAuth2 consent screen'
+  })
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Guard redirects to Google
+  }
+
+
+  @ApiOperation({ summary: 'Handles Google OAuth2 callback' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to success page with JWT token'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired Google token'
+  })
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthCallback(@Req() req, @Res() res: Response) {
+ 
+    const result = await this.commandBus.execute(
+      new GoogleLoginCommand(req.user),
+    );
+
+    // In a real application, you might want to redirect to a frontend URL
+    // with the token as a query parameter or use a more secure method
+    res.redirect(`/auth/success?token=${result.access_token}`);
+    // return result;
+  }
+
+  @Get('success')
+  @ApiOperation({ summary: 'Handles successful Google login' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successful login with JWT token'
+  })
+  async googleLoginSuccess(@Query('token') token: string) {
+    // if (!token || !this.VALID_TOKEN_REGEX.test(token)) {-
+    //   throw new BadRequestException('Invalid or expired token');
+    // }
+
+    // Here you can handle the token, e.g., store it in a cookie or session
+    return { message: 'Login successful', token };
+  }
 
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })
