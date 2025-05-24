@@ -4,7 +4,6 @@ import { Stream } from 'src/domain/entities/stream.entity';
 import { IStreamRepository } from 'src/domain/repositories/live-stream/stream.repository';
 import { STREAM_REPOSITORY_TOKEN } from 'src/domain/repositories/live-stream/stream.repository.token';
 import { StreamID } from 'src/domain/value-objects/stream-id.value-object';
-import { FluentFFmpegService } from 'src/infrastructure/ffmpeg/fluent-ffmpeg.service';
 import { NodeMediaService } from 'src/infrastructure/media-server/media-server.service';
 import {
   NotFoundException,
@@ -30,7 +29,6 @@ export class StreamService {
     @Inject(STREAM_REPOSITORY_TOKEN)
     private readonly streamRepository: IStreamRepository,
     private readonly nodeMediaService: NodeMediaService,
-    private readonly fluentFFmpegService: FluentFFmpegService,
   ) { }
 
   async createStream(
@@ -366,7 +364,7 @@ export class StreamService {
         throw new Error(`Stream with ID ${streamId} is not active`);
       }
 
-      this.fluentFFmpegService.stopStream(streamId);
+      // this.fluentFFmpegService.stopStream(streamId);
       this.nodeMediaService.stopStream(streamId);
 
       stream.status = 'completed';
@@ -461,11 +459,11 @@ export class StreamService {
         };
       }
 
-      const streamStatus = await this.fluentFFmpegService.streamFileToRtmp(inputFilePath, rtmpUrl, streamId);
-      if (streamStatus.status === 'stopped') {
-        console.log(`Stream ID: ${streamId} is stopped, stopping any active stream before starting.`);
-        await this.stopStream(streamId);
-      }
+      // const streamStatus = await this.fluentFFmpegService.streamFileToRtmp(inputFilePath, rtmpUrl, streamId);
+      // if (streamStatus.status === 'stopped') {
+      //   console.log(`Stream ID: ${streamId} is stopped, stopping any active stream before starting.`);
+      //   await this.stopStream(streamId);
+      // }
 
       console.log(`Stream started successfully from file: ${inputFilePath} for stream ID: ${streamId}`);
       return {
@@ -487,14 +485,14 @@ export class StreamService {
       console.log(`Starting stream to RTMP URL: ${rtmpUrl} for stream ID: ${streamId}`);
 
       const stream = await this.streamRepository.findById(streamId);
-      const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(config, rtmpUrl, hlsOutputPath, streamId);
-      if (streamStatus.status === 'started') {
-        console.log(`Stream started successfully for stream ID: ${streamId}`);
-        return streamStatus;
-      } else {
-        console.error(`Failed to start stream for stream ID: ${streamId}`);
-        return streamStatus;
-      }
+      // const streamStatus = await this.fluentFFmpegService.streamCameraToRtmp(config, rtmpUrl, hlsOutputPath, streamId);
+      // if (streamStatus.status === 'started') {
+      //   console.log(`Stream started successfully for stream ID: ${streamId}`);
+      //   return streamStatus;
+      // } else {
+      //   console.error(`Failed to start stream for stream ID: ${streamId}`);
+      //   return streamStatus;
+      // }
     } catch (error) {
       console.error(`Failed to start stream from camera for stream ID: ${streamId}: ${error.message}`);
       return {

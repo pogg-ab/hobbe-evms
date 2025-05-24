@@ -19,9 +19,7 @@ import { GetStreamsByUserIdQuery } from 'src/application/queries/live-stream/get
 import { StreamService } from 'src/application/services/live-stream/stream.service';
 import { Stream } from 'src/domain/entities/stream.entity';
 import { STREAM_REPOSITORY_TOKEN } from 'src/domain/repositories/live-stream/stream.repository.token';
-import { FluentFFmpegService } from 'src/infrastructure/ffmpeg/fluent-ffmpeg.service';
 import { NodeMediaService } from 'src/infrastructure/media-server/media-server.service';
-import { MediasoupService } from 'src/infrastructure/mediasoup/mediasoup.service';
 import { StreamRepositoryImpl } from 'src/infrastructure/persistance/repository/stream.repository.impl';
 import { StreamGateway } from 'src/presentation/controller/live-stream/gateways/stream.gateway';
 import { StreamController } from 'src/presentation/controller/live-stream/stream.controller';
@@ -32,7 +30,6 @@ import { StreamController } from 'src/presentation/controller/live-stream/stream
   providers: [
     NodeMediaService,
     StreamService,
-    FluentFFmpegService,
     CreateStreamHandler,
     UpdateStreamHandler,
     GetStreamHandler,
@@ -46,7 +43,6 @@ import { StreamController } from 'src/presentation/controller/live-stream/stream
     StartScheduledStreamHandler,
     GetStreamByEventIdHandler,
     EndStreamHandler,
-    MediasoupService,
     StreamGateway,
     {
       provide: STREAM_REPOSITORY_TOKEN,
