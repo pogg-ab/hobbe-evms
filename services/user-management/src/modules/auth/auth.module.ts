@@ -27,6 +27,8 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
 import { CqrsModule } from '@nestjs/cqrs';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { GoogleLoginHandler } from 'src/application/handlers/sso/google-login.handler';
+import { FacebookStrategy } from './strategies/facebook.strategy';
+import { FacebookLoginHandler } from 'src/application/handlers/sso/facebook-login.handler';
 @Module({
   imports: [
     CqrsModule,
@@ -59,10 +61,12 @@ import { GoogleLoginHandler } from 'src/application/handlers/sso/google-login.ha
     ElasticsearchConfig,
     JwtStrategy,
     GoogleStrategy,
+    FacebookStrategy,
     MessageProducerService,
     NotificationConfigService,
 
     GoogleLoginHandler, 
+    FacebookLoginHandler,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,

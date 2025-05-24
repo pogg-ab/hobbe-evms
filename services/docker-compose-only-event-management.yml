@@ -1,9 +1,9 @@
 version: "1.0"
 
 services:
-  event-management:
+  user-management:
     build:
-      context: ./event-management
+      context: ./user-management
       dockerfile: Dockerfile
     ports:
       - "4001:4001"
