@@ -2,9 +2,9 @@ import axios from "axios";
 import { useToast } from "@/components/ui/use-toast";
 
 // API URL configuration
-const API_URL = "http://localhost:4000";
-const EVENT_URL = "http://localhost:4001";
-const STREAM_URL = "http://localhost:4003";
+const API_URL = "http://89.117.37.84:4000";
+const EVENT_URL = "http://89.117.37.84:4001";
+const STREAM_URL = "http://89.117.37.84:4003";
 
 // Helper function to get token
 const getToken = () => {
