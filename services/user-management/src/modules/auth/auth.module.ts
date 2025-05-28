@@ -26,11 +26,10 @@ import { Follower } from 'src/domain/entities/follower.entity';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { GoogleStrategy } from './strategies/google.strategy';
-import { GoogleLoginHandler } from 'src/application/handlers/sso/google-login.handler';
 import { FacebookStrategy } from './strategies/facebook.strategy';
-import { FacebookLoginHandler } from 'src/application/handlers/sso/facebook-login.handler';
 import { LoginWithOAuthHandler } from 'src/application/handlers/sso/LoginWithOAuthHandler';
 import { OAuthProvider } from 'src/domain/entities/oauth-provider.entity';
+import { GithubStrategy } from './strategies/github.strategy';
 @Module({
   imports: [
     CqrsModule,
@@ -65,11 +64,10 @@ import { OAuthProvider } from 'src/domain/entities/oauth-provider.entity';
     JwtStrategy,
     GoogleStrategy,
     FacebookStrategy,
+    GithubStrategy,
     MessageProducerService,
     NotificationConfigService,
 
-    GoogleLoginHandler, 
-    FacebookLoginHandler,
     LoginWithOAuthHandler,
     {
       provide: USER_REPOSITORY_TOKEN,
