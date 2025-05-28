@@ -29,6 +29,8 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { GoogleLoginHandler } from 'src/application/handlers/sso/google-login.handler';
 import { FacebookStrategy } from './strategies/facebook.strategy';
 import { FacebookLoginHandler } from 'src/application/handlers/sso/facebook-login.handler';
+import { LoginWithOAuthHandler } from 'src/application/handlers/sso/LoginWithOAuthHandler';
+import { OAuthProvider } from 'src/domain/entities/oauth-provider.entity';
 @Module({
   imports: [
     CqrsModule,
@@ -38,6 +40,7 @@ import { FacebookLoginHandler } from 'src/application/handlers/sso/facebook-logi
       UserRole,
       AdminUserRole,
       Auth,
+      OAuthProvider,
       AdminUserAuth,
       PersonalAccount,
       OrganizationalAccount,
@@ -67,6 +70,7 @@ import { FacebookLoginHandler } from 'src/application/handlers/sso/facebook-logi
 
     GoogleLoginHandler, 
     FacebookLoginHandler,
+    LoginWithOAuthHandler,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,
