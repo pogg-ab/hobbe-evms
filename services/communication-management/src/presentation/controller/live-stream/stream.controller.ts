@@ -28,8 +28,6 @@ import { Server, Socket } from 'socket.io';
 import { GetAllStreamsQuery } from 'src/application/queries/live-stream/get-all-streams.query';
 import { GetActiveStreamsQuery } from 'src/application/queries/live-stream/get-active-streams.query';
 import { GetInActiveStreamsQuery } from 'src/application/queries/live-stream/get-inactive-streams.query';
-import { MediasoupService } from 'src/infrastructure/mediasoup/mediasoup.service';
-import * as mediasoup from 'mediasoup';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { GetStreamQuery } from 'src/application/queries/live-stream/get-stream.query';
 import { StartStreamCommand } from 'src/application/commands/live-stream/start-stream.command';
@@ -42,7 +40,6 @@ export class StreamController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-    private readonly mediasoupService: MediasoupService
   ) { }
 
 
@@ -135,7 +132,6 @@ export class StreamController {
     @Body() startStreamDto: StartStreamDto,
     @CurrentUserId() user: any,
   ) {
-    const { source } = startStreamDto;
     const userId = user.user.user_id.toString();
 
     try {
