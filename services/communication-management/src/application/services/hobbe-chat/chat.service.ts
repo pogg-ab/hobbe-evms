@@ -14,6 +14,7 @@ import { ChatUserRepository } from 'src/domain/repositories/hobbe-chat/chat-user
 import { CHAT_USER_REPOSITORY_TOKEN } from 'src/domain/repositories/hobbe-chat/chat-user.repository.token';
 import { ChatUser } from 'src/domain/entities/hobbe-chat/chat-user.entity';
 import { E2eeService } from './e2ee/e2ee.service';
+import { ChatUserService } from './socket-io/user-service/chat-user-service';
 
 @Injectable()
 export class ChatService {
@@ -25,6 +26,8 @@ export class ChatService {
     @Inject(CHAT_MEMBER_REPOSITORY_TOKEN)
     private readonly chatMemberRepo: ChatMemberRepository,
     private readonly e2eeService: E2eeService,
+    private readonly chatUserService: ChatUserService,
+    
   ) {}
 
   async createChat(
@@ -32,11 +35,13 @@ export class ChatService {
     createChatDto: CreatePrivateChatDto,
   ): Promise<any> {
 
-    const friend = await this.chatUserRepo.findOne(createChatDto.friendId);
+    let friend = await this.chatUserRepo.findOne(createChatDto.friendId);
     if (!friend) {
-      throw new BadRequestException(`It looks like your friend hasn't joined Hobbe Chat yet.
-      Invite them now so you can stay connected and enjoy seamless conversations together!`);
+      // throw new BadRequestException(`It looks like your friend hasn't joined Hobbe Chat yet.
+      // Invite them now so you can stay connected and enjoy seamless conversations together!`);
+       friend = await this.chatUserService.chatUser(createChatDto.friendId, user+'_'+randomInt(10000000,99999999), createChatDto.name,null);
     }
+
     
     const chat_user = user.user.user_id.toString();
     const profile_id = user.user.profile_id.toString();
