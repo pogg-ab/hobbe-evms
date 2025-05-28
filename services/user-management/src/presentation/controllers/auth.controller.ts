@@ -31,8 +31,6 @@ import { createHash } from 'crypto';
 
 import { AuthGuard } from '@nestjs/passport';
 import { CommandBus } from '@nestjs/cqrs';
-import { GoogleLoginCommand } from 'src/application/commands/sso/google-login.command';
-import { FacebookLoginCommand } from 'src/application/commands/sso/facebook-login.command';
 import { OAuthLoginDto, Provider } from '../dtos/sso/oauth.dto';
 import { LoginWithOAuthCommand } from 'src/application/commands/sso/LoginWithOAuthCommand';
 
@@ -137,6 +135,65 @@ export class AuthController {
     };
     const result = await this.oauthLogin(data);
     res.redirect(`/auth/success?token=${result.access_token}`);
+  }
+
+
+  @ApiOperation({ summary: 'Redirects to GitHub OAuth2 consent screen' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to GitHub OAuth2 consent screen'
+  })
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
+  async githubAuth() {
+    // Guard redirects to GitHub
+  }
+
+  @ApiOperation({ summary: 'Handles GitHub OAuth2 callback' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to success page with JWT token'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired GitHub token'
+  })
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  async githubAuthCallback(@Req() req, @Res() res: Response) {
+    // const result = await this.commandBus.execute(
+    //   new GithubLoginCommand(req.user),
+    // );
+
+    // console.log('result.user', result);
+
+    if (!req.user) {
+      throw new UnauthorizedException('Invalid or expired GitHub token');
+    }
+
+    const data: OAuthLoginDto = {
+      provider: Provider.GitHub,           // e.g., 'github'
+      providerId: req.user.githubId,       // e.g., '123456789'
+      email: req.user.email,
+      name: req.user.displayName,
+      accessToken: req.user.accessToken,
+      refreshToken: req.user.refreshToken,
+    };
+
+    const result = await this.oauthLogin(data);
+    res.redirect(`/auth/success?token=${result.access_token}`);
+  }
+
+  @ApiOperation({ summary: 'Shows authentication success page' })
+  @ApiResponse({
+    status: 200,
+    description: 'Authentication successful message'
+  })
+  @Get('success')
+  async authSuccess(@Req() req, @Res() res: Response) {
+
+    // This endpoint can be used to show a success page or handle the token
+    res.send('Authentication successful! You can close this window.');
   }
 
   

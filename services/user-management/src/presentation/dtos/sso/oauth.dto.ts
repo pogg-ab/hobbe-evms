@@ -13,4 +13,5 @@ export enum Provider {
   Facebook = 'Facebook',
   LinkedIn = 'LinkedIn',
   Apple = 'Apple',
+  GitHub = 'GitHub',
 }
