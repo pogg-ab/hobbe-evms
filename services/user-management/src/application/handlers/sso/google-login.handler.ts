@@ -25,12 +25,13 @@ export class GoogleLoginHandler implements ICommandHandler<GoogleLoginCommand> {
     const { user } = command;
     
     // Check if user exists by Google ID or email
-    let existingUser = await this.userRepository.findOne({
-      where: [
-        { googleId: user.googleId },
-        { user_name: user.email }
-      ]
-    });
+   let existingUser = await this.userRepository.findOne({
+  where: {
+    googleId: user.googleId,
+    user_name: user.email
+  }
+});
+
 
     if (!existingUser) {
       // Create new user if doesn't exist
