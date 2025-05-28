@@ -32,6 +32,7 @@ import { createHash } from 'crypto';
 import { AuthGuard } from '@nestjs/passport';
 import { CommandBus } from '@nestjs/cqrs';
 import { GoogleLoginCommand } from 'src/application/commands/sso/google-login.command';
+import { FacebookLoginCommand } from 'src/application/commands/sso/facebook-login.command';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -73,6 +74,7 @@ export class AuthController {
     const result = await this.commandBus.execute(
       new GoogleLoginCommand(req.user),
     );
+    
 
     // In a real application, you might want to redirect to a frontend URL
     // with the token as a query parameter or use a more secure method
@@ -94,6 +96,47 @@ export class AuthController {
     // Here you can handle the token, e.g., store it in a cookie or session
     return { message: 'Login successful', token };
   }
+
+
+  @ApiOperation({ summary: 'Redirects to Facebook OAuth2 consent screen' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to Facebook OAuth2 consent screen'
+  })
+  @Get('facebook')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuth() {
+    // Guard redirects to Facebook
+  }
+
+  @ApiOperation({ summary: 'Handles Facebook OAuth2 callback' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to success page with JWT token'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired Facebook token'
+  })
+  @Get('facebook/callback')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuthCallback(@Req() req, @Res() res: Response) {
+    console.log('Facebook Callback:', req.user);
+    if (!req.user) { 
+      throw new UnauthorizedException('Invalid or expired Facebook token');
+    }
+    
+    const result = await this.commandBus.execute(
+      new FacebookLoginCommand(req.user),
+    );
+
+    console.log('Facebook Login Result:', result);
+    
+
+    res.redirect(`/auth/success?token=${result.access_token}`);
+  }
+
+  
 
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })

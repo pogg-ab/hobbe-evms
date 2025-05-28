@@ -12,7 +12,8 @@ export class ChatUserService {
    private readonly e2eeService: E2eeService
 ) {}
     
-async chatUser(userId: string,profileId:string,profileName:string,profileImage:string): Promise<ChatUser> {     
+async chatUser(userId: string,profileId:string,profileName:string,profileImage:string): Promise<ChatUser> {   
+     
      const user = await this.chatUserRepository.create(userId,profileId,profileName,profileImage);
      const doseUserHaveKey = await this.e2eeService.findOne(userId);
    

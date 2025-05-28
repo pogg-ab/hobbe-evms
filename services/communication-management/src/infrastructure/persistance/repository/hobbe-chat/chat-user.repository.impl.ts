@@ -35,7 +35,9 @@ export class ChatUserRepositoryImpl implements ChatUserRepository {
   
   
   async update(userId: string, userName: string, profileName: string,profileImage:string): Promise<void> {
-    await this.chatUserRepo.update(userId, { username: userName, profileName, avatarUrl:profileImage });
+    console.log(`Updating user ${userId} with name ${userName} and profile name ${profileName}`);
+    
+    await this.chatUserRepo.update(userId, { username: userName, profileName:profileName, avatarUrl:profileImage });
   }
   
 
