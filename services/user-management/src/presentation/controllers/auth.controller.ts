@@ -33,6 +33,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { CommandBus } from '@nestjs/cqrs';
 import { GoogleLoginCommand } from 'src/application/commands/sso/google-login.command';
 import { FacebookLoginCommand } from 'src/application/commands/sso/facebook-login.command';
+import { OAuthLoginDto, Provider } from '../dtos/sso/oauth.dto';
+import { LoginWithOAuthCommand } from 'src/application/commands/sso/LoginWithOAuthCommand';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -45,6 +47,10 @@ export class AuthController {
   private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
 
 
+
+  async oauthLogin(@Body() dto: OAuthLoginDto) {
+    return await this.commandBus.execute(new LoginWithOAuthCommand(dto));
+  }
 
   @ApiOperation({ summary: 'Redirects to Google OAuth2 consent screen' })
   @ApiResponse({
@@ -70,15 +76,17 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(@Req() req, @Res() res: Response) {
- 
-    const result = await this.commandBus.execute(
-      new GoogleLoginCommand(req.user),
-    );
-    
-
-    // In a real application, you might want to redirect to a frontend URL
-    // with the token as a query parameter or use a more secure method
+ const data: OAuthLoginDto = {
+      provider: Provider.Google,          
+      providerId: req.user.googleId,       
+      email: req.user.email,
+      name: req.user.firstName + ' ' + req.user.lastName,
+      accessToken: req.user.accessToken,
+      refreshToken: req.user.refreshToken,
+    };
+    const result = await this.oauthLogin(data);
     res.redirect(`/auth/success?token=${result.access_token}`);
+
     // return result;
   }
 
@@ -89,11 +97,6 @@ export class AuthController {
     description: 'Successful login with JWT token'
   })
   async googleLoginSuccess(@Query('token') token: string) {
-    // if (!token || !this.VALID_TOKEN_REGEX.test(token)) {-
-    //   throw new BadRequestException('Invalid or expired token');
-    // }
-
-    // Here you can handle the token, e.g., store it in a cookie or session
     return { message: 'Login successful', token };
   }
 
@@ -121,18 +124,18 @@ export class AuthController {
   @Get('facebook/callback')
   @UseGuards(AuthGuard('facebook'))
   async facebookAuthCallback(@Req() req, @Res() res: Response) {
-    console.log('Facebook Callback:', req.user);
     if (!req.user) { 
       throw new UnauthorizedException('Invalid or expired Facebook token');
     }
-    
-    const result = await this.commandBus.execute(
-      new FacebookLoginCommand(req.user),
-    );
-
-    console.log('Facebook Login Result:', result);
-    
-
+   const data: OAuthLoginDto = {
+      provider: Provider.Facebook,           // e.g., 'facebook'
+      providerId: req.user.facebookId,       // e.g., '123456789'
+      email: req.user.email,
+      name: req.user.displayName,
+      accessToken: req.user.accessToken,
+      refreshToken: req.user.refreshToken,
+    };
+    const result = await this.oauthLogin(data);
     res.redirect(`/auth/success?token=${result.access_token}`);
   }
 
