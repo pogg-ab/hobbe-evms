@@ -67,7 +67,7 @@ export class TicketsController {
   @ApiOperation({ description: 'Find Tickets By ID' })
   @HttpCode(200)
   @Get('/:id')
-  async findOne(@Param('id') id:string): Promise<{
+  async findOne(@Param('id') id: string): Promise<{
     ticketsList: Tickets | null;
   }> {
     return this.queryBus.execute(new FindOneQuery(id));
@@ -78,7 +78,7 @@ export class TicketsController {
   @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('/upcoming')
+  @Get('/event/upcoming')
   async getUpcomingTickets(
     @CurrentUserId() user: any,
     @Query('page') page = 1,
@@ -98,7 +98,7 @@ export class TicketsController {
   @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('/past')
+  @Get('/event/past')
   async getPastTickets(
     @CurrentUserId() user: any,
     @Query('page') page = 1,
@@ -118,7 +118,7 @@ export class TicketsController {
   @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('/gifted')
+  @Get('/event/gifted')
   async getGiftedTickets(
     @CurrentUserId() user: any,
     @Query('page') page = 1,
@@ -229,8 +229,8 @@ export class TicketsController {
     const ip = req.ip;
     const userAgent = req.headers['user-agent'];
     const metadata = JSON.stringify({ ip, userAgent });
-    await this.commandBus.execute(new QrCodeScannedLogCommand(ticket_id, metadata));    
+    await this.commandBus.execute(new QrCodeScannedLogCommand(ticket_id, metadata));
 
-    return(` Deep or APP Link or Web view will present event detail information  `)
+    return (` Deep or APP Link or Web view will present event detail information  `)
   }
 }
