@@ -39,7 +39,8 @@ export class StripeService {
         line_items: [
           {
             price_data: {
-              currency: dto.currency,
+              // currency: dto.currency,
+              currency: 'etb',
               product_data: {
                 name: dto.booking_id,
                 description: dto.event_id,
