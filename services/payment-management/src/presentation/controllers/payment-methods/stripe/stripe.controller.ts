@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
@@ -31,8 +32,9 @@ export class StripeController {
   }
 
   @Get('verify/:sessionId')
-  async verifyPayment(@Param('sessionId') sessionId: string) {
-   return await this.stripeService.verifyPayment(sessionId);
+  async verifyPayment(@Param('sessionId') sessionId: string,@Res() res: any) {
+    await this.stripeService.verifyPayment(sessionId);
+    return res.redirect('hobbeems://payment_success');
   }
   
 
