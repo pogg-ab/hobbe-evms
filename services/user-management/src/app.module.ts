@@ -15,6 +15,7 @@ import { PersonalAccountModule } from './modules/personal-account/personal-accou
 import { RolePermissionModule } from './modules/role-permission/role-permission.module';
 import { SubAccountModule } from './modules/sub-account/sub-account.module';
 import { UserModule } from './modules/user/user.module';
+import { UserAnayticsModule } from './modules/analytics/user-anaytics.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -41,6 +42,7 @@ import { UserModule } from './modules/user/user.module';
     FollowerModule,
     UserModule,
     FavoritesModule,
+    UserAnayticsModule,
   ],
 })
 export class AppModule {}
