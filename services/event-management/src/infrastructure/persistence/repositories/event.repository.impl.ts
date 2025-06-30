@@ -212,6 +212,37 @@ export class EventRepositoryEmpl implements IEventRepository {
     return events;
   }
 
+  async findByUserAndStatus(user: string, status: string): Promise<Events[]> {
+    const now = new Date();
+
+    let events: Events[] = [];
+
+    if (status === 'drafted') {
+      events = await this.eventRepository.find({
+        where: { user_id: user, status },
+        order: { event_start_date: 'DESC' },
+      });
+    } else {
+      const operator = status === 'future' ? '>' : '<';
+
+      events = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.user_id = :user', { user })
+        .andWhere(`event.event_start_date ${operator} :now`, { now })
+        .orderBy('event.event_start_date', 'DESC')
+        .getMany();
+    }
+
+    // Check if no events were found
+    if (events.length === 0) {
+      throw new HttpException(
+        `Events with user ${user} and status ${status} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    return events;
+  }
+
   async findByCategory(category: string): Promise<Events[]> {
     const events = await this.eventRepository
       .createQueryBuilder('event')
@@ -567,14 +598,13 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('event.id = :id', { id: event })
       .getRawOne();
 
-      const eventGrossRevenue = await this.eventRepository
+    const eventGrossRevenue = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoin('event.tickets', 'ticket')
       .where('event.id = :id', { id: event })
       .andWhere('ticket.status = :status', { status: 'paid' }) // make sure casing matches your DB values
       .select('SUM(ticket.price)', 'eventGrossRevenue')
       .getRawOne();
-    
 
     // Count total comments for the user
     const commentCount = await this.eventRepository

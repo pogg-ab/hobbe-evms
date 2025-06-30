@@ -48,6 +48,7 @@ import { UserInfoService } from 'src/application/services/user-info/user-info.se
 import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/get-all-events-by-auth.handler';
 import { AnalyticsEventCommandHandler } from 'src/application/handlers/analytics/analytics-events.handler';
 import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
+import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/events/find-events-by-user-and-status.handler';
 
 
 @Module({
@@ -104,6 +105,7 @@ import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.
     GetEventsByLocationQueryHandler,
     GetEventsByStatusQueryHandler,
     FindByOrganiserQueryHandler,
+    FindEventsByUserAndStatusQueryHandler,
     FindEventsByThisWeekendQueryHandler,
     FindEventsBySpecificDateQueryHandler,
     FindEventsByDateRangeQueryQueryHandler,
