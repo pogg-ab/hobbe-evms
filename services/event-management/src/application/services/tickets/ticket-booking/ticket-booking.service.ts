@@ -79,8 +79,7 @@ export class TicketBookingService {
     private readonly kafkaPaymentRpcService: KafkaPaymentRpcService,
     @Inject('KAFKA_CHECKIN_PRIVILEGE_SERVICE') private readonly kafkaClient: ClientKafka,
     @InjectRepository(Tickets)
-    private ticketsListRepository: Repository<Tickets>,
-
+    private ticketsListRepository: Repository<Tickets>,     
   ) { }
 
   async create(
@@ -91,7 +90,6 @@ export class TicketBookingService {
     const ticketCount = createTicketBookingDto.total_amount;
     const currentDate = new Date();
     const queryRunner = this.dataSource.createQueryRunner();
-
     await queryRunner.startTransaction();
 
     try {
@@ -185,7 +183,7 @@ export class TicketBookingService {
         );
       }
 
-      if (calculatedPrice !== createTicketBookingDto.total_price) {
+      if (event.isPaid && calculatedPrice !== createTicketBookingDto.total_price) {
         throw new BadRequestException(
           `Total price for tickets is invalid. Expected price: ${calculatedPrice}, but received: ${createTicketBookingDto.total_price}.`,
         );
@@ -213,7 +211,7 @@ export class TicketBookingService {
 
 
 
-      if (createTicketBookingDto.hasPromocode) {
+      if (event.isPaid && createTicketBookingDto.hasPromocode) {
         let promocode = null;
         promocode = await this.promocodeRepository.findByCode(
           createTicketBookingDto.promocode_value,
@@ -285,7 +283,7 @@ export class TicketBookingService {
         }
       }
 
-      if (createTicketBookingDto.hasPayment) {
+      if (event.isPaid) {
         await this.bookingHasPaymentRepository.create(
           queryRunner.manager,
           createdBooking.booking_id,
@@ -293,10 +291,16 @@ export class TicketBookingService {
           calculatedPrice,
           user,
         );
+      }else{
+         await this.ticketBookingRepository.updateStatus(
+            ticketBooking.booking_id,
+            "success",
+            new Date(),
+          );
       }
-
-
-      const paymentLink = await this.kafkaPaymentRpcService.sendRequest(
+     let paymentLink: any = null;
+     if(event.isPaid){
+       paymentLink = await this.kafkaPaymentRpcService.sendRequest(
         'payment-link-request-topic',
         {
           value: JSON.stringify({
@@ -309,7 +313,7 @@ export class TicketBookingService {
       if (paymentLink.success === false) {
         throw new BadRequestException(paymentLink.error);
       }
-
+    }
       for (let i = 0; i < ticketCount; i++) {
         const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
         const participantId = createTicketBookingDto.hasGift
@@ -541,56 +545,4 @@ export class TicketBookingService {
       },
     );
   }
-
-
-
-
-
-
-
-
-
-  // Kafka Consumer for payment_info_sent topic
-  // private async getPaymentLinkWithTimeout(timeoutMs: number = 3000): Promise<string> {
-  //   const paymentLinkEmitter = new EventEmitter();
-
-  //   // Create promise for payment link
-  //   const paymentLinkPromise = new Promise<string>((resolve, reject) => {
-  //     // Success handler
-  //     paymentLinkEmitter.on('received', (link: string) => {
-  //       // console.log('Received paymentLink:', link);
-  //       resolve(link);
-  //     });
-
-  //     // Timeout handler
-  //     setTimeout(() => {
-  //       reject(
-  //         new RequestTimeoutException('Oops! 😒 The payment link wasn’t received in time. Please try again.'));
-  //     }, timeoutMs);
-  //   });
-
-  //   // Start consuming Kafka messages
-  //   this.startKafkaPaymentLinkConsumer(paymentLinkEmitter);
-
-  //   return paymentLinkPromise;
-  // }
-
-  // private startKafkaPaymentLinkConsumer(emitter: EventEmitter): void {
-  //   this.kafkaConsumerService.paymentLinkConsume(
-  //     { topics: ['payment_link'],fromBeginning: true  },
-  //     {
-  //       eachMessage: async ({ message }) => {
-  //         const value = message.value?.toString();
-  //         if (!value) return;
-
-  //         try {
-  //           const paymentLink = JSON.parse(value);
-  //           emitter.emit('received', paymentLink);
-  //         } catch (error) {
-  //           console.error('Failed to parse payment link:', error);
-  //         }
-  //       },
-  //     }
-  //   );
-  // }
 }
