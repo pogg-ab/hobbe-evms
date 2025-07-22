@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Follower } from 'src/domain/entities/follower.entity';
 import { User } from 'src/domain/entities/user.entity';
@@ -7,16 +12,19 @@ import { EntityManager, IsNull, Repository } from 'typeorm';
 import { Client } from '@elastic/elasticsearch';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 @Injectable()
-export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstrap {
+export class UserRepositoryImpl
+  implements IUserRepository, OnApplicationBootstrap
+{
   private readonly client: Client;
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Follower)
     private followerRepository: Repository<Follower>,
-    private readonly elasticsearchConfig: ElasticsearchConfig
-
-  ) { this.client = elasticsearchConfig.getClient(); }
+    private readonly elasticsearchConfig: ElasticsearchConfig,
+  ) {
+    this.client = elasticsearchConfig.getClient();
+  }
 
   async onApplicationBootstrap() {
     await this.backfillUserProfiles();
@@ -25,11 +33,8 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
   private async backfillUserProfiles(): Promise<void> {
     try {
       const usersToUpdate = await this.userRepository.find({
-        where: [
-          { profile_id: IsNull() },
-          { profile_name: IsNull() }
-        ],
-        relations: ['personal_account', 'organizational_account']
+        where: [{ profile_id: IsNull() }, { profile_name: IsNull() }],
+        relations: ['personal_account', 'organizational_account'],
       });
 
       if (usersToUpdate.length > 0) {
@@ -39,10 +44,10 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
         for (let i = 0; i < usersToUpdate.length; i += batchSize) {
           const batch = usersToUpdate.slice(i, i + batchSize);
           await Promise.all(
-            batch.map(user => {
+            batch.map((user) => {
               this.ensureProfileFields(user);
               return this.userRepository.save(user);
-            })
+            }),
           );
         }
 
@@ -58,7 +63,6 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
     }
   }
 
-
   async create(manager: EntityManager, user: User): Promise<User> {
     try {
       const newUser = this.userRepository.create(user);
@@ -67,7 +71,6 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
       await this.indexUser(savedUser);
 
       return savedUser;
-
     } catch (error) {
       throw new HttpException(
         `Error creating User: ${error.message}`,
@@ -124,8 +127,12 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
     try {
       const user = await this.userRepository.findOne({
         where: { user_id: userId },
-        relations: ['personal_account', 'organizational_account', 'organizational_account.owner',
-          'organizational_account.kyc']
+        relations: [
+          'personal_account',
+          'organizational_account',
+          'organizational_account.owner',
+          'organizational_account.kyc',
+        ],
       });
 
       if (!user) {
@@ -157,7 +164,6 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
       userAccountInfo['followers_count'] = followersCount;
       userAccountInfo['following_count'] = followingCount;
 
-
       return userAccountInfo;
     } catch (error) {
       throw new HttpException(
@@ -167,7 +173,10 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
     }
   }
 
-  async findAllUsers(page: number, limit: number): Promise<{
+  async findAllUsers(
+    page: number,
+    limit: number,
+  ): Promise<{
     users: any | null;
     total: number;
     page: number;
@@ -199,15 +208,18 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
 
       const userAccountInfo = await Promise.all(
         users.map(async (user) => {
-
           const followersCount = await this.followerRepository
             .createQueryBuilder('follower')
-            .where('follower.following_user_id = :userId', { userId: user.user_id })
+            .where('follower.following_user_id = :userId', {
+              userId: user.user_id,
+            })
             .getCount();
 
           const followingCount = await this.followerRepository
             .createQueryBuilder('follower')
-            .where('follower.follower_user_id = :userId', { userId: user.user_id })
+            .where('follower.follower_user_id = :userId', {
+              userId: user.user_id,
+            })
             .getCount();
 
           return {
@@ -223,7 +235,7 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
             followers_count: followersCount,
             following_count: followingCount,
           };
-        })
+        }),
       );
       return {
         users: userAccountInfo || null,
@@ -256,7 +268,6 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
         );
       }
 
-
       const updatedUser = Object.assign(existingUser, user);
 
       return await this.userRepository.save(updatedUser);
@@ -281,9 +292,12 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
     return result;
   }
 
-
-
-  async search(query: string, filters: any, page: number = 1, limit: number = 10): Promise<any> {
+  async search(
+    query: string,
+    filters: any,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<any> {
     const from = (page - 1) * limit;
     const body: any = {
       query: {
@@ -312,11 +326,90 @@ export class UserRepositoryImpl implements IUserRepository, OnApplicationBootstr
         index: 'users',
         body,
       });
-      const results = response.hits.hits.map(hit => hit._source);
+      const results = response.hits.hits.map((hit) => hit._source);
 
       return results;
     } catch (error) {
       throw new Error(`Error executing Elasticsearch query: ${error.message}`);
+    }
+  }
+
+  async findActiveUsers(
+    page: number,
+    limit: number,
+  ): Promise<{
+    users: any | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    try {
+      const offset = (page - 1) * limit;
+      const users = await this.userRepository.find({
+        where: { is_active: true },
+        relations: [
+          'personal_account',
+          'organizational_account',
+          'organizational_account.owner',
+          'organizational_account.kyc',
+        ],
+        take: limit,
+        skip: offset,
+      });
+
+      if (!users || users.length === 0) {
+        return {
+          users: null,
+          total: 0,
+          page,
+          limit,
+        };
+      }
+
+      const total = await this.userRepository.count();
+
+      const userAccountInfo = await Promise.all(
+        users.map(async (user) => {
+          const followersCount = await this.followerRepository
+            .createQueryBuilder('follower')
+            .where('follower.following_user_id = :userId', {
+              userId: user.user_id,
+            })
+            .getCount();
+
+          const followingCount = await this.followerRepository
+            .createQueryBuilder('follower')
+            .where('follower.follower_user_id = :userId', {
+              userId: user.user_id,
+            })
+            .getCount();
+
+          return {
+            user_id: user.user_id,
+            user_name: user.user_name,
+            account_type: user.account_type,
+            profile_id: user.profile_id,
+            profile_name: user.profile_name,
+            account_info:
+              user.account_type === 'personal'
+                ? user.personal_account
+                : user.organizational_account,
+            followers_count: followersCount,
+            following_count: followingCount,
+          };
+        }),
+      );
+      return {
+        users: userAccountInfo || null,
+        total,
+        page,
+        limit,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error finding Users: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
