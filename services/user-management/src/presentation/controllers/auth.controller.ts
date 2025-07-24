@@ -40,11 +40,8 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly commandBus: CommandBus,
-  
-  ) { }
+  ) {}
   private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
-
-
 
   async oauthLogin(@Body() dto: OAuthLoginDto) {
     return await this.commandBus.execute(new LoginWithOAuthCommand(dto));
@@ -53,7 +50,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Redirects to Google OAuth2 consent screen' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to Google OAuth2 consent screen'
+    description: 'Redirects to Google OAuth2 consent screen',
   })
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -61,22 +58,21 @@ export class AuthController {
     // Guard redirects to Google
   }
 
-
   @ApiOperation({ summary: 'Handles Google OAuth2 callback' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to success page with JWT token'
+    description: 'Redirects to success page with JWT token',
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - Invalid or expired Google token'
+    description: 'Unauthorized - Invalid or expired Google token',
   })
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(@Req() req, @Res() res: Response) {
- const data: OAuthLoginDto = {
-      provider: Provider.Google,          
-      providerId: req.user.googleId,       
+    const data: OAuthLoginDto = {
+      provider: Provider.Google,
+      providerId: req.user.googleId,
       email: req.user.email,
       name: req.user.firstName + ' ' + req.user.lastName,
       accessToken: req.user.accessToken,
@@ -92,17 +88,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Handles successful Google login' })
   @ApiResponse({
     status: 200,
-    description: 'Successful login with JWT token'
+    description: 'Successful login with JWT token',
   })
   async googleLoginSuccess(@Query('token') token: string) {
     return { message: 'Login successful', token };
   }
 
-
   @ApiOperation({ summary: 'Redirects to Facebook OAuth2 consent screen' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to Facebook OAuth2 consent screen'
+    description: 'Redirects to Facebook OAuth2 consent screen',
   })
   @Get('facebook')
   @UseGuards(AuthGuard('facebook'))
@@ -113,21 +108,21 @@ export class AuthController {
   @ApiOperation({ summary: 'Handles Facebook OAuth2 callback' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to success page with JWT token'
+    description: 'Redirects to success page with JWT token',
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - Invalid or expired Facebook token'
+    description: 'Unauthorized - Invalid or expired Facebook token',
   })
   @Get('facebook/callback')
   @UseGuards(AuthGuard('facebook'))
   async facebookAuthCallback(@Req() req, @Res() res: Response) {
-    if (!req.user) { 
+    if (!req.user) {
       throw new UnauthorizedException('Invalid or expired Facebook token');
     }
-   const data: OAuthLoginDto = {
-      provider: Provider.Facebook,           // e.g., 'facebook'
-      providerId: req.user.facebookId,       // e.g., '123456789'
+    const data: OAuthLoginDto = {
+      provider: Provider.Facebook, // e.g., 'facebook'
+      providerId: req.user.facebookId, // e.g., '123456789'
       email: req.user.email,
       name: req.user.displayName,
       accessToken: req.user.accessToken,
@@ -137,11 +132,10 @@ export class AuthController {
     res.redirect(`/auth/success?token=${result.access_token}`);
   }
 
-
   @ApiOperation({ summary: 'Redirects to GitHub OAuth2 consent screen' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to GitHub OAuth2 consent screen'
+    description: 'Redirects to GitHub OAuth2 consent screen',
   })
   @Get('github')
   @UseGuards(AuthGuard('github'))
@@ -152,11 +146,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Handles GitHub OAuth2 callback' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to success page with JWT token'
+    description: 'Redirects to success page with JWT token',
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - Invalid or expired GitHub token'
+    description: 'Unauthorized - Invalid or expired GitHub token',
   })
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
@@ -172,8 +166,8 @@ export class AuthController {
     }
 
     const data: OAuthLoginDto = {
-      provider: Provider.GitHub,           // e.g., 'github'
-      providerId: req.user.githubId,       // e.g., '123456789'
+      provider: Provider.GitHub, // e.g., 'github'
+      providerId: req.user.githubId, // e.g., '123456789'
       email: req.user.email,
       name: req.user.displayName,
       accessToken: req.user.accessToken,
@@ -187,16 +181,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Shows authentication success page' })
   @ApiResponse({
     status: 200,
-    description: 'Authentication successful message'
+    description: 'Authentication successful message',
   })
   @Get('success')
   async authSuccess(@Req() req, @Res() res: Response) {
-
     // This endpoint can be used to show a success page or handle the token
     res.send('Authentication successful! You can close this window.');
   }
-
-  
 
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })
@@ -379,7 +370,7 @@ export class AuthController {
     @Query('token') token: string,
     @Res() res: Response,
     @Req() req: Request,
-    @Headers('user-agent') userAgent: string
+    @Headers('user-agent') userAgent: string,
   ) {
     if (!this.validateToken(token)) {
       return res.status(400).send('Invalid or expired token');
@@ -421,14 +412,17 @@ export class AuthController {
     const hashedIp = createHash('sha256').update(ip).digest('hex');
     console.log(`Redirect attempt`, {
       hashedIp,
-      tokenHash: createHash('sha256').update(token).digest('hex').substring(0, 8),
+      tokenHash: createHash('sha256')
+        .update(token)
+        .digest('hex')
+        .substring(0, 8),
       platform,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   private buildResetPasswordPage(token: string): string {
-    const apiBaseUrl = process.env.API_BASE_URL || 'http://89.117.37.84:4000/auth';
+    const apiBaseUrl = process.env.API_BASE_URL;
     const apiEndpoint = `${apiBaseUrl}/password-reset`;
     const loginUrl = `${apiBaseUrl.replace('/auth', '')}/login`;
 
@@ -790,7 +784,4 @@ export class AuthController {
 </html>
     `;
   }
-
-
 }
-
