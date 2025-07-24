@@ -2,7 +2,14 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
-dotenv.config();
+import * as path from 'path';
+dotenv.config({
+  path: path.resolve(
+    __dirname,
+    '..',
+    `.env.${process.env.NODE_ENV || 'development'}`,
+  ),
+});
 
 import { MicroserviceOptions } from '@nestjs/microservices';
 import { AppModule } from './app.module';
@@ -12,9 +19,8 @@ import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  // const app = await NestFactory.create(AppModule);
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.enableCors({ credentials: true, origin: true, });
+  app.enableCors({ credentials: true, origin: true });
   const config = new DocumentBuilder()
     .setTitle('User Management API')
     .setDescription('API for managing users')
@@ -26,7 +32,7 @@ async function bootstrap() {
         bearerFormat: 'Bearer',
         scheme: 'Bearer',
         type: 'http',
-        in: 'Header'
+        in: 'Header',
       },
       'access-token',
     )
