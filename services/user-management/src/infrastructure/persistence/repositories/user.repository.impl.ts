@@ -252,7 +252,11 @@ export class UserRepositoryImpl
   }
 
   async findAllUsersOnly(): Promise<any> {
-    return await this.userRepository.find();
+    return await this.userRepository.find({
+      where: {
+        is_active: true,
+      },
+    });
   }
 
   async update(user: User): Promise<User> {
@@ -306,7 +310,7 @@ export class UserRepositoryImpl
             {
               multi_match: {
                 query,
-                fields: ['name^2', 'user_name'],
+                fields: ['name^2', 'profile_id', 'profile_name'],
               },
             },
           ],
