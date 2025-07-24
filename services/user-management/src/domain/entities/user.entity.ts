@@ -32,7 +32,7 @@ export class User {
   @Column({ nullable: true })
   profile_name: string;
 
-  @Column({ nullable: true})
+  @Column({ nullable: true })
   password: string;
 
   @Column({
@@ -102,7 +102,7 @@ export class User {
   @UpdateDateColumn()
   updated_date: Date;
 
-  @OneToMany(() => OAuthProvider, provider => provider.user)
+  @OneToMany(() => OAuthProvider, (provider) => provider.user)
   providers: OAuthProvider[];
 
   @AfterLoad()
@@ -119,7 +119,9 @@ export class User {
       throw new Error('User ID is required to generate profile details');
     }
 
-    const userIdPrefix = this.user_id.toString().substring(0, 3).toLowerCase();
+    const userIdPrefix =
+      this.user_id.toString().toLowerCase().substring(0, 3) +
+      this.user_id.toString().toLowerCase().slice(-2);
     if (this.account_type === AccountType.PERSONAL && this.personal_account) {
       const personalAccount = this
         .personal_account as unknown as PersonalAccount;

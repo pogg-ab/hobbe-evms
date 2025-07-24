@@ -303,7 +303,8 @@ export class UserService {
         {
           user_id: user.user_id,
           user_name: user.user_name,
-          email: user.user_name,
+          profile_id: user.profile_id,
+          profile_name: user.profile_name,
           isActive: user.is_active,
         },
       ]);
