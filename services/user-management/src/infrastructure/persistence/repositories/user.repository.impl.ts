@@ -13,8 +13,7 @@ import { Client } from '@elastic/elasticsearch';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 @Injectable()
 export class UserRepositoryImpl
-  implements IUserRepository, OnApplicationBootstrap
-{
+  implements IUserRepository, OnApplicationBootstrap {
   private readonly client: Client;
   constructor(
     @InjectRepository(User)
@@ -310,7 +309,7 @@ export class UserRepositoryImpl
             {
               multi_match: {
                 query,
-                fields: ['name^2', 'profile_id', 'profile_name'],
+                fields: ['profile_id^2', 'profile_name'],
               },
             },
           ],
