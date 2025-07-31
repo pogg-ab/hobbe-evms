@@ -7,6 +7,7 @@ import { Payments } from "src/domain/entities/payments.entity";
 import { IPaymentsRepository } from "src/domain/repositories/payments/payments.repository";
 import { KafkaProducerService } from "src/infrastructure/kafka/kafka.producer.servicce";
 import { CreatePaymentDto } from "src/presentation/dtos/payments/create-payments.dto";
+import { TransactionsVolumeByDateRangeDto } from "src/presentation/dtos/reports/trasaction-volume.dto";
 import { Repository } from "typeorm";
 
 
@@ -176,6 +177,53 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
         .where('p.verified_at IS NOT NULL')
         .andWhere('p.verified_at BETWEEN :start AND :end', { start, end })
         .getRawOne();
+    }
+
+    async getTransactionVolumeByDateRange(daterange: TransactionsVolumeByDateRangeDto): Promise<any> {
+      const { startDate, endDate } = daterange;
+      if (!startDate || !endDate) {
+        throw new HttpException(
+          'Start date and end date are required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+
+      return this.paymentRepository
+        .createQueryBuilder('p')
+        .select('COUNT(*)', 'total_transactions')
+        .addSelect('SUM(p.amount)', 'total_value')
+        .where('p.verified_at IS NOT NULL')
+        .andWhere('p.verified_at BETWEEN :start AND :end', {
+          start: new Date(startDate),
+          end: new Date(endDate),
+        })
+        .getRawOne();
+    }
+
+
+    async getAggregatedTransactionVolume(aggregatedTransactionVolumeDto: any): Promise<any> {
+      const { startDate, endDate } = aggregatedTransactionVolumeDto;
+      if (!startDate || !endDate) {
+        throw new HttpException(
+          'Start date and end date are required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return this.paymentRepository
+        .createQueryBuilder('p')
+        .select('DATE_TRUNC(:aggregationType, p.verified_at)', 'date')
+        .addSelect('COUNT(*)', 'total_transactions')
+        .addSelect('SUM(p.amount)', 'total_value')
+        .where('p.verified_at IS NOT NULL')
+        .andWhere('p.verified_at BETWEEN :start AND :end', {
+          start: new Date(startDate),
+          end: new Date(endDate),
+        })
+        .groupBy('date')
+        .setParameter('aggregationType', aggregatedTransactionVolumeDto.aggregationType)
+        .getRawMany();
     }
     
 }
