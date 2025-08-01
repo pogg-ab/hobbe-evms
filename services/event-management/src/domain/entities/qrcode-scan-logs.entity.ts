@@ -16,6 +16,10 @@ export class QrScanLogs {
   @Column({ nullable: true })
   action_taken: string; // e.g., "visited_event_page", "redeemed_promo"
 
+  @Column({ type: 'text', nullable: true })
+  action_taken_after_scan: string; // e.g., "visited_event_page", "redeemed_promo"
+
   @Column({ nullable: true })
   metadata: string; // optional data like IP address, device, etc.
 }
+

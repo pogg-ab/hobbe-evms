@@ -169,7 +169,7 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('event.id = :id', { id })
       .getRawAndEntities();
 
-    if (!event.entities[0]) {
+    if (!event.entities.length) {
       throw new HttpException(
         `Event with ID ${id} not found`,
         HttpStatus.NOT_FOUND,

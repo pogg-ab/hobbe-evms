@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DownloadEntity } from "src/domain/entities/download.entity";
 import { IAnalyticsRepository } from "src/domain/repositories/reports/analytics.repository";
 import { CreateDownloadDto } from "src/presentation/dtos/reports/create-download.dto";
+import { GetDownloadsByDateRangeDto } from "src/presentation/dtos/reports/get-downloads-by-daterange.dto";
 import { Between, Repository } from "typeorm";
 
 
@@ -18,17 +19,61 @@ export class AnalyticsRepositoryImpl implements IAnalyticsRepository {
         await this.downloadRepo.save(download);
     }
 
-    async getDownloadsByDate(collectedAt: Date): Promise<DownloadEntity[]> {
-        return await this.downloadRepo.find({ where: {  collectedAt } });
+
+    async getDownloadsByDate(dto: GetDownloadsByDateRangeDto): Promise<any> {
+        const { startDate, endDate } = dto;
+        // aggregate the the data by platform, device type, os version, and country
+
+        const query = this.downloadRepo.createQueryBuilder('download')
+            .where('download.collectedAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+        query.select([
+            'download.platform',
+            'download.deviceType',
+            'download.osVersion',
+            'download.country',
+            'COUNT(download.id) AS downloadCount'
+        ])
+            .groupBy('download.platform')
+            .addGroupBy('download.deviceType')
+            .addGroupBy('download.osVersion')
+            .addGroupBy('download.country');
+        return await query.getRawMany();
+
+
     }
 
 
-    async getDownloadsByCountry(country: string): Promise<DownloadEntity[]> {
-        return await this.downloadRepo.find({ where: { country } });
+    async getDownloadsByCountry(country: string): Promise<any> {
+        // aggregate the data by platform, device type, os version where country matches
+        const query = this.downloadRepo.createQueryBuilder('download')
+            .where('download.country = :country', { country });
+        query.select([
+            'download.platform',
+            'download.deviceType',
+            'download.osVersion',
+            'COUNT(download.id) AS downloadCount'
+        ])
+            .groupBy('download.platform')
+            .addGroupBy('download.deviceType')
+            .addGroupBy('download.osVersion');
+        return await query.getRawMany();
     }
 
     async getDownloadsByPlatform(platform: 'android' | 'ios' | 'web' | 'desktop'): Promise<DownloadEntity[]> {
-        return await this.downloadRepo.find({ where: { platform } });
+        // aggregate the data by device type, os version, and country where platform matches
+        const query = this.downloadRepo.createQueryBuilder('download')
+            .where('download.platform = :platform', { platform });
+        query.select([
+            'download.deviceType',
+            'download.osVersion',
+            'download.country',
+            'COUNT(download.id) AS downloadCount'
+        ])
+            .groupBy('download.deviceType')
+            .addGroupBy('download.osVersion')
+            .addGroupBy('download.country');
+
+        return await query.getRawMany();
     }
 
     async getDownloadsByDeviceType(deviceType: string): Promise<DownloadEntity[]> {
