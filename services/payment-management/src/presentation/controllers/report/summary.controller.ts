@@ -21,9 +21,10 @@ import { TransactionsVolumeByDateRangeDto } from 'src/presentation/dtos/reports/
 export class ReportsController {
   constructor(private readonly queryBus: QueryBus) {}
 
-  @ApiOperation({ description: 'Transactions Volume' })
+  @ApiOperation({ description: 'Transactions Time-based Performance Summary' })
   @HttpCode(200)
-  @Get('transactions-summary')
+  // @Get('transactions-summary')
+  @Get('transactions-time-based-performance-summary')
   async getSummary() {
     return this.queryBus.execute(new GetMonthlyAndTodayTransactionsQuery());
   }
@@ -84,20 +85,5 @@ export class ReportsController {
     return this.queryBus.execute(
       new AggregatedTransactionVolumeQuery(aggregatedTransactionVolumeDto),
     );
-  }
-
-  // get total transaction value aggregated by day, week, month, year
-  @ApiOperation({
-    description: 'Total Transaction Value Aggregated by Date Range',
-  })
-  @HttpCode(200)
-  @Get('total-transaction-value-aggregated-by-date-range/:startDate/:endDate')
-  async getTotalTransactionValueAggregatedByDateRange(
-    @Param('startDate') startDate: string,
-    @Param('endDate') endDate: string,
-  ) {
-    // This method can be implemented to return aggregated transaction values
-    // based on the provided date range.
-    throw new HttpException('Not implemented yet', HttpStatus.NOT_IMPLEMENTED);
   }
 }
