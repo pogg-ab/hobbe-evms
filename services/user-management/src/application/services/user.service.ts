@@ -270,7 +270,20 @@ export class UserService {
   async suspendUser(userId: string): Promise<any> {
     const user = await this.findUserById(userId);
     if (!user) {
-      throw new Error('User not found');
+      return {
+        success: false,
+        message: 'User not found',
+        status: 'NOT_FOUND',
+      };
+    }
+
+    if (!user.is_active) {
+      return {
+        success: true,
+        message: 'User was already suspended',
+        user,
+        status: 'ALREADY_SUSPENDED',
+      };
     }
 
     const result = await this.userRepository.suspendUser(user);
