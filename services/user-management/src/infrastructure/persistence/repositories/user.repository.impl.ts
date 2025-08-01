@@ -13,7 +13,8 @@ import { Client } from '@elastic/elasticsearch';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 @Injectable()
 export class UserRepositoryImpl
-  implements IUserRepository, OnApplicationBootstrap {
+  implements IUserRepository, OnApplicationBootstrap
+{
   private readonly client: Client;
   constructor(
     @InjectRepository(User)
@@ -411,6 +412,38 @@ export class UserRepositoryImpl
     } catch (error) {
       throw new HttpException(
         `Error finding Users: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async suspendUser(user: User): Promise<any> {
+    try {
+      user.is_active = false;
+      user.updated_date = new Date();
+
+      const suspendedUser = await this.userRepository.save(user);
+
+      await this.client.update({
+        index: 'users',
+        id: user.user_id.toString(),
+        body: {
+          doc: {
+            isActive: false,
+            suspendedAt: user.updated_date.toISOString(),
+          },
+        },
+      });
+
+      return {
+        ...suspendedUser,
+        success: true,
+        message: 'User suspended successfully',
+        statusCode: HttpStatus.OK,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error suspending user: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
