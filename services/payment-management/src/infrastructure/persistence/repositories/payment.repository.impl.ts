@@ -189,7 +189,7 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
       }
 
 
-      return this.paymentRepository
+      const aggregated = this.paymentRepository
         .createQueryBuilder('p')
         .select('COUNT(*)', 'total_transactions')
         .addSelect('SUM(p.amount)', 'total_value')
@@ -199,6 +199,25 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           end: new Date(endDate),
         })
         .getRawOne();
+
+        // i wanna add lists of transactions
+      const transactions = this.paymentRepository
+        .createQueryBuilder('p')
+        .where('p.verified_at IS NOT NULL')
+        .andWhere('p.verified_at BETWEEN :start AND :end', {
+          start: new Date(startDate),
+          end: new Date(endDate),
+        })
+        .getMany();
+
+      return Promise.all([aggregated, transactions]).then(([aggregatedResult, transactionsList]) => {
+        return {
+          total_transactions: aggregatedResult.total_transactions,
+          total_value: aggregatedResult.total_value,
+          transactions: transactionsList,
+        };
+      }
+      );
     }
 
 
