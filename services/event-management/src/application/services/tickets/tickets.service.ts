@@ -8,6 +8,8 @@ import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { TICKETS_LIST_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticketslist.repository.token';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { group } from 'console';
+import { QrCodeActionAfterScannedDto } from 'src/presentation/dtos/qr-code/qr-code-action-after-scanned.dto';
+import { QrAfterScannedActionsAggregateDto } from 'src/presentation/dtos/qr-code/qr-scaned-after-scanned-action-aggregate.dto';
 
 @Injectable()
 export class TicketsService {
@@ -195,7 +197,35 @@ export class TicketsService {
 
   async qrCodeScannedLog(ticket_id: string, metadata: string): Promise<void> {
     return await this.createTicketsRepository.qrCodeScannedLog(ticket_id, metadata);
-  
+  }
+
+  async qrCodeLogAfterScanned(
+   dto: QrCodeActionAfterScannedDto
+  ): Promise<void> {
+    return await this.createTicketsRepository.qrCodeLogAfterScanned(dto);
+  }
+
+
+  async countQrCodeScannedLogs(event_id: string): Promise<any> {
+    // Assuming you have a method in your repository to count scanned logs
+    
+    const data =  await this.createTicketsRepository.countQrCodeScannedLogs(event_id);
+    
+    return data;
+  }
+
+  async qrAfterScannedActionsAggregate(dto: QrAfterScannedActionsAggregateDto): Promise<any> {
+    // Assuming you have a method in your repository to handle actions after scanned
+    const actions = await this.createTicketsRepository.qrCodeActionsAfterScanned(dto);
+    
+    return actions;
+  }
+
+  async aggregateQrCodeScannedLogs(dto: any): Promise<any> {
+    // Assuming you have a method in your repository to aggregate scanned logs
+    const aggregatedLogs = await this.createTicketsRepository.aggregateQrCodeScannedLogs(dto);
+    
+    return aggregatedLogs;
   }
 
 

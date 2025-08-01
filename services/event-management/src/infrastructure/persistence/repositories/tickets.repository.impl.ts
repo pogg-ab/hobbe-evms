@@ -6,6 +6,8 @@ import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { ITicketsRepository } from 'src/domain/repositories/tickets/tickets.repository';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
+import { QrCodeActionAfterScannedDto } from 'src/presentation/dtos/qr-code/qr-code-action-after-scanned.dto';
+import { QrAfterScannedActionsAggregateDto } from 'src/presentation/dtos/qr-code/qr-scaned-after-scanned-action-aggregate.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { DataSource, EntityManager, Equal, Not, Repository } from 'typeorm';
 
@@ -483,7 +485,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   async qrCodeScannedLog(
     ticket_id: string,
     metadata: string,
-  ): Promise<void> {
+  ): Promise<any> {
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { ticket_no: ticket_id },
@@ -500,12 +502,142 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         scanned_at: new Date(),
         metadata: metadata,
       });
-      await this.dataSource.getRepository('QrScanLogs').save(qrScanLog);
+      return await this.dataSource.getRepository('QrScanLogs').save(qrScanLog);
     } catch (error) {
       throw new HttpException(
         `Error logging QR code scan: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async qrCodeLogAfterScanned(
+    dto: QrCodeActionAfterScannedDto
+  ): Promise<void> {
+    try {
+      const qrScanLog = await this.dataSource.getRepository('QrScanLogs').findOne({
+        where: { id: dto.id },
+      });
+
+      if (!qrScanLog) {
+        throw new NotFoundException(`QR Scan Log with ID ${dto.id} not found`);
+      }
+
+      qrScanLog.action_taken_after_scan = dto.action_taken_after_scan;
+      await this.dataSource.getRepository('QrScanLogs').save(qrScanLog);
+    } catch (error) {
+      throw new HttpException(
+        `Error updating QR code scan log after scan: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async countQrCodeScannedLogs(event_id: string): Promise<any> {
+    try {
+      const count = await this.dataSource
+        .getRepository('QrScanLogs')
+        .createQueryBuilder('qr_scan_logs')
+        .leftJoinAndSelect('qr_scan_logs.ticket', 'ticket')
+        .where('ticket.event_id = :eventId', { eventId: event_id })
+        .getCount();
+
+        // can we add each ticket_id and count of scanned logs
+      const scannedLogs = await this.dataSource
+        .getRepository('QrScanLogs')
+        .createQueryBuilder('qr_scan_logs')
+        .select('qr_scan_logs.ticket_id', 'ticket_id')
+
+        .addSelect('COUNT(qr_scan_logs.id)', 'scanned_count')
+        .where('qr_scan_logs.ticket_id IN (SELECT id FROM tickets WHERE event_id = :eventId)', { eventId: event_id })
+        .groupBy('qr_scan_logs.ticket_id')
+        .getRawMany();
+     
+      return scannedLogs.map(log => ({
+        event: event_id,
+        ticket_id: log.ticket_id,
+        scannedCount: log.scanned_count,
+      }));
+        
+
+    } catch (error) {
+      throw new HttpException(
+        `Error counting QR code scanned logs for Event ID ${event_id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
+  async qrCodeActionsAfterScanned(
+    dto: QrAfterScannedActionsAggregateDto
+  ): Promise<any> {
+    try {
+      const actions = await this.dataSource
+        .getRepository('QrScanLogs')
+        .createQueryBuilder('qr_scan_logs')
+        .select('qr_scan_logs.action_taken_after_scan', 'action_taken_after_scan')
+        .addSelect('COUNT(qr_scan_logs.id)', 'scanned_count')
+        .where('qr_scan_logs.scanned_at BETWEEN :startDate AND :endDate', {
+          startDate: dto.startDate,
+          endDate: dto.endDate,
+        })
+        .groupBy('qr_scan_logs.action_taken_after_scan')
+        .getRawMany();
+
+      return actions.map(action => ({
+        action_taken_after_scan: action.action_taken_after_scan,
+        scanned_count: action.scanned_count,
+      }));
+    } catch (error) {
+      throw new HttpException(
+        `Error aggregating QR code actions after scanned: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async aggregateQrCodeScannedLogs(dto: any): Promise<any> {
+
+    // Assuming dto contains startDate and endDate for the aggregation
+    if (!dto.startDate || !dto.endDate) {
+      throw new BadRequestException('Start date and end date are required for aggregation');
+    }
+    if (!dto.aggregateType || !['day', 'week', 'month', 'year'].includes(dto.aggregateType)) {
+      throw new BadRequestException('Invalid aggregate type. Must be one of: day, week, month, year');
+    }
+
+    // Example aggregation logic using TypeORM QueryBuilder
+    // undurstand aggregation type is time range
+    const queryBuilder = this.dataSource
+      .getRepository('QrScanLogs')
+      .createQueryBuilder('qr_scan_logs')
+      .select('qr_scan_logs.ticket_id', 'ticket_id')
+      .addSelect(`DATE_TRUNC('${dto.aggregateType}', qr_scan_logs.scanned_at)`, 'aggregation_date')
+      .addSelect('COUNT(qr_scan_logs.id)', 'scanned_count')
+      .where('qr_scan_logs.scanned_at BETWEEN :startDate AND :endDate', {
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+      })
+      .groupBy('qr_scan_logs.ticket_id, aggregation_date');
+    try {
+      const aggregatedLogs = await queryBuilder.getRawMany();
+
+      // Format the result to match the expected output
+      return aggregatedLogs.map(log => ({
+        ticket_id: log.ticket_id,
+        aggregation_date: log.aggregation_date,
+        scanned_count: log.scanned_count,
+      }));
+    } catch (error) {
+      throw new HttpException(
+        `Error aggregating QR code scanned logs: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } 
+    
+
+   
+    
   }
 }

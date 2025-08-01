@@ -7,8 +7,9 @@ import { AppDownloadsByCountryQuery } from 'src/application/queries/reports/app-
 import { AppDownloadsByDateQuery } from 'src/application/queries/reports/app-users/downloads-by-date.query';
 import { AppDownloadsByPlatformQuery } from 'src/application/queries/reports/app-users/downloads-by-platform.query';
 import { CreateDownloadDto } from 'src/presentation/dtos/reports/create-download.dto';
+import { GetDownloadsByDateRangeDto } from 'src/presentation/dtos/reports/get-downloads-by-daterange.dto';
 
-@Controller('analytics')
+@Controller('downloads')
 export class AnalyticsController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -20,7 +21,7 @@ export class AnalyticsController {
   @ApiAcceptedResponse({
     description: 'Download data collected successfully',})
     @HttpCode(202)
-  @Post('collect')
+  @Post('store')
   async collectData(@Body() dto: CreateDownloadDto) {
     return await this.commandBus.execute(new CollectDownloadCommand(dto));
   }
@@ -48,9 +49,22 @@ export class AnalyticsController {
     description: 'Download data by date',
   })
   @HttpCode(200)
-  @Get('downloads/:date')
-  async getDownloadsByDate(@Param('date') date: Date) {
-    return await this.queryBus.execute(new AppDownloadsByDateQuery(date));
+  @ApiBody({ type : GetDownloadsByDateRangeDto })
+  @Post('daterange')
+  async getDownloadsByDate(
+    @Body() dto: GetDownloadsByDateRangeDto
+  ) {
+
+    // Use the query bus to execute the query
+    if (!dto.startDate || !dto.endDate) {
+      throw new Error('Start date and end date are required');
+    }
+    if (new Date(dto.startDate) > new Date(dto.endDate)) {
+      throw new Error('Start date cannot be after end date');
+    }
+
+    
+    return await this.queryBus.execute(new AppDownloadsByDateQuery(dto));
   }
 
   @HttpCode(200)

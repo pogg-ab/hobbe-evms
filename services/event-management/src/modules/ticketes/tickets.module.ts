@@ -25,6 +25,10 @@ import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { FindOneQueryHandler } from 'src/application/handlers/tickets/find-one.query.handler';
 import { QrCodeScannedLogHandler } from 'src/application/handlers/tickets/qrcode-scanned-log.handler';
+import { CountQrCodeScannedLogsQueryHandler } from 'src/application/handlers/qr-code/count-qr-code-scanned-logs-query.handler';
+import { QrScannedAggregateQueryHandler } from 'src/application/handlers/qr-code/qr-code-scanned-logs-aggregate-query.handler';
+import { QrCodeLogAfterScannedCommandHandler } from 'src/application/handlers/qr-code/qr-code-log-after-scanned-command.handler';
+import { QrAfterScannedActionsAggregateQueryHandler } from 'src/application/handlers/qr-code/qr-code-actions-after-scanned-query.handler';
 
 @Module({
 
@@ -46,6 +50,10 @@ import { QrCodeScannedLogHandler } from 'src/application/handlers/tickets/qrcode
     TicketsFindByIdQueryHandler,
     TicketsFindByHeadingQueryHandler,
     QrCodeScannedLogHandler,
+    CountQrCodeScannedLogsQueryHandler,
+    QrScannedAggregateQueryHandler,
+    QrCodeLogAfterScannedCommandHandler,
+    QrAfterScannedActionsAggregateQueryHandler,
     {
       provide: TICKETS_LIST_REPOSITORY_TOKEN,
       useClass: TicketsRepositoryEmpl,

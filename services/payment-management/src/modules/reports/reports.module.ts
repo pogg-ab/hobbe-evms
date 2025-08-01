@@ -8,8 +8,6 @@ import { PaymentsService } from 'src/application/services/payments/payments.serv
 import { Payments } from 'src/domain/entities/payments.entity';
 import { ReportsController } from 'src/presentation/controllers/report/summary.controller';
 import { PaymentsModule } from '../payment-methods/payments/payments.module';
-import { TransactionsVolumeByDateRangeHandler } from 'src/application/handlers/payments/tansaction-volume-by-date-range.handler';
-import { AggregatedTransactionVolumeQueryHandler } from 'src/application/handlers/payments/aggregated-transaction-volume.handler';
 
 @Module({
   imports: [
@@ -21,8 +19,6 @@ import { AggregatedTransactionVolumeQueryHandler } from 'src/application/handler
     PaymentsService,
     GetMonthlyAndTodayTransactionsHandler,
     GetMonthlyAndTodayTransactionsQuery,
-    TransactionsVolumeByDateRangeHandler,
-    AggregatedTransactionVolumeQueryHandler,
   ],
 })
 export class ReportsModule {}
