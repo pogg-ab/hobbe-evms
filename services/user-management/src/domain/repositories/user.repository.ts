@@ -33,5 +33,6 @@ export interface IUserRepository {
     limit: number;
   }>;
 
-  suspendUser(user: User): Promise<any>;
+  suspendUser(userId: string): Promise<any>;
+  reactivateUser(userId: string): Promise<any>;
 }

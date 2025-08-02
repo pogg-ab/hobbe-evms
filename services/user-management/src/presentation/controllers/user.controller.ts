@@ -34,6 +34,7 @@ import { SearchFilters } from '../dtos/search-filters.dto';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserService } from 'src/application/services/user.service';
 import { SuspendUserCommand } from 'src/application/commands/user/suspend-user.command';
+import { ReactivateUserCommand } from 'src/application/commands/user/reactivate-user.command';
 
 @ApiTags('Users')
 @Controller('users')
@@ -176,11 +177,23 @@ export class UserController {
     description: 'User not found',
   })
   async suspendUser(@Param('id') userId: string): Promise<User> {
-    const user = await this.queryBus.execute(new FindUserByIdQuery(userId));
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-
     return this.commandBus.execute(new SuspendUserCommand(userId));
+  }
+
+  @Put('reactivate/:id')
+  // @ApiBearerAuth('access-token')
+  // @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Reactivate a suspended user account' })
+  @ApiResponse({
+    status: 200,
+    description: 'User account reactivated successfully',
+    type: User,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'User not found or already active',
+  })
+  async reactivateUser(@Param('id') userId: string): Promise<User> {
+    return this.commandBus.execute(new ReactivateUserCommand(userId));
   }
 }

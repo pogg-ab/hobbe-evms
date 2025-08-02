@@ -11,6 +11,12 @@ import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { EntityManager, IsNull, Repository } from 'typeorm';
 import { Client } from '@elastic/elasticsearch';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { AccountStatus } from 'src/domain/value-objects/account-status.value-object';
+import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
+import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
+import { Connection } from 'typeorm';
+import { AccountType } from 'src/domain/value-objects/account-type.value-object';
+
 @Injectable()
 export class UserRepositoryImpl
   implements IUserRepository, OnApplicationBootstrap
@@ -19,9 +25,14 @@ export class UserRepositoryImpl
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(PersonalAccount)
+    private personalAccountRepository: Repository<PersonalAccount>,
+    @InjectRepository(OrganizationalAccount)
+    private organizationalAccountRepository: Repository<OrganizationalAccount>,
     @InjectRepository(Follower)
     private followerRepository: Repository<Follower>,
     private readonly elasticsearchConfig: ElasticsearchConfig,
+    private connection: Connection,
   ) {
     this.client = elasticsearchConfig.getClient();
   }
@@ -228,6 +239,7 @@ export class UserRepositoryImpl
             account_type: user.account_type,
             profile_id: user.profile_id,
             profile_name: user.profile_name,
+            is_active: user.is_active,
             account_info:
               user.account_type === 'personal'
                 ? user.personal_account
@@ -417,35 +429,215 @@ export class UserRepositoryImpl
     }
   }
 
-  async suspendUser(user: User): Promise<any> {
+  async suspendUser(userId: string): Promise<any> {
+    const queryRunner = this.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
-      user.is_active = false;
-      user.updated_date = new Date();
-
-      const suspendedUser = await this.userRepository.save(user);
-
-      await this.client.update({
-        index: 'users',
-        id: user.user_id.toString(),
-        body: {
-          doc: {
-            isActive: false,
-            suspendedAt: user.updated_date.toISOString(),
-          },
-        },
+      const user = await queryRunner.manager.findOne(User, {
+        where: { user_id: userId },
+        select: ['user_id', 'user_name', 'account_type', 'is_active'],
+        loadRelationIds: true,
       });
 
+      if (!user) {
+        await queryRunner.rollbackTransaction();
+        return {
+          success: false,
+          message: 'User not found',
+          status: 'NOT_FOUND',
+        };
+      }
+
+      if (!user.is_active) {
+        await queryRunner.rollbackTransaction();
+        return {
+          success: true,
+          message: 'User was already suspended',
+          user,
+          status: 'ALREADY_SUSPENDED',
+        };
+      }
+
+      const accountId =
+        user.account_type === AccountType.PERSONAL
+          ? (user as any).personal_account
+          : (user as any).organizational_account;
+
+      let account;
+      if (user.account_type === AccountType.PERSONAL) {
+        account = await queryRunner.manager.findOne(PersonalAccount, {
+          where: { personal_account_id: accountId.personal_account_id },
+        });
+      } else {
+        account = await queryRunner.manager.findOne(OrganizationalAccount, {
+          where: {
+            organizational_account_id: accountId.organizational_account_id,
+          },
+        });
+      }
+
+      if (!account) {
+        await queryRunner.rollbackTransaction();
+        throw new HttpException(
+          `${user.account_type} account not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (account.status === 'suspended') {
+        await queryRunner.rollbackTransaction();
+        return {
+          success: true,
+          message: 'Account was already suspended',
+          account,
+          status: 'ALREADY_SUSPENDED',
+        };
+      }
+
+      account.status = new AccountStatus('suspended');
+      account.updated_date = new Date();
+      await queryRunner.manager.save(account);
+
+      user.is_active = false;
+      user.updated_date = new Date();
+      await queryRunner.manager.save(User, user);
+
+      await queryRunner.commitTransaction();
+
+      try {
+        await this.client.update({
+          index: 'users',
+          id: user.user_id.toString(),
+          body: {
+            doc: {
+              isActive: false,
+              suspendedAt: user.updated_date.toISOString(),
+            },
+          },
+        });
+      } catch (esError) {
+        throw new HttpException(
+          'User suspended but Elasticsearch sync failed. Reverted DB changes.',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
       return {
-        ...suspendedUser,
         success: true,
         message: 'User suspended successfully',
         statusCode: HttpStatus.OK,
       };
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       throw new HttpException(
         `Error suspending user: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async reactivateUser(userId: string): Promise<any> {
+    const queryRunner = this.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const user = await queryRunner.manager.findOne(User, {
+        where: { user_id: userId },
+        select: ['user_id', 'user_name', 'account_type', 'is_active'],
+        loadRelationIds: true,
+      });
+
+      if (!user) {
+        await queryRunner.rollbackTransaction();
+        return {
+          success: false,
+          message: 'User not found',
+          status: 'NOT_FOUND',
+        };
+      }
+
+      if (user.is_active) {
+        await queryRunner.rollbackTransaction();
+        return {
+          success: true,
+          message: 'User was already active',
+          user,
+          status: 'ALREADY_ACTIVE',
+        };
+      }
+
+      const accountId =
+        user.account_type === AccountType.PERSONAL
+          ? (user as any).personal_account
+          : (user as any).organizational_account;
+
+      let account;
+      if (user.account_type === AccountType.PERSONAL) {
+        account = await queryRunner.manager.findOne(PersonalAccount, {
+          where: { personal_account_id: accountId.personal_account_id },
+        });
+      } else {
+        account = await queryRunner.manager.findOne(OrganizationalAccount, {
+          where: {
+            organizational_account_id: accountId.organizational_account_id,
+          },
+        });
+      }
+
+      if (!account) {
+        await queryRunner.rollbackTransaction();
+        throw new HttpException(
+          `${user.account_type} account not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      account.status = new AccountStatus('active');
+      account.updated_date = new Date();
+      await queryRunner.manager.save(account);
+
+      user.is_active = true;
+      user.updated_date = new Date();
+      await queryRunner.manager.save(User, user);
+
+      await queryRunner.commitTransaction();
+
+      try {
+        await this.client.update({
+          index: 'users',
+          id: user.user_id.toString(),
+          body: {
+            doc: {
+              isActive: true,
+              reactivatedAt: user.updated_date.toISOString(),
+            },
+          },
+        });
+      } catch (esError) {
+        throw new HttpException(
+          'User reactivated but Elasticsearch sync failed. Reverted DB changes.',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return {
+        success: true,
+        message: 'User reactivated successfully',
+        statusCode: HttpStatus.OK,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(
+        `Error reactivating user: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } finally {
+      await queryRunner.release();
     }
   }
 }
