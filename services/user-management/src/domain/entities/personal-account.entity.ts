@@ -49,15 +49,11 @@ export class PersonalAccount {
   gender: string;
 
   @Column({
-    type: 'varchar',
-    length: 20,
-    default: 'active',
-    transformer: {
-      to: (value: AccountStatus) => (value ? value.toString() : 'active'),
-      from: (value: string) => new AccountStatus(value as Status),
-    },
+    type: 'enum',
+    enum: Status,
+    default: Status.ACTIVE,
   })
-  status: AccountStatus = new AccountStatus('active');
+  status: Status = Status.ACTIVE;
 
   @Column({ default: false })
   is_verified: boolean;
