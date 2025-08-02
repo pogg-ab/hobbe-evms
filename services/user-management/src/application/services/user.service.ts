@@ -22,7 +22,6 @@ import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-org
 import { UpdatePersonalAccountDto } from 'src/presentation/dtos/update-personal-account.dto';
 import { UpdateUserDto } from 'src/presentation/dtos/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
 import { DataSource } from 'typeorm';
 import { Owner } from 'src/domain/entities/owner.entity';
 import { OWNER_REPOSITORY_TOKEN } from 'src/domain/repositories/owner.repository.token';
@@ -268,7 +267,29 @@ export class UserService {
       );
     }
   }
+  async suspendUser(userId: string): Promise<any> {
+    const user = await this.findUserById(userId);
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not found',
+        status: 'NOT_FOUND',
+      };
+    }
 
+    if (!user.is_active) {
+      return {
+        success: true,
+        message: 'User was already suspended',
+        user,
+        status: 'ALREADY_SUSPENDED',
+      };
+    }
+
+    const result = await this.userRepository.suspendUser(user);
+
+    return result;
+  }
   async searchUsers(
     searchTerm: string,
     filters: SearchFilters,

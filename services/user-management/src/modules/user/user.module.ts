@@ -28,52 +28,61 @@ import { PersonalAccountRepositoryImpl } from 'src/infrastructure/persistence/re
 import { SocialMediaRepositoryImpl } from 'src/infrastructure/persistence/repositories/social-media.repository.impl';
 import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/user.repository.impl';
 import { UserController } from 'src/presentation/controllers/user.controller';
-import { FollowerModule } from '../follower/follower.module';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
-import { SearchUsersQuery } from 'src/application/queries/user/search-users.query';
 import { SearchUsersQueryHandler } from 'src/application/handlers/user/search-users.query-handler';
+import { SuspendUserCommandHandler } from 'src/application/handlers/user/suspend-user.command.handler';
 
 @Module({
-    imports: [AutomapperModule, TypeOrmModule.forFeature([
-        User, PersonalAccount, OrganizationalAccount, SocialMedia,
-        Owner, Follower,
-        KYC]), CqrsModule],
-    controllers: [UserController],
-    providers: [
-        UserService,
-        ElasticsearchConfig,
-        FindAllUsersQueryHandler,
-        FindUserByIdQueryHandler,
-        UpdateUserCommandHandler,
-        SearchUsersQueryHandler,
-        {
-            provide: USER_REPOSITORY_TOKEN,
-            useClass: UserRepositoryImpl,
-        },
-        {
-            provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
-            useClass: PersonalAccountRepositoryImpl,
-        },
-        {
-            provide: ORGANIZATIONAL_ACCOUNT_REPOSITORY_TOKEN,
-            useClass: OrganizationalAccountRepositoryImpl,
-        },
-        {
-            provide: OWNER_REPOSITORY_TOKEN,
-            useClass: OwnerRepositoryImpl,
-        },
-        {
-            provide: KYC_REPOSITORY_TOKEN,
-            useClass: KYCRepositoryImpl,
-        },
-        {
-            provide: SOCIAL_MEDIA_REPOSITORY_TOKEN,
-            useClass: SocialMediaRepositoryImpl,
-        },
-        {
-            provide: FOLLOWER_REPOSITORY_TOKEN,
-            useClass: FollowerRepositoryImpl,
-        },
-    ],
+  imports: [
+    AutomapperModule,
+    TypeOrmModule.forFeature([
+      User,
+      PersonalAccount,
+      OrganizationalAccount,
+      SocialMedia,
+      Owner,
+      Follower,
+      KYC,
+    ]),
+    CqrsModule,
+  ],
+  controllers: [UserController],
+  providers: [
+    UserService,
+    ElasticsearchConfig,
+    FindAllUsersQueryHandler,
+    FindUserByIdQueryHandler,
+    UpdateUserCommandHandler,
+    SuspendUserCommandHandler,
+    SearchUsersQueryHandler,
+    {
+      provide: USER_REPOSITORY_TOKEN,
+      useClass: UserRepositoryImpl,
+    },
+    {
+      provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
+      useClass: PersonalAccountRepositoryImpl,
+    },
+    {
+      provide: ORGANIZATIONAL_ACCOUNT_REPOSITORY_TOKEN,
+      useClass: OrganizationalAccountRepositoryImpl,
+    },
+    {
+      provide: OWNER_REPOSITORY_TOKEN,
+      useClass: OwnerRepositoryImpl,
+    },
+    {
+      provide: KYC_REPOSITORY_TOKEN,
+      useClass: KYCRepositoryImpl,
+    },
+    {
+      provide: SOCIAL_MEDIA_REPOSITORY_TOKEN,
+      useClass: SocialMediaRepositoryImpl,
+    },
+    {
+      provide: FOLLOWER_REPOSITORY_TOKEN,
+      useClass: FollowerRepositoryImpl,
+    },
+  ],
 })
-export class UserModule { }
+export class UserModule {}

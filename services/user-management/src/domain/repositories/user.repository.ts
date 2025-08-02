@@ -32,4 +32,6 @@ export interface IUserRepository {
     page: number;
     limit: number;
   }>;
+
+  suspendUser(user: User): Promise<any>;
 }
