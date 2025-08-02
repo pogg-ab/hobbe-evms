@@ -268,25 +268,13 @@ export class UserService {
     }
   }
   async suspendUser(userId: string): Promise<any> {
-    const user = await this.findUserById(userId);
-    if (!user) {
-      return {
-        success: false,
-        message: 'User not found',
-        status: 'NOT_FOUND',
-      };
-    }
+    const result = await this.userRepository.suspendUser(userId);
 
-    if (!user.is_active) {
-      return {
-        success: true,
-        message: 'User was already suspended',
-        user,
-        status: 'ALREADY_SUSPENDED',
-      };
-    }
+    return result;
+  }
 
-    const result = await this.userRepository.suspendUser(user);
+  async reactivateUser(userId: string): Promise<any> {
+    const result = await this.userRepository.reactivateUser(userId);
 
     return result;
   }

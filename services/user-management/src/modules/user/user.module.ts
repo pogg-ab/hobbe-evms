@@ -30,7 +30,9 @@ import { UserRepositoryImpl } from 'src/infrastructure/persistence/repositories/
 import { UserController } from 'src/presentation/controllers/user.controller';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 import { SearchUsersQueryHandler } from 'src/application/handlers/user/search-users.query-handler';
-import { SuspendUserCommandHandler } from 'src/application/handlers/user/suspend-user.command.handler';
+import { SuspendUserCommandHandler } from 'src/application/handlers/user/suspend-user.command-handler';
+import { ReactivateUserCommand } from 'src/application/commands/user/reactivate-user.command';
+import { ReactivateUserCommandHandler } from 'src/application/handlers/user/reactivate-user.command-handler';
 
 @Module({
   imports: [
@@ -55,6 +57,7 @@ import { SuspendUserCommandHandler } from 'src/application/handlers/user/suspend
     UpdateUserCommandHandler,
     SuspendUserCommandHandler,
     SearchUsersQueryHandler,
+    ReactivateUserCommandHandler,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,

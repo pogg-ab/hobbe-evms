@@ -1,4 +1,4 @@
-type Status = 'active' | 'inactive' | 'suspended' | 'pending';
+export type Status = 'active' | 'inactive' | 'suspended' | 'pending';
 
 export class AccountStatus {
   private readonly status: Status;

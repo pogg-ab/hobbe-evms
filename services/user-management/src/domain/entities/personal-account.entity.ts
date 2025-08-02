@@ -1,12 +1,16 @@
 // src/domain/entities/personal-account.entity.ts
 import {
+  BeforeInsert,
   Column,
   CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { AccountStatus } from '../value-objects/account-status.value-object';
+import {
+  AccountStatus,
+  Status,
+} from '../value-objects/account-status.value-object';
 import { PersonalAccountID } from '../value-objects/personal-account-id.value-object';
 
 @Entity()
@@ -44,8 +48,16 @@ export class PersonalAccount {
   @Column()
   gender: string;
 
-  @Column(() => AccountStatus)
-  status: AccountStatus;
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: 'active',
+    transformer: {
+      to: (value: AccountStatus) => (value ? value.toString() : 'active'),
+      from: (value: string) => new AccountStatus(value as Status),
+    },
+  })
+  status: AccountStatus = new AccountStatus('active');
 
   @Column({ default: false })
   is_verified: boolean;
