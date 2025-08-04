@@ -17,11 +17,9 @@ import { kafkaConfig } from './infrastructure/kafka/kafka.config';
 import { kafkaProducerConfig } from './infrastructure/kafka/kafka.producer.config';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.use(cookieParser());
   app.enableCors({ credentials: true, origin: true });
   const config = new DocumentBuilder()
     .setTitle('User Management API')
@@ -49,7 +47,7 @@ async function bootstrap() {
   app.useStaticAssets(join(__dirname, '..', 'public'));
 
   await app.startAllMicroservices();
-  
+
   await app.listen(4000);
 }
 

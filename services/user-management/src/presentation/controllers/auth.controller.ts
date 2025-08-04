@@ -52,38 +52,11 @@ export class AuthController {
     status: 302,
     description: 'Redirects to Google OAuth2 consent screen',
   })
- @Get('google')
-googleAuth(
-  @Query('redirect_uri') redirectUri: string,
-  @Res() res: Response,
-) {
-  // 1. Set cookie
-  if (redirectUri) {
-    res.cookie('redirect_uri', redirectUri, {
-      httpOnly: true,
-      secure: false, // false for localhost only!
-      sameSite: 'lax',
-      maxAge: 5 * 60 * 1000,
-    });
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Guard redirects to Google
   }
-
-  // 2. Build the Google OAuth URL manually
-  const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID,
-    redirect_uri: process.env.GOOGLE_CALLBACK_URL,
-    response_type: 'code',
-    scope: 'email profile',
-    access_type: 'offline',
-    prompt: 'consent',
-  });
-
-  const googleOAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-
-  // 3. Redirect
-  return res.redirect(googleOAuthUrl);
-}
-
-
 
   @ApiOperation({ summary: 'Handles Google OAuth2 callback' })
   @ApiResponse({
@@ -105,18 +78,10 @@ googleAuth(
       accessToken: req.user.accessToken,
       refreshToken: req.user.refreshToken,
     };
-
     const result = await this.oauthLogin(data);
-    const redirectUri =
-      req.cookies?.redirect_uri ||
-      'https://s.skylinkict.com/';
+    res.redirect(`/auth/success?token=${result.access_token}`);
 
-    const redirectUrl = `${redirectUri}?access_token=${encodeURIComponent(result.access_token)}&refresh_token=${encodeURIComponent(result.refreshToken)}`;
-
-    return res.redirect(redirectUrl);
-    
-    // return res.redirect(`hobbeems://auth/success?access_token=${result.accessToken}&refresh_token=${result.refreshToken}`);
-
+    // return result;
   }
 
   @Get('success')
@@ -125,18 +90,8 @@ googleAuth(
     status: 200,
     description: 'Successful login with JWT token',
   })
-  async googleLoginSuccess(
-    @Query('access_token') accessToken: string,
-    @Query('refresh_token') refreshToken: string,
-  ) {
-    return {
-      message: 'Login successful',
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    };
-
-    //   const redirectUrl = `hobbeems://auth/success?access_token=${access_token}&refresh_token=${refresh_token}`;
-    //   return res.redirect(redirectUrl);
+  async googleLoginSuccess(@Query('token') token: string) {
+    return { message: 'Login successful', token };
   }
 
   @ApiOperation({ summary: 'Redirects to Facebook OAuth2 consent screen' })
