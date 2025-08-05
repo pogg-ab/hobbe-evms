@@ -31,10 +31,14 @@ import { QrCodeLogAfterScannedCommandHandler } from 'src/application/handlers/qr
 import { QrAfterScannedActionsAggregateQueryHandler } from 'src/application/handlers/qr-code/qr-code-actions-after-scanned-query.handler';
 
 @Module({
-
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([Tickets, ParticipantHasTicket, TicketBooking, Events]),
+    TypeOrmModule.forFeature([
+      Tickets,
+      ParticipantHasTicket,
+      TicketBooking,
+      Events,
+    ]),
     CqrsModule,
   ],
   controllers: [TicketsController],
@@ -69,5 +73,4 @@ import { QrAfterScannedActionsAggregateQueryHandler } from 'src/application/hand
   ],
   exports: [TICKETS_LIST_REPOSITORY_TOKEN],
 })
-export class TicketsModule { }
-
+export class TicketsModule {}

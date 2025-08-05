@@ -49,7 +49,7 @@ import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/
 import { AnalyticsEventCommandHandler } from 'src/application/handlers/analytics/analytics-events.handler';
 import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
 import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/events/find-events-by-user-and-status.handler';
-
+import { GetUserEventStatsQueryHandler } from 'src/application/handlers/analytics/get-user-event-stats.query-handler';
 
 @Module({
   imports: [
@@ -82,11 +82,7 @@ import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/
     TypeOrmModule.forFeature([Events, Tickets, ParticipantHasTicket]),
     CqrsModule,
   ],
-  controllers: [
-    EventsController,
-    AnalyticsController,
-
-  ],
+  controllers: [EventsController, AnalyticsController],
   providers: [
     EventsService,
     CreateTicketsDto,
@@ -113,6 +109,7 @@ import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/
     SingleEventAnalyticsCommandHandler,
     AnalyticsEventCommandHandler,
     SearchEventQueryHandler,
+    GetUserEventStatsQueryHandler,
     EventsProfile,
     UserValidationService,
     JwtStrategy,
@@ -128,7 +125,9 @@ import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/
   ],
 })
 export class EventsModule {
-  constructor(@Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka) { }
+  constructor(
+    @Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka,
+  ) {}
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');

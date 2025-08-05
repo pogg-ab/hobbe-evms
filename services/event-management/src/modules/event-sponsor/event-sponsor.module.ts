@@ -15,6 +15,7 @@ import { EventSponsorService } from 'src/application/services/event-sponsor/even
 import { UserInfoService } from 'src/application/services/user-info/user-info.service';
 import { EventSponsor } from 'src/domain/entities/event-sponsor.entity';
 import { Events } from 'src/domain/entities/events.entity';
+import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { EVENT_SPONSOR_REPOSITORY_TOKEN } from 'src/domain/repositories/event-sponsor/event-sponsor.repository.token';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
@@ -26,7 +27,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
 @Module({
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([EventSponsor, Events]),
+    TypeOrmModule.forFeature([EventSponsor, Events, ParticipantHasTicket]),
     ClientsModule.registerAsync([
       {
         name: 'KAFKA_USER_SERVICE',
@@ -61,4 +62,4 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
   ],
   exports: [EVENT_SPONSOR_REPOSITORY_TOKEN],
 })
-export class EventSponsorModule { }
+export class EventSponsorModule {}
