@@ -11,7 +11,10 @@ import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { EntityManager, IsNull, Repository } from 'typeorm';
 import { Client } from '@elastic/elasticsearch';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
-import { AccountStatus, Status } from 'src/domain/value-objects/account-status.value-object';
+import {
+  AccountStatus,
+  Status,
+} from 'src/domain/value-objects/account-status.value-object';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { Connection } from 'typeorm';
@@ -19,7 +22,8 @@ import { AccountType } from 'src/domain/value-objects/account-type.value-object'
 
 @Injectable()
 export class UserRepositoryImpl
-  implements IUserRepository, OnApplicationBootstrap {
+  implements IUserRepository, OnApplicationBootstrap
+{
   private readonly client: Client;
   constructor(
     @InjectRepository(User)
@@ -463,7 +467,9 @@ export class UserRepositoryImpl
           : (user as any).organizational_account;
 
       const isPersonal = user.account_type === AccountType.PERSONAL;
-      const accountEntity = isPersonal ? PersonalAccount : OrganizationalAccount;
+      const accountEntity = isPersonal
+        ? PersonalAccount
+        : OrganizationalAccount;
       const accountIdField = isPersonal
         ? { personal_account_id: accountId.personal_account_id }
         : { organizational_account_id: accountId.organizational_account_id };
@@ -478,23 +484,12 @@ export class UserRepositoryImpl
         );
       }
 
-      if (account.status === 'suspended') {
-        return {
-          success: true,
-          message: 'Account was already suspended',
-          account,
-          status: 'ALREADY_SUSPENDED',
-        };
-      }
-
-      account.status = Status.SUSPENDED;
-      account.updated_date = new Date();
-      await queryRunner.manager.save(accountEntity, account);
-
       user.is_active = false;
       user.updated_date = new Date();
       await queryRunner.manager.save(User, user);
-
+      account.status = Status.SUSPENDED;
+      account.updated_date = new Date();
+      await queryRunner.manager.save(accountEntity, account);
       await queryRunner.commitTransaction();
 
       try {
@@ -536,9 +531,11 @@ export class UserRepositoryImpl
   async reactivateUser(userId: string): Promise<any> {
     const queryRunner = this.connection.createQueryRunner();
     await queryRunner.connect();
-    await queryRunner.startTransaction();
+    let transactionStarted = false;
 
     try {
+      await queryRunner.startTransaction();
+      transactionStarted = true;
       const user = await queryRunner.manager.findOne(User, {
         where: { user_id: userId },
         select: ['user_id', 'user_name', 'account_type', 'is_active'],
@@ -546,7 +543,8 @@ export class UserRepositoryImpl
       });
 
       if (!user) {
-        await queryRunner.rollbackTransaction();
+        if (transactionStarted) await queryRunner.rollbackTransaction();
+
         return {
           success: false,
           message: 'User not found',
@@ -555,7 +553,7 @@ export class UserRepositoryImpl
       }
 
       if (user.is_active) {
-        await queryRunner.rollbackTransaction();
+        if (transactionStarted) await queryRunner.rollbackTransaction();
         return {
           success: true,
           message: 'User was already active',
@@ -583,20 +581,20 @@ export class UserRepositoryImpl
       }
 
       if (!account) {
-        await queryRunner.rollbackTransaction();
+        if (transactionStarted) await queryRunner.rollbackTransaction();
         throw new HttpException(
           `${user.account_type} account not found`,
           HttpStatus.NOT_FOUND,
         );
       }
 
-      account.status = Status.SUSPENDED;
-      account.updated_date = new Date();
-      await queryRunner.manager.save(account);
-
       user.is_active = true;
       user.updated_date = new Date();
       await queryRunner.manager.save(User, user);
+
+      account.status = Status.ACTIVE;
+      account.updated_date = new Date();
+      await queryRunner.manager.save(account);
 
       await queryRunner.commitTransaction();
 
@@ -624,7 +622,7 @@ export class UserRepositoryImpl
         statusCode: HttpStatus.OK,
       };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      if (transactionStarted) await queryRunner.rollbackTransaction();
       throw new HttpException(
         `Error reactivating user: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
