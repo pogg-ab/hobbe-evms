@@ -53,9 +53,26 @@ export class AuthController {
     description: 'Redirects to Google OAuth2 consent screen',
   })
   @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth() {
-    // Guard redirects to Google
+  @ApiOperation({
+    summary: 'Initiates Google OAuth login with dynamic redirect',
+  })
+  async googleAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
+
+    if (!redirect_uri) {
+      return res.status(400).send('Missing redirect query');
+    }
+
+    const state = encodeURIComponent(redirect_uri as string); // secure encode
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${process.env.GOOGLE_CLIENT_ID}` +
+      `&redirect_uri=${process.env.GOOGLE_CALLBACK_URL}` +
+      `&response_type=code` +
+      `&scope=email profile` +
+      `&state=${state}`;
+
+    return res.redirect(authUrl);
   }
 
   @ApiOperation({ summary: 'Handles Google OAuth2 callback' })
@@ -70,19 +87,25 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(@Req() req, @Res() res: Response) {
-    const data: OAuthLoginDto = {
-      provider: Provider.Google,
-      providerId: req.user.googleId,
-      email: req.user.email,
-      name: req.user.firstName + ' ' + req.user.lastName,
-      accessToken: req.user.accessToken,
-      refreshToken: req.user.refreshToken,
-    };
-    const result = await this.oauthLogin(data);
-    res.redirect(`/auth/success?token=${result.access_token}`);
+  const { state } = req.query;
+  const redirect = decodeURIComponent(state as string); // from step 1
 
-    // return result;
-  }
+  const data: OAuthLoginDto = {
+    provider: Provider.Google,
+    providerId: req.user.googleId,
+    email: req.user.email,
+    name: `${req.user.firstName} ${req.user.lastName}`,
+    accessToken: req.user.accessToken,
+    refreshToken: req.user.refreshToken,
+  };
+
+  const result = await this.oauthLogin(data);
+
+  const redirectUrl = new URL(redirect);
+  redirectUrl.searchParams.set('token', result.access_token);
+
+  return res.redirect(redirectUrl.toString());
+}
 
   @Get('success')
   @ApiOperation({ summary: 'Handles successful Google login' })
