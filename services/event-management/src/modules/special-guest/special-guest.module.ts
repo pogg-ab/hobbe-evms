@@ -24,11 +24,12 @@ import { UserInfoService } from 'src/application/services/user-info/user-info.se
 import { ClientsModule } from '@nestjs/microservices';
 import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
 import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
+import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 
 @Module({
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([SpecialGuest, Events]),
+    TypeOrmModule.forFeature([SpecialGuest, Events, ParticipantHasTicket]),
     ClientsModule.registerAsync([
       {
         name: 'KAFKA_USER_SERVICE',
@@ -63,4 +64,4 @@ import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.co
   ],
   exports: [SPECIAL_GUEST_REPOSITORY_TOKEN],
 })
-export class SpecialGuestModule { }
+export class SpecialGuestModule {}

@@ -36,15 +36,12 @@ export class EventsService {
     private dataSource: DataSource,
     private readonly userInfoService: UserInfoService,
     private readonly streamProducerService: StreamProducerService,
-
-
-  ) { }
+  ) {}
 
   private createStream(user: string, event_id: IdValueObject): any {
     const stream = {
       userId: user,
       eventId: event_id,
-
     };
     return stream;
   }
@@ -99,11 +96,8 @@ export class EventsService {
       }
     }
 
-    if (event.location == "Live") {
-      const stream = this.createStream(
-        user,
-        event.id,
-      );
+    if (event.location == 'Live') {
+      const stream = this.createStream(user, event.id);
 
       await this.streamProducerService.sendStreamToKafka(stream);
     }
@@ -127,7 +121,7 @@ export class EventsService {
     }
 
     // Get all user IDs for organizer info
-    const userIds = result.events.map(event => event.user_id);
+    const userIds = result.events.map((event) => event.user_id);
     let userInfoResponse = {};
 
     try {
@@ -136,14 +130,14 @@ export class EventsService {
       console.error('Failed to fetch organizer info:', userInfoError);
     }
 
-    const enrichedEvents = result.events.map(event => ({
+    const enrichedEvents = result.events.map((event) => ({
       ...event,
-      organizerInfo: userInfoResponse[event.user_id] || null
+      organizerInfo: userInfoResponse[event.user_id] || null,
     }));
 
     return {
       ...result,
-      events: enrichedEvents
+      events: enrichedEvents,
     };
   }
 
@@ -157,13 +151,17 @@ export class EventsService {
     page: number;
     limit: number;
   }> {
-    const result = await this.createEventRepository.findAllByAuth(user, page, limit);
+    const result = await this.createEventRepository.findAllByAuth(
+      user,
+      page,
+      limit,
+    );
 
     if (!result.events || result.events.length === 0) {
       return result;
     }
 
-    const userIds = result.events.map(event => event.user_id);
+    const userIds = result.events.map((event) => event.user_id);
     let userInfoResponse = {};
 
     try {
@@ -172,20 +170,20 @@ export class EventsService {
       console.error('Failed to fetch organizer info:', userInfoError);
     }
 
-    const enrichedEvents = result.events.map(event => ({
+    const enrichedEvents = result.events.map((event) => ({
       ...event,
-      organizerInfo: userInfoResponse[event.user_id] || null
+      organizerInfo: userInfoResponse[event.user_id] || null,
     }));
 
     return {
       ...result,
-      events: enrichedEvents
+      events: enrichedEvents,
     };
   }
 
   async findOne(id: string): Promise<Events | null> {
     const SERVICE_CHARGE_RATE = 0.03;
-    const SALES_TAX_RATE = 0.10;
+    const SALES_TAX_RATE = 0.1;
     const queryRunner = this.dataSource.createQueryRunner();
 
     try {
@@ -206,8 +204,12 @@ export class EventsService {
       const calculatePricing = (price: number | null) => {
         if (!price) return null;
 
-        const basePrice = parseFloat((price / (1 + SERVICE_CHARGE_RATE + SALES_TAX_RATE)).toFixed(1));
-        const serviceCharge = parseFloat((basePrice * SERVICE_CHARGE_RATE).toFixed(1));
+        const basePrice = parseFloat(
+          (price / (1 + SERVICE_CHARGE_RATE + SALES_TAX_RATE)).toFixed(1),
+        );
+        const serviceCharge = parseFloat(
+          (basePrice * SERVICE_CHARGE_RATE).toFixed(1),
+        );
         const salesTax = parseFloat((basePrice * SALES_TAX_RATE).toFixed(1));
 
         return {
@@ -222,17 +224,25 @@ export class EventsService {
 
       // Calculate pricing for all ticket types
       const ticketPricing = {
-        regular: event.ticket_heading?.price ? calculatePricing(event.ticket_heading.price) : null,
-        vip: event.ticket_heading?.vip_price ? calculatePricing(event.ticket_heading.vip_price) : null,
-        vvip: event.ticket_heading?.vvip_price ? calculatePricing(event.ticket_heading.vvip_price) : null,
+        regular: event.ticket_heading?.price
+          ? calculatePricing(event.ticket_heading.price)
+          : null,
+        vip: event.ticket_heading?.vip_price
+          ? calculatePricing(event.ticket_heading.vip_price)
+          : null,
+        vvip: event.ticket_heading?.vvip_price
+          ? calculatePricing(event.ticket_heading.vvip_price)
+          : null,
       };
       try {
-        const userInfoResponse = await this.userInfoService.getUserInfo([event.user_id]);
+        const userInfoResponse = await this.userInfoService.getUserInfo([
+          event.user_id,
+        ]);
         const enrichedEvent = {
           ...event,
           pricing: ticketPricing,
           organizerInfo: userInfoResponse[event.user_id] || null,
-          ticketsCount: allTicketsCounter
+          ticketsCount: allTicketsCounter,
         };
 
         await queryRunner.commitTransaction();
@@ -243,14 +253,12 @@ export class EventsService {
           ...event,
           pricing: ticketPricing,
           organizerInfo: null,
-          ticketsCount: allTicketsCounter
+          ticketsCount: allTicketsCounter,
         };
 
         await queryRunner.commitTransaction();
         return fallbackEvent;
       }
-
-
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -277,10 +285,15 @@ export class EventsService {
     return event;
   }
 
-   async findByUserAndStatus(user: string,status:string): Promise<Events[]> {
-    const event = await this.createEventRepository.findByUserAndStatus(user,status);
+  async findByUserAndStatus(user: string, status: string): Promise<Events[]> {
+    const event = await this.createEventRepository.findByUserAndStatus(
+      user,
+      status,
+    );
     if (!event) {
-      throw new NotFoundException(`Event with user and status ${user} not found.`);
+      throw new NotFoundException(
+        `Event with user and status ${user} not found.`,
+      );
     }
     return event;
   }
@@ -403,6 +416,17 @@ export class EventsService {
 
   async singleEventAnalytics(user: string, event: string): Promise<any> {
     return this.createEventRepository.singleEventAnalytics(user, event);
+  }
+
+  async getUserEventStats(
+    userId: string,
+  ): Promise<{ organized: number; participated: number }> {
+    const organized =
+      await this.createEventRepository.countEventsOrganizedByUser(userId);
+    const participated =
+      await this.createEventRepository.countEventsUserParticipatedIn(userId);
+
+    return { organized, participated };
   }
 
   async calculateEventRemainingTime(event: Events): Promise<string> {
