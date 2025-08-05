@@ -53,7 +53,7 @@ export class PersonalAccount {
     enum: Status,
     default: Status.ACTIVE,
   })
-  status: Status = Status.ACTIVE;
+  status: Status;
 
   @Column({ default: false })
   is_verified: boolean;

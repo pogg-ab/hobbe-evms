@@ -8,7 +8,10 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { AccountStatus, Status } from '../value-objects/account-status.value-object';
+import {
+  AccountStatus,
+  Status,
+} from '../value-objects/account-status.value-object';
 import { KYCID } from '../value-objects/kyc-id.value-object';
 import { OrganizationalAccountID } from '../value-objects/organizational-account-id.value-object';
 import { OwnerID } from '../value-objects/owner-id.value-object';
@@ -54,7 +57,7 @@ export class OrganizationalAccount {
     enum: Status,
     default: Status.ACTIVE,
   })
-  status: Status = Status.ACTIVE;
+  status: Status;
 
   @Column({ default: false })
   is_verified: boolean;
