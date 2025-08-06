@@ -87,25 +87,25 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(@Req() req, @Res() res: Response) {
-  const { state } = req.query;
-  const redirect = decodeURIComponent(state as string); // from step 1
+    const { state } = req.query;
+    const redirect = decodeURIComponent(state as string); // from step 1
 
-  const data: OAuthLoginDto = {
-    provider: Provider.Google,
-    providerId: req.user.googleId,
-    email: req.user.email,
-    name: `${req.user.firstName} ${req.user.lastName}`,
-    accessToken: req.user.accessToken,
-    refreshToken: req.user.refreshToken,
-  };
+    const data: OAuthLoginDto = {
+      provider: Provider.Google,
+      providerId: req.user.googleId,
+      email: req.user.email,
+      name: `${req.user.firstName} ${req.user.lastName}`,
+      accessToken: req.user.accessToken,
+      refreshToken: req.user.refreshToken,
+    };
 
-  const result = await this.oauthLogin(data);
+    const result = await this.oauthLogin(data);
 
-  const redirectUrl = new URL(redirect);
-  redirectUrl.searchParams.set('token', result.access_token);
+    const redirectUrl = new URL(redirect);
+    redirectUrl.searchParams.set('token', result.access_token);
 
-  return res.redirect(redirectUrl.toString());
-}
+    return res.redirect(redirectUrl.toString());
+  }
 
   @Get('success')
   @ApiOperation({ summary: 'Handles successful Google login' })
@@ -123,82 +123,103 @@ export class AuthController {
     description: 'Redirects to Facebook OAuth2 consent screen',
   })
   @Get('facebook')
-  @UseGuards(AuthGuard('facebook'))
-  async facebookAuth() {
-    // Guard redirects to Facebook
+  @ApiOperation({
+    summary: 'Initiates Facebook OAuth login with dynamic redirect',
+  })
+  async facebookAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
+
+    if (!redirect_uri) {
+      return res.status(400).send('Missing redirect_uri query');
+    }
+
+    const state = encodeURIComponent(redirect_uri as string);
+
+    const authUrl =
+      `https://www.facebook.com/v19.0/dialog/oauth?` +
+      `client_id=${process.env.FACEBOOK_CLIENT_ID}` +
+      `&redirect_uri=${process.env.FACEBOOK_CALLBACK_URL}` +
+      `&state=${state}` +
+      `&response_type=code` +
+      `&scope=email,public_profile`;
+
+    return res.redirect(authUrl);
   }
 
-  @ApiOperation({ summary: 'Handles Facebook OAuth2 callback' })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirects to success page with JWT token',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or expired Facebook token',
-  })
   @Get('facebook/callback')
+  @ApiOperation({ summary: 'Handles Facebook OAuth2 callback and redirects' })
   @UseGuards(AuthGuard('facebook'))
   async facebookAuthCallback(@Req() req, @Res() res: Response) {
     if (!req.user) {
       throw new UnauthorizedException('Invalid or expired Facebook token');
     }
+
+    const { state } = req.query;
+    const redirect = decodeURIComponent(state as string);
     const data: OAuthLoginDto = {
-      provider: Provider.Facebook, // e.g., 'facebook'
-      providerId: req.user.facebookId, // e.g., '123456789'
+      provider: Provider.Facebook,
+      providerId: req.user.facebookId,
       email: req.user.email,
       name: req.user.displayName,
       accessToken: req.user.accessToken,
       refreshToken: req.user.refreshToken,
     };
+
     const result = await this.oauthLogin(data);
-    res.redirect(`/auth/success?token=${result.access_token}`);
+
+    const redirectUrl = new URL(redirect);
+    redirectUrl.searchParams.set('token', result.access_token);
+
+    return res.redirect(redirectUrl.toString());
   }
 
-  @ApiOperation({ summary: 'Redirects to GitHub OAuth2 consent screen' })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirects to GitHub OAuth2 consent screen',
-  })
   @Get('github')
-  @UseGuards(AuthGuard('github'))
-  async githubAuth() {
-    // Guard redirects to GitHub
+  @ApiOperation({
+    summary: 'Initiates GitHub OAuth login with dynamic redirect',
+  })
+  async githubAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
+
+    if (!redirect_uri) {
+      return res.status(400).send('Missing redirect_uri query');
+    }
+
+
+    const state = encodeURIComponent(redirect_uri as string);
+
+    const authUrl =
+      `https://github.com/login/oauth/authorize?` +
+      `client_id=${process.env.GITHUB_CLIENT_ID}` +
+      `&redirect_uri=${process.env.GITHUB_CALLBACK_URL}` +
+      `&scope=user:email` +
+      `&state=${state}`;
+
+    return res.redirect(authUrl);
   }
 
-  @ApiOperation({ summary: 'Handles GitHub OAuth2 callback' })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirects to success page with JWT token',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or expired GitHub token',
-  })
   @Get('github/callback')
+  @ApiOperation({ summary: 'Handles GitHub OAuth2 callback and redirects' })
   @UseGuards(AuthGuard('github'))
   async githubAuthCallback(@Req() req, @Res() res: Response) {
-    // const result = await this.commandBus.execute(
-    //   new GithubLoginCommand(req.user),
-    // );
-
-    // console.log('result.user', result);
-
     if (!req.user) {
       throw new UnauthorizedException('Invalid or expired GitHub token');
     }
 
+    const { state } = req.query;
+    const redirect = decodeURIComponent(state as string);
+
     const data: OAuthLoginDto = {
-      provider: Provider.GitHub, // e.g., 'github'
-      providerId: req.user.githubId, // e.g., '123456789'
+      provider: Provider.GitHub,
+      providerId: req.user.githubId,
       email: req.user.email,
       name: req.user.displayName,
       accessToken: req.user.accessToken,
       refreshToken: req.user.refreshToken,
     };
-
     const result = await this.oauthLogin(data);
-    res.redirect(`/auth/success?token=${result.access_token}`);
+    const redirectUrl = new URL(redirect);
+    redirectUrl.searchParams.set('token', result.access_token);
+    return res.redirect(redirectUrl.toString());
   }
 
   @ApiOperation({ summary: 'Shows authentication success page' })
