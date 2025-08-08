@@ -10,6 +10,11 @@ interface UserWithLastLogin extends User {
   last_login: Date;
 }
 
+interface ActiveUsersResult {
+  users: UserWithLastLogin[];
+  total: number;
+}
+
 @Injectable()
 export class ActiveUsersRepositoryImpl implements IActiveUsersRepository {
   constructor(
@@ -23,7 +28,7 @@ export class ActiveUsersRepositoryImpl implements IActiveUsersRepository {
     period: 'daily' | 'weekly' | 'monthly',
     page: number,
     limit: number,
-  ): Promise<UserWithLastLogin[]> {
+  ): Promise<ActiveUsersResult> {
     const now = new Date();
     let startDate: Date;
 
@@ -51,13 +56,19 @@ export class ActiveUsersRepositoryImpl implements IActiveUsersRepository {
       .getRawMany();
 
     if (userLogins.length === 0) {
-      return [];
+      return { users: [], total: 0 };
     }
 
     const userIds = userLogins.map((auth) => auth.user_id);
     const lastLoginMap = new Map<string, Date>(
       userLogins.map((auth) => [auth.user_id, auth.last_login]),
     );
+
+    const total = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.user_id IN (:...userIds)', { userIds })
+      .andWhere('user.is_active = :isActive', { isActive: true })
+      .getCount();
 
     const queryBuilder = this.userRepository
       .createQueryBuilder('user')
@@ -78,14 +89,17 @@ export class ActiveUsersRepositoryImpl implements IActiveUsersRepository {
       .andWhere('user.is_active = :isActive', { isActive: true });
 
     const users = await paginate(queryBuilder, page, limit).getMany();
-    return users.map((user) => {
-      const userWithLastLogin = Object.assign(
-        new User(),
-        user,
-      ) as UserWithLastLogin;
-      userWithLastLogin.last_login =
-        lastLoginMap.get(user.user_id.toString()) || new Date();
-      return userWithLastLogin;
-    });
+    return {
+      users: users.map((user) => {
+        const userWithLastLogin = Object.assign(
+          new User(),
+          user,
+        ) as UserWithLastLogin;
+        userWithLastLogin.last_login =
+          lastLoginMap.get(user.user_id.toString()) || new Date();
+        return userWithLastLogin;
+      }),
+      total,
+    };
   }
 }
