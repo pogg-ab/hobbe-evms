@@ -6,6 +6,9 @@ import { Repository } from 'typeorm';
 import { User } from 'src/domain/entities/user.entity';
 import { Auth } from 'src/domain/entities/auth.entity';
 import { paginate } from 'src/shared/helpers/pagination.helper';
+interface UserWithLastLogin extends User {
+  last_login: Date;
+}
 
 @Injectable()
 export class ActiveUsersRepositoryImpl implements IActiveUsersRepository {
@@ -20,7 +23,7 @@ export class ActiveUsersRepositoryImpl implements IActiveUsersRepository {
     period: 'daily' | 'weekly' | 'monthly',
     page: number,
     limit: number,
-  ): Promise<User[]> {
+  ): Promise<UserWithLastLogin[]> {
     const now = new Date();
     let startDate: Date;
 
@@ -52,6 +55,9 @@ export class ActiveUsersRepositoryImpl implements IActiveUsersRepository {
     }
 
     const userIds = userLogins.map((auth) => auth.user_id);
+    const lastLoginMap = new Map<string, Date>(
+      userLogins.map((auth) => [auth.user_id, auth.last_login]),
+    );
 
     const queryBuilder = this.userRepository
       .createQueryBuilder('user')
@@ -71,6 +77,15 @@ export class ActiveUsersRepositoryImpl implements IActiveUsersRepository {
       .where('user.user_id IN (:...userIds)', { userIds })
       .andWhere('user.is_active = :isActive', { isActive: true });
 
-    return paginate(queryBuilder, page, limit).getMany();
+    const users = await paginate(queryBuilder, page, limit).getMany();
+    return users.map((user) => {
+      const userWithLastLogin = Object.assign(
+        new User(),
+        user,
+      ) as UserWithLastLogin;
+      userWithLastLogin.last_login =
+        lastLoginMap.get(user.user_id.toString()) || new Date();
+      return userWithLastLogin;
+    });
   }
 }
