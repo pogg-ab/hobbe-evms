@@ -30,6 +30,8 @@ import { FacebookStrategy } from './strategies/facebook.strategy';
 import { LoginWithOAuthHandler } from 'src/application/handlers/sso/LoginWithOAuthHandler';
 import { OAuthProvider } from 'src/domain/entities/oauth-provider.entity';
 import { GithubStrategy } from './strategies/github.strategy';
+import { GuestSession } from 'src/domain/entities/guest-session.entity';
+import { GuestUserService } from 'src/application/services/guest-user.service';
 @Module({
   imports: [
     CqrsModule,
@@ -43,7 +45,8 @@ import { GithubStrategy } from './strategies/github.strategy';
       AdminUserAuth,
       PersonalAccount,
       OrganizationalAccount,
-      Follower
+      Follower,
+      GuestSession
     ]),
     PassportModule,
     JwtModule.register({
@@ -67,7 +70,7 @@ import { GithubStrategy } from './strategies/github.strategy';
     GithubStrategy,
     MessageProducerService,
     NotificationConfigService,
-
+    GuestUserService,
     LoginWithOAuthHandler,
     {
       provide: USER_REPOSITORY_TOKEN,

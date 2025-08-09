@@ -37,6 +37,7 @@
     "@nestjs/microservices": "^10.4.4",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.4.15",
+    "@nestjs/schedule": "^6.0.0",
     "@nestjs/serve-static": "^5.0.2",
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/typeorm": "^10.0.2",
