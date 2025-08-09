@@ -102,6 +102,7 @@ export class GuestUserService {
             auth.user_id = userId;
             auth.session_id = undefined;
             auth.is_guest = false;
+            auth.upgraded_at = new Date();
             await this.authRepository.save(auth);
 
 
@@ -167,8 +168,8 @@ export class GuestUserService {
             const convertedSessions = await this.authRepository
                 .createQueryBuilder('auth')
                 .where('auth.is_guest = false')
+                .andWhere('auth.upgraded_at IS NOT NULL')
                 .andWhere('auth.created_at >= :dateThreshold', { dateThreshold })
-                .andWhere('auth.session_id IS NOT NULL')
                 .getCount();
 
             const activeSessions = sessions.filter((session) =>
@@ -230,11 +231,18 @@ export class GuestUserService {
     private calculateAverageDuration(sessions: GuestSession[]): number {
         if (sessions.length === 0) return 0;
 
-        const totalDuration = sessions.reduce((sum, session) => {
-            return sum + (session.last_activity.getTime() - session.created_at.getTime());
-        }, 0);
+        const validSessions = sessions.filter(session => {
+            const duration = session.last_activity.getTime() - session.created_at.getTime();
+            return duration >= 0;
+        });
 
-        return totalDuration / sessions.length;
+        const averageSessionDuration = validSessions.length > 0
+            ? validSessions.reduce((sum, session) => {
+                return sum + (session.last_activity.getTime() - session.created_at.getTime());
+            }, 0) / validSessions.length
+            : 0;
+
+        return averageSessionDuration;
     }
 
     private analyzeDeviceTypes(sessions: GuestSession[]): {

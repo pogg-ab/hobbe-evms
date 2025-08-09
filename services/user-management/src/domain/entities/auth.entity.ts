@@ -48,4 +48,7 @@ export class Auth {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  upgraded_at?: Date;
 }
