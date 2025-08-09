@@ -33,6 +33,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { CommandBus } from '@nestjs/cqrs';
 import { OAuthLoginDto, Provider } from '../dtos/sso/oauth.dto';
 import { LoginWithOAuthCommand } from 'src/application/commands/sso/LoginWithOAuthCommand';
+import { CreateGuestSessionDto } from '../dtos/Guest User Insight/create-guest-session.dto';
+import { UpgradeGuestDto } from '../dtos/Guest User Insight/upgrade-guest.dto';
+import { GuestUserService } from 'src/application/services/guest-user.service';
+import { SessionID } from 'src/domain/value-objects/session-id.value-object';
+import { UserID } from 'src/domain/value-objects/user-id.value-object';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -40,7 +45,8 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly commandBus: CommandBus,
-  ) {}
+    private readonly guestUserService: GuestUserService,
+  ) { }
   private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
 
   async oauthLogin(@Body() dto: OAuthLoginDto) {
@@ -429,6 +435,46 @@ export class AuthController {
     const redirectHtml = this.buildResetPasswordPage(token);
     res.setHeader('Content-Type', 'text/html');
     res.send(redirectHtml);
+  }
+
+  @Post('guest/session')
+  @ApiOperation({ summary: 'Create a new guest session' })
+  @HttpCode(200)
+  async createGuestSession(
+    @Req() req: Request,
+  ) {
+    const deviceInfo = req.headers['user-agent'] || 'unknown';
+    const ipAddress = this.getClientIp(req);
+
+    return this.guestUserService.createGuestSession(deviceInfo, ipAddress);
+  }
+
+  @Post('guest/upgrade')
+  @ApiOperation({ summary: 'Upgrade a guest session to a full user account' })
+  @ApiBody({ type: UpgradeGuestDto })
+  @HttpCode(200)
+  async upgradeGuestToUser(@Body() dto: UpgradeGuestDto) {
+    return this.guestUserService.upgradeGuestToUser(
+      new SessionID(dto.sessionId),
+      new UserID(dto.userId)
+    );
+  }
+
+  @Get('guest/session/:id')
+  @ApiOperation({ summary: 'Get guest session details' })
+  @HttpCode(200)
+  async getGuestSession(@Param('id') id: string) {
+    return this.guestUserService.getGuestSession(new SessionID(id));
+  }
+
+  @Get('guest/insights')
+  @ApiOperation({ summary: 'Get guest user analytics' })
+  @HttpCode(200)
+  async getGuestInsights(
+    @Query('days') days: number = 7,
+    @Query('limit') limit: number = 100,
+  ) {
+    return this.guestUserService.getGuestInsights(days, limit);
   }
 
   private validateToken(token: string): boolean {
