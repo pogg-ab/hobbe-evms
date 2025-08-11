@@ -17,6 +17,9 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
 import { FilterGuestListQueryHandler } from 'src/application/handlers/guest/filter-guest-list-query.handler';
 import { GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/guests/guest.repository.token';
 import { GuestRepositoryImpl } from 'src/infrastructure/persistence/repositories/guest.repository.impl';
+import { UserInfoService } from 'src/application/services/user-info/user-info.service';
+import { ClientsModule } from '@nestjs/microservices';
+import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
 
 @Module({
   imports: [
@@ -28,12 +31,21 @@ import { GuestRepositoryImpl } from 'src/infrastructure/persistence/repositories
       Tickets,
     ]),
     CqrsModule,
+    ClientsModule.registerAsync([
+      {
+        name: 'KAFKA_USER_SERVICE',
+        useFactory: async () => ({
+          transport: kafkaUserInfoConfig.transport,
+          options: kafkaUserInfoConfig.options,
+        }),
+      },
+    ]),
   ],
   controllers: [GuestController],
   providers: [
     CreateTicketsDto,
     GuestsService,
-    // GuestsProfile,
+    UserInfoService,
     FilterGuestListQueryHandler,
     {
       provide: GUEST_REPOSITORY_TOKEN,

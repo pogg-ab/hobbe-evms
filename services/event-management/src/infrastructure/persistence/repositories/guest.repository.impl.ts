@@ -21,6 +21,7 @@ const statusMap = {
   canceled: 'Cancelled',
   gifted: 'Gifted',
 };
+
 @Injectable()
 export class GuestRepositoryImpl implements IGuestRepository {
   constructor(
@@ -32,30 +33,28 @@ export class GuestRepositoryImpl implements IGuestRepository {
     status: 'purchased' | 'arrived' | 'canceled' | 'gifted' | 'pending',
     filters: FilterGuestListDto,
     organizerId: string,
-  ): Promise<ParticipantHasTicket[] | null> {
+    offset: number,
+    limit: number,
+  ): Promise<{
+    guests: ParticipantHasTicket[] | null;
+    total: number;
+  }> {
     try {
-      const statusMap = {
-        purchased: 'Paid',
-        arrived: 'Completed',
-        canceled: 'Cancelled',
-        gifted: 'Gifted',
-        pending: 'Booked',
-      };
-
       const ticketStatus = statusMap[status];
       if (!ticketStatus) {
         throw new BadRequestException('Invalid status filter');
       }
-      const query = this.participantHasTicketRepository
+
+      const baseQuery = this.participantHasTicketRepository
         .createQueryBuilder('participant')
-        .leftJoinAndSelect('participant.booking_id', 'booking')
-        .leftJoinAndSelect('participant.ticket_id', 'ticket')
-        .leftJoinAndSelect('ticket.event_id', 'event')
+        .leftJoin('participant.ticket_id', 'ticket')
+        .leftJoin('ticket.event_id', 'event')
         .where('ticket.status = :status', { status: ticketStatus })
         .andWhere('event.user_id = :organizerId', { organizerId });
 
       if (filters.bookingType && filters.bookingType !== 'all') {
-        query.andWhere('booking.booking_type = :bookingType', {
+        baseQuery.leftJoin('participant.booking_id', 'booking');
+        baseQuery.andWhere('booking.booking_type = :bookingType', {
           bookingType: filters.bookingType,
         });
       }
@@ -67,14 +66,32 @@ export class GuestRepositoryImpl implements IGuestRepository {
         const endDate = new Date(filters.date);
         endDate.setHours(23, 59, 59, 999);
 
-        query.andWhere({
+        baseQuery.andWhere({
           created_at: Between(startDate, endDate),
         });
       }
 
-      const guests = await query.getMany();
+      const countQuery = baseQuery.clone();
 
-      return guests.length > 0 ? guests : [];
+      const query = this.participantHasTicketRepository
+        .createQueryBuilder('participant')
+        .leftJoinAndSelect('participant.booking_id', 'booking')
+        .leftJoinAndSelect('participant.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('ticket.status = :status', { status: ticketStatus })
+        .andWhere('event.user_id = :organizerId', { organizerId })
+        .skip(offset)
+        .take(limit);
+
+      const [guests, total] = await Promise.all([
+        query.getMany(),
+        countQuery.getCount(),
+      ]);
+
+      return {
+        guests: guests.length > 0 ? guests : [],
+        total,
+      };
     } catch (error) {
       throw new HttpException(
         `Error filtering guest list: ${error.message}`,

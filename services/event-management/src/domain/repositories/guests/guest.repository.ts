@@ -6,5 +6,10 @@ export interface IGuestRepository {
     status: 'purchased' | 'arrived' | 'canceled' | 'gifted' | 'pending',
     filters: FilterGuestListDto,
     organizerId: string,
-  ): Promise<ParticipantHasTicket[] | null>;
+    offset: number,
+    limit: number,
+  ): Promise<{
+    guests: ParticipantHasTicket[] | null;
+    total: number;
+  }>;
 }

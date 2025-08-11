@@ -10,6 +10,7 @@ import { QueryBus } from '@nestjs/cqrs';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -27,6 +28,53 @@ export class GuestController {
   constructor(private readonly queryBus: QueryBus) {}
 
   @ApiOperation({
+    summary: 'Retrieve guests with pending tickets',
+    description:
+      'Returns a filtered and sorted list of participants with pending ticket status.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of participants with pending tickets.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number for pagination (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (default: 10)',
+  })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('/booking/pending')
+  async getBookingPendingParticipants(
+    @CurrentUserId() user: any,
+    @Query() query: FilterGuestListDto,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<{
+    participants: ParticipantHasTicket[] | null;
+    page: number;
+    limit: number;
+    total: number;
+  }> {
+    if (page < 1) throw new BadRequestException('Page must be greater than 0');
+    if (limit < 1 || limit > 100)
+      throw new BadRequestException('Limit must be between 1 and 100');
+
+    const organizerId = user.user.user_id.toString();
+    return this.queryBus.execute(
+      new FilterGuestListQuery('pending', query, organizerId, page, limit),
+    );
+  }
+
+  @ApiOperation({
     summary: 'Retrieve guests with purchased tickets',
     description:
       'Returns a filtered and sorted list of participants who have purchased tickets.',
@@ -34,6 +82,18 @@ export class GuestController {
   @ApiResponse({
     status: 200,
     description: 'List of participants with purchased tickets.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number for pagination (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (default: 10)',
   })
   @HttpCode(200)
   @ApiBearerAuth('access-token')
@@ -43,10 +103,17 @@ export class GuestController {
   async getBookingPurchasedParticipants(
     @CurrentUserId() user: any,
     @Query() query: FilterGuestListDto,
-  ): Promise<{ participants: ParticipantHasTicket[] | null }> {
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<{
+    participants: ParticipantHasTicket[] | null;
+    page: number;
+    limit: number;
+    total: number;
+  }> {
     const organizerId = user.user.user_id.toString();
     return this.queryBus.execute(
-      new FilterGuestListQuery('purchased', query, organizerId),
+      new FilterGuestListQuery('purchased', query, organizerId, page, limit),
     );
   }
 
@@ -59,6 +126,18 @@ export class GuestController {
     status: 200,
     description: 'List of participants with arrived tickets.',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number for pagination (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (default: 10)',
+  })
   @HttpCode(200)
   @ApiBearerAuth('access-token')
   @Roles('User')
@@ -67,10 +146,17 @@ export class GuestController {
   async getBookingArrivedParticipants(
     @CurrentUserId() user: any,
     @Query() query: FilterGuestListDto,
-  ): Promise<{ participants: ParticipantHasTicket[] | null }> {
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<{
+    participants: ParticipantHasTicket[] | null;
+    page: number;
+    limit: number;
+    total: number;
+  }> {
     const organizerId = user.user.user_id.toString();
     return this.queryBus.execute(
-      new FilterGuestListQuery('arrived', query, organizerId),
+      new FilterGuestListQuery('arrived', query, organizerId, page, limit),
     );
   }
 
@@ -83,6 +169,18 @@ export class GuestController {
     status: 200,
     description: 'List of participants with canceled tickets.',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number for pagination (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (default: 10)',
+  })
   @HttpCode(200)
   @ApiBearerAuth('access-token')
   @Roles('User')
@@ -91,10 +189,17 @@ export class GuestController {
   async getBookingCanceledParticipants(
     @CurrentUserId() user: any,
     @Query() query: FilterGuestListDto,
-  ): Promise<{ participants: ParticipantHasTicket[] | null }> {
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<{
+    participants: ParticipantHasTicket[] | null;
+    page: number;
+    limit: number;
+    total: number;
+  }> {
     const organizerId = user.user.user_id.toString();
     return this.queryBus.execute(
-      new FilterGuestListQuery('canceled', query, organizerId),
+      new FilterGuestListQuery('canceled', query, organizerId, page, limit),
     );
   }
 
@@ -107,6 +212,18 @@ export class GuestController {
     status: 200,
     description: 'List of participants with gifted tickets.',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number for pagination (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (default: 10)',
+  })
   @HttpCode(200)
   @ApiBearerAuth('access-token')
   @Roles('User')
@@ -114,12 +231,18 @@ export class GuestController {
   @Get('/booking/gifted')
   async getBookingGiftedParticipants(
     @CurrentUserId() user: any,
-
     @Query() query: FilterGuestListDto,
-  ): Promise<{ participants: ParticipantHasTicket[] | null }> {
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<{
+    participants: ParticipantHasTicket[] | null;
+    page: number;
+    limit: number;
+    total: number;
+  }> {
     const organizerId = user.user.user_id.toString();
     return this.queryBus.execute(
-      new FilterGuestListQuery('gifted', query, organizerId),
+      new FilterGuestListQuery('gifted', query, organizerId, page, limit),
     );
   }
 }

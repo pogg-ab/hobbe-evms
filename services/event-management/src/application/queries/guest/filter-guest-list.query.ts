@@ -11,5 +11,7 @@ export class FilterGuestListQuery implements IQuery {
       | 'pending',
     public readonly filters: FilterGuestListDto,
     public readonly organizerId: string,
+    public readonly page: number = 1,
+    public readonly limit: number = 10,
   ) {}
 }

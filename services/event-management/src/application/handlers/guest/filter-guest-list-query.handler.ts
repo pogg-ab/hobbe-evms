@@ -9,10 +9,27 @@ export class FilterGuestListQueryHandler
 {
   constructor(private readonly guestsService: GuestsService) {}
 
-  async execute(
-    query: FilterGuestListQuery,
-  ): Promise<{ guests: ParticipantHasTicket[] | null }> {
-    const { status, filters, organizerId } = query;
-    return this.guestsService.filterGuestList(status, filters, organizerId);
+  async execute(query: FilterGuestListQuery): Promise<{
+    guests: ParticipantHasTicket[] | null;
+    page: number;
+    limit: number;
+    total: number;
+  }> {
+    const { status, filters, organizerId, page, limit } = query;
+
+    const result = await this.guestsService.filterGuestList(
+      status,
+      filters,
+      organizerId,
+      page,
+      limit,
+    );
+
+    return {
+      guests: result.guests,
+      page: page,
+      limit: limit,
+      total: result.total,
+    };
   }
 }
