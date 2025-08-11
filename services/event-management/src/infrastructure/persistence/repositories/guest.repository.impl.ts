@@ -12,51 +12,54 @@ import { Events } from 'src/domain/entities/events.entity';
 import { IGuestRepository } from 'src/domain/repositories/guests/guest.repository';
 import { Repository, Between, Equal, Like } from 'typeorm';
 import { DataSource } from 'typeorm';
+import { FilterGuestListDto } from 'src/presentation/dtos/guest/filter-guest-list.dto';
 
+const statusMap = {
+  pending: 'Booked',
+  purchased: 'Paid',
+  arrived: 'Completed',
+  canceled: 'Cancelled',
+  gifted: 'Gifted',
+};
 @Injectable()
 export class GuestRepositoryImpl implements IGuestRepository {
   constructor(
     @InjectRepository(ParticipantHasTicket)
     private readonly participantHasTicketRepository: Repository<ParticipantHasTicket>,
-    @InjectRepository(TicketBooking)
-    private readonly ticketBookingRepository: Repository<TicketBooking>,
-    @InjectRepository(Events)
-    private readonly eventRepository: Repository<Events>,
-    private readonly dataSource: DataSource,
   ) {}
 
   async filterGuestList(
-    status: 'purchased' | 'arrived' | 'canceled' | 'gifted',
-    filters: {
-      gender?: 'all' | 'male' | 'female';
-      date?: string;
-      bookingType?: 'all' | 'Regular' | 'VIP' | 'VVIP';
-      sort?: 'asc' | 'desc';
-    },
+    status: 'purchased' | 'arrived' | 'canceled' | 'gifted' | 'pending',
+    filters: FilterGuestListDto,
+    organizerId: string,
   ): Promise<ParticipantHasTicket[] | null> {
     try {
+      const statusMap = {
+        purchased: 'Paid',
+        arrived: 'Completed',
+        canceled: 'Cancelled',
+        gifted: 'Gifted',
+        pending: 'Booked',
+      };
+
+      const ticketStatus = statusMap[status];
+      if (!ticketStatus) {
+        throw new BadRequestException('Invalid status filter');
+      }
       const query = this.participantHasTicketRepository
         .createQueryBuilder('participant')
-        .leftJoinAndSelect('participant.ticketBooking', 'ticketBooking')
-        .leftJoinAndSelect('participant.ticket', 'ticket')
-        .leftJoinAndSelect('ticket.event', 'event')
-        .where('participant.status = :status', { status });
+        .leftJoinAndSelect('participant.booking_id', 'booking')
+        .leftJoinAndSelect('participant.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('ticket.status = :status', { status: ticketStatus })
+        .andWhere('event.user_id = :organizerId', { organizerId });
 
-      // Apply gender filter
-      if (filters.gender && filters.gender !== 'all') {
-        query.andWhere('participant.gender = :gender', {
-          gender: filters.gender,
-        });
-      }
-
-      // Apply booking type filter
       if (filters.bookingType && filters.bookingType !== 'all') {
-        query.andWhere('ticketBooking.type = :type', {
-          type: filters.bookingType,
+        query.andWhere('booking.booking_type = :bookingType', {
+          bookingType: filters.bookingType,
         });
       }
 
-      // Apply date filter
       if (filters.date) {
         const startDate = new Date(filters.date);
         startDate.setHours(0, 0, 0, 0);
@@ -65,21 +68,13 @@ export class GuestRepositoryImpl implements IGuestRepository {
         endDate.setHours(23, 59, 59, 999);
 
         query.andWhere({
-          createdAt: Between(startDate, endDate),
+          created_at: Between(startDate, endDate),
         });
-      }
-
-      // Apply sorting
-      if (filters.sort) {
-        query.orderBy(
-          'participant.name',
-          filters.sort === 'asc' ? 'ASC' : 'DESC',
-        );
       }
 
       const guests = await query.getMany();
 
-      return guests.length > 0 ? guests : null;
+      return guests.length > 0 ? guests : [];
     } catch (error) {
       throw new HttpException(
         `Error filtering guest list: ${error.message}`,

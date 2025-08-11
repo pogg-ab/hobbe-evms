@@ -19,6 +19,7 @@ import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { FilterGuestListQuery } from 'src/application/queries/guest/filter-guest-list.query';
 import { FilterGuestListDto } from 'src/presentation/dtos/guest/filter-guest-list.dto';
+import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 
 @ApiTags('Guests')
 @Controller('guests')
@@ -40,9 +41,13 @@ export class GuestController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/booking/purchased')
   async getBookingPurchasedParticipants(
+    @CurrentUserId() user: any,
     @Query() query: FilterGuestListDto,
   ): Promise<{ participants: ParticipantHasTicket[] | null }> {
-    return this.queryBus.execute(new FilterGuestListQuery('purchased', query));
+    const organizerId = user.user.user_id.toString();
+    return this.queryBus.execute(
+      new FilterGuestListQuery('purchased', query, organizerId),
+    );
   }
 
   @ApiOperation({
@@ -60,9 +65,13 @@ export class GuestController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/booking/arrived')
   async getBookingArrivedParticipants(
+    @CurrentUserId() user: any,
     @Query() query: FilterGuestListDto,
   ): Promise<{ participants: ParticipantHasTicket[] | null }> {
-    return this.queryBus.execute(new FilterGuestListQuery('arrived', query));
+    const organizerId = user.user.user_id.toString();
+    return this.queryBus.execute(
+      new FilterGuestListQuery('arrived', query, organizerId),
+    );
   }
 
   @ApiOperation({
@@ -80,9 +89,13 @@ export class GuestController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/booking/canceled')
   async getBookingCanceledParticipants(
+    @CurrentUserId() user: any,
     @Query() query: FilterGuestListDto,
   ): Promise<{ participants: ParticipantHasTicket[] | null }> {
-    return this.queryBus.execute(new FilterGuestListQuery('canceled', query));
+    const organizerId = user.user.user_id.toString();
+    return this.queryBus.execute(
+      new FilterGuestListQuery('canceled', query, organizerId),
+    );
   }
 
   @ApiOperation({
@@ -100,8 +113,13 @@ export class GuestController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/booking/gifted')
   async getBookingGiftedParticipants(
+    @CurrentUserId() user: any,
+
     @Query() query: FilterGuestListDto,
   ): Promise<{ participants: ParticipantHasTicket[] | null }> {
-    return this.queryBus.execute(new FilterGuestListQuery('gifted', query));
+    const organizerId = user.user.user_id.toString();
+    return this.queryBus.execute(
+      new FilterGuestListQuery('gifted', query, organizerId),
+    );
   }
 }

@@ -16,10 +16,15 @@ export class GuestsService {
   ) {}
 
   async filterGuestList(
-    status: 'purchased' | 'arrived' | 'canceled' | 'gifted',
+    status: 'purchased' | 'arrived' | 'canceled' | 'gifted' | 'pending',
     filters: FilterGuestListDto,
+    organizerId: string,
   ): Promise<{ guests: ParticipantHasTicket[] | null }> {
-    const guests = await this.guestRepository.filterGuestList(status, filters);
+    const guests = await this.guestRepository.filterGuestList(
+      status,
+      filters,
+      organizerId,
+    );
     return { guests: guests || null };
   }
 }

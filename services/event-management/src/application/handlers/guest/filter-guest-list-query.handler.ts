@@ -12,7 +12,7 @@ export class FilterGuestListQueryHandler
   async execute(
     query: FilterGuestListQuery,
   ): Promise<{ guests: ParticipantHasTicket[] | null }> {
-    const { status, filters } = query;
-    return this.guestsService.filterGuestList(status, filters);
+    const { status, filters, organizerId } = query;
+    return this.guestsService.filterGuestList(status, filters, organizerId);
   }
 }
