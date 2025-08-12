@@ -47,13 +47,13 @@ export class GuestRepositoryImpl implements IGuestRepository {
 
       const baseQuery = this.participantHasTicketRepository
         .createQueryBuilder('participant')
+        .leftJoinAndSelect('participant.booking_id', 'booking')
         .leftJoin('participant.ticket_id', 'ticket')
         .leftJoin('ticket.event_id', 'event')
         .where('ticket.status = :status', { status: ticketStatus })
         .andWhere('event.user_id = :organizerId', { organizerId });
 
       if (filters.bookingType && filters.bookingType !== 'all') {
-        baseQuery.leftJoin('participant.booking_id', 'booking');
         baseQuery.andWhere('booking.booking_type = :bookingType', {
           bookingType: filters.bookingType,
         });
@@ -73,18 +73,8 @@ export class GuestRepositoryImpl implements IGuestRepository {
 
       const countQuery = baseQuery.clone();
 
-      const query = this.participantHasTicketRepository
-        .createQueryBuilder('participant')
-        .leftJoinAndSelect('participant.booking_id', 'booking')
-        .leftJoinAndSelect('participant.ticket_id', 'ticket')
-        .leftJoinAndSelect('ticket.event_id', 'event')
-        .where('ticket.status = :status', { status: ticketStatus })
-        .andWhere('event.user_id = :organizerId', { organizerId })
-        .skip(offset)
-        .take(limit);
-
       const [guests, total] = await Promise.all([
-        query.getMany(),
+        baseQuery.getMany(),
         countQuery.getCount(),
       ]);
 
