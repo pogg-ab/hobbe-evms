@@ -36,7 +36,7 @@ export class GuestRepositoryImpl implements IGuestRepository {
     offset: number,
     limit: number,
   ): Promise<{
-    guests: ParticipantHasTicket[] | null;
+    guests: ParticipantHasTicket[] | [];
     total: number;
   }> {
     try {
@@ -48,8 +48,8 @@ export class GuestRepositoryImpl implements IGuestRepository {
       const baseQuery = this.participantHasTicketRepository
         .createQueryBuilder('participant')
         .leftJoinAndSelect('participant.booking_id', 'booking')
-        .leftJoin('participant.ticket_id', 'ticket')
-        .leftJoin('ticket.event_id', 'event')
+        .leftJoinAndSelect('participant.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
         .where('ticket.status = :status', { status: ticketStatus })
         .andWhere('event.user_id = :organizerId', { organizerId });
 
@@ -72,6 +72,7 @@ export class GuestRepositoryImpl implements IGuestRepository {
       }
 
       const countQuery = baseQuery.clone();
+      baseQuery.skip(offset).take(limit);
 
       const [guests, total] = await Promise.all([
         baseQuery.getMany(),

@@ -37,7 +37,7 @@ export class GuestsService {
     );
 
     if (!guests) {
-      return { guests: null, total };
+      return { guests: [], total };
     }
 
     const userIds = guests.map((guest) => guest.participant_id);
@@ -78,7 +78,7 @@ export class GuestsService {
     const sortedGuests = this.sortGuests(guestsWithUserInfo, filters.sort);
 
     return {
-      guests: sortedGuests.length > 0 ? sortedGuests : null,
+      guests: sortedGuests.length > 0 ? sortedGuests : [],
       total,
     };
   }
@@ -88,10 +88,8 @@ export class GuestsService {
     sortOrder: 'asc' | 'desc' = 'asc',
   ): (ParticipantHasTicket & { userInfo?: any })[] {
     return [...guests].sort((a, b) => {
-      // Default sorting by participant name
-      const nameA = a.userInfo?.name || '';
-      const nameB = b.userInfo?.name || '';
-
+      const nameA = a.userInfo?.profile_name?.toLowerCase() || '';
+      const nameB = b.userInfo?.profile_name?.toLowerCase() || '';
       const comparison = nameA.localeCompare(nameB);
       return sortOrder === 'asc' ? comparison : -comparison;
     });

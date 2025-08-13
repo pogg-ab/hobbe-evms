@@ -9,7 +9,7 @@ export interface IGuestRepository {
     offset: number,
     limit: number,
   ): Promise<{
-    guests: ParticipantHasTicket[] | null;
+    guests: ParticipantHasTicket[] | [];
     total: number;
   }>;
 }

@@ -59,7 +59,7 @@ export class GuestController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<{
-    participants: ParticipantHasTicket[] | null;
+    participants: ParticipantHasTicket[] | [];
     page: number;
     limit: number;
     total: number;
@@ -106,7 +106,7 @@ export class GuestController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<{
-    participants: ParticipantHasTicket[] | null;
+    participants: ParticipantHasTicket[] | [];
     page: number;
     limit: number;
     total: number;
@@ -149,7 +149,7 @@ export class GuestController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<{
-    participants: ParticipantHasTicket[] | null;
+    participants: ParticipantHasTicket[] | [];
     page: number;
     limit: number;
     total: number;
@@ -192,7 +192,7 @@ export class GuestController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<{
-    participants: ParticipantHasTicket[] | null;
+    participants: ParticipantHasTicket[] | [];
     page: number;
     limit: number;
     total: number;
@@ -235,7 +235,7 @@ export class GuestController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<{
-    participants: ParticipantHasTicket[] | null;
+    participants: ParticipantHasTicket[] | [];
     page: number;
     limit: number;
     total: number;
