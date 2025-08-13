@@ -56,6 +56,26 @@ export class TicketGiftsRepositoryImpl implements ITicketGiftsRepository {
     }
   }
 
+  async findByBookingIdAndRecipient(
+    manager: EntityManager,
+    bookingId: string,
+    recipientId: string,
+  ): Promise<TicketGifts | null> {
+    try {
+      return await manager.findOne(TicketGifts, {
+        where: {
+          booking_id: bookingId,
+          recipient_id: recipientId,
+        },
+      });
+    } catch (error) {
+      throw new HttpException(
+        `Error finding Ticket Gift for Booking ${bookingId} and Recipient ${recipientId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async delete(giftId: string): Promise<void> {
     try {
       const gift = await this.ticketGiftsRepository.findOne({

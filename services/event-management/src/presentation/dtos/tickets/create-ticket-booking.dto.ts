@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMinSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNotEmpty,
@@ -41,13 +43,19 @@ export class CreateTicketBookingDto {
   hasGift?: boolean;
 
   @ApiProperty({
-    description: 'Recipient ID if booking is a gift',
-    example: 'd9b2d63d-a233-4c2b-8c6d-82e19a93cbbb',
+    description: 'Array of Recipient IDs if booking is a gift',
+    example: [
+      'd9b2d63d-a233-4c2b-8c6d-82e19a93cbbb',
+      'e8f7c6b5-a495-4a3b-9c2d-1b0a9f8e7d6c',
+    ],
+    type: [String],
   })
   @ValidateIf((o) => o.hasGift === true)
   @IsNotEmpty()
-  @IsUUID()
-  recipient_id?: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID(4, { each: true })
+  recipient_ids?: string[];
 
   @ApiProperty({
     description: 'Is a promocode used for the booking?',

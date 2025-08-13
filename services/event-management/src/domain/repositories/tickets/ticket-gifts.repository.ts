@@ -13,5 +13,11 @@ export interface ITicketGiftsRepository {
     manager: EntityManager,
     bookingId: string,
   ): Promise<TicketGifts | null>;
+  findByBookingIdAndRecipient(
+    manager: EntityManager,
+    bookingId: string,
+    recipientId: string,
+  ): Promise<TicketGifts | null>;
+
   delete(giftId: string): Promise<void>;
 }
