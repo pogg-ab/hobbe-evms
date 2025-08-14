@@ -8,6 +8,7 @@ export interface ITicketGiftsRepository {
     bookingId: any,
     recipientId: any,
     gifterId: any,
+    ticketCount: number,
   ): Promise<void>;
   findByBookingId(
     manager: EntityManager,

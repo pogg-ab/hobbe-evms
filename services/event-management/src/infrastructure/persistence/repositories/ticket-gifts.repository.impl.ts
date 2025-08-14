@@ -18,12 +18,14 @@ export class TicketGiftsRepositoryImpl implements ITicketGiftsRepository {
     bookingId: any,
     recipientId: any,
     gifterId: any,
+    ticketCount: number,
   ): Promise<void> {
     try {
       const newTicketGift = this.ticketGiftsRepository.create({
         booking_id: bookingId,
         recipient_id: recipientId,
         gifter_id: gifterId,
+        ticket_count: ticketCount,
         created_by: user,
         updated_by: user,
         created_at: new Date(),

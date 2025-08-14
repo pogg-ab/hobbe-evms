@@ -268,18 +268,22 @@ export class TicketBookingService {
       }
 
       if (createTicketBookingDto.hasGift) {
-        const recipientIds = createTicketBookingDto.recipient_ids;
-        if (recipientIds.length > ticketCount) {
+        const recipientTickets = createTicketBookingDto.recipient_tickets || [];
+        const totalGiftedTickets = recipientTickets.reduce(
+          (sum, recipient) => sum + recipient.ticket_count,
+          0,
+        );
+        if (totalGiftedTickets !== ticketCount) {
           throw new BadRequestException(
-            `Number of recipients (${recipientIds.length}) exceeds the number of tickets booked (${ticketCount}).`,
+            `Total gifted tickets (${totalGiftedTickets}) must be exactly equal to the number of tickets booked (${ticketCount}).`,
           );
         }
-        for (const recipientId of recipientIds) {
+        for (const { recipient_id, ticket_count } of recipientTickets) {
           const existingGift =
             await this.giftRepository.findByBookingIdAndRecipient(
               queryRunner.manager,
               createdBooking.booking_id,
-              recipientId,
+              recipient_id,
             );
 
           if (!existingGift) {
@@ -287,8 +291,9 @@ export class TicketBookingService {
               queryRunner.manager,
               user,
               createdBooking.booking_id,
-              recipientId,
+              recipient_id,
               user,
+              ticket_count,
             );
           }
         }
@@ -326,45 +331,14 @@ export class TicketBookingService {
           throw new BadRequestException(paymentLink.error);
         }
       }
-      const ticketsPerRecipient = createTicketBookingDto.hasGift
-        ? Math.floor(ticketCount / createTicketBookingDto.recipient_ids.length)
-        : ticketCount;
 
       let ticketIndex = 0;
-      // for (let i = 0; i < ticketCount; i++) {
-      //   const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
-      //   const participantId = createTicketBookingDto.hasGift
-      //     ? createTicketBookingDto.recipient_id
-      //     : user;
-
-      //   await this.ticketRepository.updateStatus(
-      //     queryRunner.manager,
-      //     selectedTickets[i].id,
-      //     createdBooking.booking_id,
-      //     status,
-      //     user,
-      //   );
-
-      //   await this.participantHasTicketRepository.create(
-      //     queryRunner.manager,
-      //     createdBooking.booking_id,
-      //     selectedTickets[i].id,
-      //     participantId,
-      //     user,
-      //   );
-      // }
-
       if (createTicketBookingDto.hasGift) {
-        for (const recipientId of createTicketBookingDto.recipient_ids) {
-          const ticketsToAssign =
-            recipientId ===
-            createTicketBookingDto.recipient_ids[
-              createTicketBookingDto.recipient_ids.length - 1
-            ]
-              ? ticketCount - ticketIndex
-              : ticketsPerRecipient;
-
-          for (let i = 0; i < ticketsToAssign; i++) {
+        for (const {
+          recipient_id,
+          ticket_count,
+        } of createTicketBookingDto.recipient_tickets) {
+          for (let i = 0; i < ticket_count; i++) {
             await this.ticketRepository.updateStatus(
               queryRunner.manager,
               selectedTickets[ticketIndex].id,
@@ -377,9 +351,10 @@ export class TicketBookingService {
               queryRunner.manager,
               createdBooking.booking_id,
               selectedTickets[ticketIndex].id,
-              recipientId,
+              recipient_id,
               user,
             );
+
             ticketIndex++;
           }
         }
