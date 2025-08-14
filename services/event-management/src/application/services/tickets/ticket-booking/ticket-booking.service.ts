@@ -269,6 +269,13 @@ export class TicketBookingService {
 
       if (createTicketBookingDto.hasGift) {
         const recipientTickets = createTicketBookingDto.recipient_tickets || [];
+        for (const recipient of recipientTickets) {
+          if (recipient.ticket_count < 1) {
+            throw new BadRequestException(
+              'Each recipient must have at least 1 ticket.',
+            );
+          }
+        }
         const totalGiftedTickets = recipientTickets.reduce(
           (sum, recipient) => sum + recipient.ticket_count,
           0,
