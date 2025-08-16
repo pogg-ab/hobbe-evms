@@ -10,24 +10,25 @@ export class StartStreamCommandHandler
     constructor(private readonly streamService: StreamService) { }
 
     async execute(command: StartStreamCommand): Promise<{ success: boolean; message: string; data: Stream | null }> {
-        const { streamId, source } = command;
+        const { streamId, userId } = command;
 
-        // if (typeof source === 'string') {
-        //     const result = await this.streamService.startStream(streamId, source);
-        //     if (!result.success) {
-        //         throw new BadRequestException(result.message);
-        //     }
-        //     return result;
-        // }
 
-        // if (source.filePath || source.cameraDevice) {
-        //     const result = await this.streamService.startStream(streamId, source);
-        //     if (!result.success) {
-        //         throw new BadRequestException(result.message);
-        //     }
-        //     return result;
-        // }
 
-        throw new BadRequestException('Invalid source provided. Must be either filePath or cameraDevice.');
+        const result = await this.streamService.startStreamNew(streamId, userId);
+        if (!result.success) {
+            throw new BadRequestException(result.message);
+        }
+        return result;
     }
+
+    // if (source.filePath || source.cameraDevice) {
+    //     const result = await this.streamService.startStream(streamId, source);
+    //     if (!result.success) {
+    //         throw new BadRequestException(result.message);
+    //     }
+    //     return result;
+    // }
+
+    // throw new BadRequestException('Invalid source provided. Must be either filePath or cameraDevice.');
+
 }

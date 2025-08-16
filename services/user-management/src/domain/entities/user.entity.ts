@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -16,6 +17,7 @@ import { PersonalAccountID } from '../value-objects/personal-account-id.value-ob
 import { UserID } from '../value-objects/user-id.value-object';
 import { OrganizationalAccount } from './organizational-account.entity';
 import { PersonalAccount } from './personal-account.entity';
+import { OAuthProvider } from './oauth-provider.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -30,7 +32,7 @@ export class User {
   @Column({ nullable: true })
   profile_name: string;
 
-  @Column()
+  @Column({ nullable: true})
   password: string;
 
   @Column({
@@ -99,6 +101,9 @@ export class User {
 
   @UpdateDateColumn()
   updated_date: Date;
+
+  @OneToMany(() => OAuthProvider, provider => provider.user)
+  providers: OAuthProvider[];
 
   @AfterLoad()
   @AfterInsert()

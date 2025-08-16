@@ -92,4 +92,21 @@ export class CreatePersonalAccountDto {
   @IsOptional()
   @IsString()
   profile_image?: string;
+
+
+   @ApiProperty({
+    description: 'URL or base64 image of the profile',
+    example: 'data:image/png;base64,...',
+  })
+  @IsOptional()
+  @IsString()
+  googleId?: string;
+
+   @ApiProperty({
+    description: 'URL or base64 image of the profile',
+    example: 'data:image/png;base64,...',
+  })
+  @IsOptional()
+  @IsString()
+  accessToken?: string;
 }

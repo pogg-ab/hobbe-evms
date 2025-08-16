@@ -31,11 +31,18 @@ export class Stream {
 
   @Column()
   eventId: string;
-  @Column({ type: 'timestamp', nullable: true })
-  startDate: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  endDate: Date;
+  startedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  endedAt: Date;
+
+  @Column({ default: 0 })
+  viewerCount: number;
+
+  @Column({ default: false })
+  isLive: boolean;
 
   @Column({ nullable: true })
   streamKey: string;

@@ -14,6 +14,15 @@ import { OrganizationalAccount } from './organizational-account.entity';
 import { PersonalAccount } from './personal-account.entity';
 import { User } from './user.entity';
 import { UserID } from '../value-objects/user-id.value-object';
+import { SubAccountStatusTransformer } from '../transformer/sub-account-status.transformer';
+
+export enum Privileges {
+  ADD_SUB_ACCOUNTS = 'add_sub_accounts',
+  MANAGE_GUESTS = 'manage_guests',
+  MANAGE_SUB_ACCOUNTS = 'manage_sub_accounts',
+  CREATE_EVENTS = 'create_events',
+}
+
 
 @Entity()
 export class SubAccount {
@@ -34,7 +43,19 @@ export class SubAccount {
   @Column({ type: 'date' })
   expire_date: Date;
 
-  @Column(() => SubAccountStatus)
+  @Column({
+    type: 'enum',
+    enum: Privileges,
+    array: true,
+    nullable: true,
+    default: null
+  })
+  privileges: Privileges[] | null;
+
+  @Column({
+    type: 'varchar',
+    transformer: new SubAccountStatusTransformer(),
+  })
   status: SubAccountStatus;
 
   @CreateDateColumn()

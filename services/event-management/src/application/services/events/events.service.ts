@@ -17,6 +17,9 @@ import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto'
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { DataSource } from 'typeorm';
 import { UserInfoService } from '../user-info/user-info.service';
+import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
+import { CreateStreamDto } from 'src/presentation/dtos/live-stream/create-stream.dto';
+import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 
 @Injectable()
 export class EventsService {
@@ -32,8 +35,19 @@ export class EventsService {
     private readonly socket: SocketIo,
     private dataSource: DataSource,
     private readonly userInfoService: UserInfoService,
+    private readonly streamProducerService: StreamProducerService,
+
 
   ) { }
+
+  private createStream(user: string, event_id: IdValueObject): any {
+    const stream = {
+      userId: user,
+      eventId: event_id,
+
+    };
+    return stream;
+  }
 
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
     const mappedEvent = this.mapper.map(
@@ -46,7 +60,7 @@ export class EventsService {
     const accounts = createEventsDto.bank_accounts;
     if (accounts) {
       accounts.forEach((account) => {
-        (account as any).event_id = event.id; // Add event_id property
+        (account as any).event_id = event.id;
       });
       this.kafkaProducerService.produce({
         topic: 'bank-account-list-sent',
@@ -83,6 +97,15 @@ export class EventsService {
         const command = new CreateTicketsCommand(ticketDto);
         await this.commandBus.execute(command);
       }
+    }
+
+    if (event.location == "Live") {
+      const stream = this.createStream(
+        user,
+        event.id,
+      );
+
+      await this.streamProducerService.sendStreamToKafka(stream);
     }
 
     return event;
@@ -249,7 +272,15 @@ export class EventsService {
   async findByUser(user: string): Promise<Events[]> {
     const event = await this.createEventRepository.findByUser(user);
     if (!event) {
-      throw new NotFoundException(`Event with Category ${user} not found.`);
+      throw new NotFoundException(`Event with User ${user} not found.`);
+    }
+    return event;
+  }
+
+   async findByUserAndStatus(user: string,status:string): Promise<Events[]> {
+    const event = await this.createEventRepository.findByUserAndStatus(user,status);
+    if (!event) {
+      throw new NotFoundException(`Event with user and status ${user} not found.`);
     }
     return event;
   }
@@ -356,8 +387,8 @@ export class EventsService {
 
   async getWeekend() {
     const date = new Date();
-    const saturday = startOfDay(nextSaturday(date)); // Gets the next Saturday from the given date
-    const sunday = endOfDay(nextSunday(saturday)); // Gets the next Sunday from Saturday
+    const saturday = startOfDay(nextSaturday(date));
+    const sunday = endOfDay(nextSunday(saturday));
 
     return { saturday, sunday };
   }

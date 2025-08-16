@@ -14,9 +14,10 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from 'src/application/services/auth.service';
 import { AdminUserAuthDto } from '../dtos/create-admin-user-auth.dto';
 import { AuthDto } from '../dtos/create-auth.dto';
@@ -27,13 +28,175 @@ import { ResendOtpDto } from '../dtos/resend-otp.dto';
 import { VerifyOtpDto } from '../dtos/verify-otp.dto';
 import { Request, Response } from 'express';
 import { createHash } from 'crypto';
-import { log } from 'console';
+
+import { AuthGuard } from '@nestjs/passport';
+import { CommandBus } from '@nestjs/cqrs';
+import { OAuthLoginDto, Provider } from '../dtos/sso/oauth.dto';
+import { LoginWithOAuthCommand } from 'src/application/commands/sso/LoginWithOAuthCommand';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(
+    private readonly authService: AuthService,
+    private readonly commandBus: CommandBus,
+  
+  ) { }
   private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
+
+
+
+  async oauthLogin(@Body() dto: OAuthLoginDto) {
+    return await this.commandBus.execute(new LoginWithOAuthCommand(dto));
+  }
+
+  @ApiOperation({ summary: 'Redirects to Google OAuth2 consent screen' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to Google OAuth2 consent screen'
+  })
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Guard redirects to Google
+  }
+
+
+  @ApiOperation({ summary: 'Handles Google OAuth2 callback' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to success page with JWT token'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired Google token'
+  })
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthCallback(@Req() req, @Res() res: Response) {
+ const data: OAuthLoginDto = {
+      provider: Provider.Google,          
+      providerId: req.user.googleId,       
+      email: req.user.email,
+      name: req.user.firstName + ' ' + req.user.lastName,
+      accessToken: req.user.accessToken,
+      refreshToken: req.user.refreshToken,
+    };
+    const result = await this.oauthLogin(data);
+    res.redirect(`/auth/success?token=${result.access_token}`);
+
+    // return result;
+  }
+
+  @Get('success')
+  @ApiOperation({ summary: 'Handles successful Google login' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successful login with JWT token'
+  })
+  async googleLoginSuccess(@Query('token') token: string) {
+    return { message: 'Login successful', token };
+  }
+
+
+  @ApiOperation({ summary: 'Redirects to Facebook OAuth2 consent screen' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to Facebook OAuth2 consent screen'
+  })
+  @Get('facebook')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuth() {
+    // Guard redirects to Facebook
+  }
+
+  @ApiOperation({ summary: 'Handles Facebook OAuth2 callback' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to success page with JWT token'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired Facebook token'
+  })
+  @Get('facebook/callback')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuthCallback(@Req() req, @Res() res: Response) {
+    if (!req.user) { 
+      throw new UnauthorizedException('Invalid or expired Facebook token');
+    }
+   const data: OAuthLoginDto = {
+      provider: Provider.Facebook,           // e.g., 'facebook'
+      providerId: req.user.facebookId,       // e.g., '123456789'
+      email: req.user.email,
+      name: req.user.displayName,
+      accessToken: req.user.accessToken,
+      refreshToken: req.user.refreshToken,
+    };
+    const result = await this.oauthLogin(data);
+    res.redirect(`/auth/success?token=${result.access_token}`);
+  }
+
+
+  @ApiOperation({ summary: 'Redirects to GitHub OAuth2 consent screen' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to GitHub OAuth2 consent screen'
+  })
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
+  async githubAuth() {
+    // Guard redirects to GitHub
+  }
+
+  @ApiOperation({ summary: 'Handles GitHub OAuth2 callback' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to success page with JWT token'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired GitHub token'
+  })
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  async githubAuthCallback(@Req() req, @Res() res: Response) {
+    // const result = await this.commandBus.execute(
+    //   new GithubLoginCommand(req.user),
+    // );
+
+    // console.log('result.user', result);
+
+    if (!req.user) {
+      throw new UnauthorizedException('Invalid or expired GitHub token');
+    }
+
+    const data: OAuthLoginDto = {
+      provider: Provider.GitHub,           // e.g., 'github'
+      providerId: req.user.githubId,       // e.g., '123456789'
+      email: req.user.email,
+      name: req.user.displayName,
+      accessToken: req.user.accessToken,
+      refreshToken: req.user.refreshToken,
+    };
+
+    const result = await this.oauthLogin(data);
+    res.redirect(`/auth/success?token=${result.access_token}`);
+  }
+
+  @ApiOperation({ summary: 'Shows authentication success page' })
+  @ApiResponse({
+    status: 200,
+    description: 'Authentication successful message'
+  })
+  @Get('success')
+  async authSuccess(@Req() req, @Res() res: Response) {
+
+    // This endpoint can be used to show a success page or handle the token
+    res.send('Authentication successful! You can close this window.');
+  }
+
+  
 
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })

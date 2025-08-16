@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -43,6 +44,7 @@ import { GetEventsByStatusQuery } from 'src/application/queries/events/get-event
 import { GetEventsByDateRnage } from 'src/presentation/dtos/events/get-event-by-date-range.dto';
 import { GetAllEventsByAuthQuery } from 'src/application/queries/events/get-all-events-by-auth.query';
 import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/get-all-events-by-auth.handler';
+import { FindEventsByUserAndStatusQuery } from 'src/application/queries/events/find-events-by-user-and-status.query';
 
 @ApiTags('Events')
 @Controller('events')
@@ -141,6 +143,23 @@ export class EventsController {
     return await this.queryBus.execute(
       new FindEventsByUserQuery(user.user.user_id.toString()),
     );
+  }
+
+
+  @ApiOperation({ description: 'Get Events By User and event status' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('find-by-user/:status')
+  async findByUserAndStatus(@CurrentUserId() user: any,@Param('status') status:string): Promise<any> {
+    const userId = user.user.user_id.toString();
+    // Validate the status parameter else // throw descriptive error to frontend dev
+    const validStatuses = ['past', 'future', 'drafted'];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException(`Invalid status: ${status}. Valid statuses are: ${validStatuses.join(', ')}`);
+    }
+    return this.queryBus.execute(new FindEventsByUserAndStatusQuery(userId, status));
   }
 
   @ApiOperation({ description: 'Get This Weekend Events' })

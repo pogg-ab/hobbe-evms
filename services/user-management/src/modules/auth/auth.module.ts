@@ -24,14 +24,22 @@ import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repo
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { Follower } from 'src/domain/entities/follower.entity';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { CqrsModule } from '@nestjs/cqrs';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { FacebookStrategy } from './strategies/facebook.strategy';
+import { LoginWithOAuthHandler } from 'src/application/handlers/sso/LoginWithOAuthHandler';
+import { OAuthProvider } from 'src/domain/entities/oauth-provider.entity';
+import { GithubStrategy } from './strategies/github.strategy';
 @Module({
   imports: [
+    CqrsModule,
     TypeOrmModule.forFeature([
       User,
       AdminUser,
       UserRole,
       AdminUserRole,
       Auth,
+      OAuthProvider,
       AdminUserAuth,
       PersonalAccount,
       OrganizationalAccount,
@@ -54,8 +62,13 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
     AuthService,
     ElasticsearchConfig,
     JwtStrategy,
+    GoogleStrategy,
+    FacebookStrategy,
+    GithubStrategy,
     MessageProducerService,
     NotificationConfigService,
+
+    LoginWithOAuthHandler,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,

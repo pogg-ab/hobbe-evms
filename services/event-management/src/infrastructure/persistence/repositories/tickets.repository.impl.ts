@@ -37,7 +37,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { id: id },
-        relations:['event_id','ticket_heading_id']
+        relations: ['event_id', 'ticket_heading_id']
       });
 
       if (!ticket) {
@@ -47,7 +47,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         );
       }
       // console.log(ticket);
-            
+
       return ticket;
     } catch (error) {
       throw new HttpException(
@@ -174,7 +174,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   ): Promise<{
     success: boolean;
     message: string;
-    // data: Tickets | null;
+    statusCode: number;
   }> {
     const shortId = ticketNumber.slice(0, 7);
     const now = new Date();
@@ -186,27 +186,30 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       });
 
       if (!ticket) {
-        throw new NotFoundException({
+        return {
           success: false,
           message: `Ticket ${shortId}... not found in our system`,
-        });
+          statusCode: 404, // Not Found
+        };
       }
 
       if (ticket.status === 'Attended') {
-        throw new ConflictException({
+        return {
           success: false,
           message: `Ticket ${shortId}... was previously scanned`,
-        });
+          statusCode: 409, // Conflict
+        };
       }
-      if (ticket.status !== 'Booked' && ticket.status !== 'Attended') {
-        throw new ForbiddenException({
-          success: false,
-          message: `Ticket ${shortId}... has invalid status. ` +
-            `Only BOOKED tickets can be marked as ATTENDED.`,
-        });
-      }
-      const eventJson: Events = JSON.parse(JSON.stringify(ticket.event_id));
 
+      if (ticket.status !== 'Booked' && ticket.status !== 'Attended') {
+        return {
+          success: false,
+          message: `Ticket ${shortId}... has invalid status. Only BOOKED tickets can be marked as ATTENDED.`,
+          statusCode: 403, // Forbidden
+        };
+      }
+
+      const eventJson: Events = JSON.parse(JSON.stringify(ticket.event_id));
       const event = await this.eventRepository.findOne({
         where: { id: eventJson.id },
       });
@@ -215,41 +218,39 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       oneDayBefore.setDate(oneDayBefore.getDate() - 1);
 
       if (now < oneDayBefore) {
-        throw new ForbiddenException({
+        return {
           success: false,
           message: `Early scan attempt - Ticket scanning will be available starting ${oneDayBefore.toLocaleDateString()} at ${oneDayBefore.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-        });
+          statusCode: 403, // Forbidden
+        };
       }
 
       if (now > event.event_end_date) {
-        throw new ForbiddenException({
+        return {
           success: false,
           message: `Scanning unavailable - The event concluded on ${event.event_end_date.toLocaleDateString()}. Please contact support for assistance.`,
-        });
+          statusCode: 403, // Forbidden
+        };
       }
 
       ticket.status = 'Attended';
       ticket.updated_by = scannedBy;
       ticket.updated_at = new Date();
 
-      const updatedTicket = await this.ticketsListRepository.save(ticket);
+      await this.ticketsListRepository.save(ticket);
 
       return {
         success: true,
         message: `Ticket ${shortId}... successfully marked as attended`,
-        // data: updatedTicket
+        statusCode: 200, // OK
       };
 
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof ForbiddenException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException({
+      return {
         success: false,
         message: `Failed to mark ticket as attended: ${error.message}`,
-        // data: null
-      });
+        statusCode: 500, // Internal Server Error
+      };
     }
   }
   async updateStatus(

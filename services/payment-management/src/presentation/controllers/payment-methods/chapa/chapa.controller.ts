@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
@@ -35,10 +36,11 @@ export class ChapaController {
     type: Object, // You can define a specific response DTO for payment status if needed
   })
   @Get('verify/:txRef')
-  async verify(@Param('txRef') txRef: string) {
+  async verify(@Param('txRef') txRef: string,@Res() res: any) {
     try {
       const result = await this.chapaSdkService.verifyPayment(txRef);
-      return result;
+      // return result;\\
+      return res.redirect('hobbeems://payment_success');
     } catch (error) {
       throw new HttpException(
         'Payment verification failed: ' + error.message,

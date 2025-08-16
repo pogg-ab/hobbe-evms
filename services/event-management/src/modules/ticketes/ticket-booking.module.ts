@@ -1,6 +1,7 @@
 import { AutomapperModule } from '@automapper/nestjs';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { ClientsModule } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateTicketBookingCommandHandler } from 'src/application/handlers/tickets/create-ticket-booking.command-handler';
 import { DeleteTicketBookingCommandHandler } from 'src/application/handlers/tickets/delete-ticket-booking.command-handler';
@@ -34,8 +35,10 @@ import { CREATE_TICKET_GIFTS_REPOSITORY_TOKEN } from 'src/domain/repositories/ti
 import { CREATE_TICKET_HEADING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets-heading.repository.token';
 import { CREATE_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/tickets.repository.token';
 import { KafkaPaymentRpcService } from 'src/infrastructure/kafka/kafka-payment-rpc.service';
+import { kafkaCheckinPrivilegeConfig } from 'src/infrastructure/kafka/kafka.checkin-privilege.config';
 import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
 import { BookingHasPaymentRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-payment.repository.impl';
 import { BookingHasPromocodeRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-promocode.repository.impl';
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
@@ -65,8 +68,18 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
       Partnership,
       Promocodes,
     ]),
+    ClientsModule.registerAsync([
+      {
+        name: 'KAFKA_CHECKIN_PRIVILEGE_SERVICE',
+        useFactory: async () => ({
+          transport: kafkaCheckinPrivilegeConfig.transport,
+          options: kafkaCheckinPrivilegeConfig.options,
+        }),
+      },
+    ]),
     CqrsModule,
   ],
+
   controllers: [TicketBookingController],
   providers: [
     CreateTicketsDto,

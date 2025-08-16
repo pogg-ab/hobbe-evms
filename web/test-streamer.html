@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Streamer Test</title>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    video {
+      width: 100%;
+      background: #000;
+      border-radius: 8px;
+    }
+
+    .status {
+      margin: 10px 0;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 4px;
+    }
+
+    .log {
+      height: 200px;
+      overflow-y: auto;
+      background: #f5f5f5;
+      padding: 10px;
+      font-family: monospace;
+      border-radius: 4px;
+    }
+
+    input {
+      padding: 8px;
+      width: 300px;
+    }
+
+    .stats {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>WebRTC Streamer Test (Multi-Viewer)</h1>
+
+  <div>
+    <label>
+      Stream ID:
+      <input id="streamId" value="" placeholder="Enter your stream ID" />
+    </label>
+    <button id="start">Start Streaming</button>
+    <button id="stop" disabled>Stop Streaming</button>
+    <div class="stats">Active Viewers: <span id="viewerCount">0</span></div>
+  </div>
+
+  <div class="status" id="status">Disconnected</div>
+
+  <h2>Local Preview</h2>
+  <video id="localVideo" autoplay playsinline muted></video>
+
+  <h2>Connection Log</h2>
+  <div class="log" id="log"></div>
+
+  <script>
+    // Setup elements
+    const logEl = document.getElementById("log");
+    const videoEl = document.getElementById("localVideo");
+    const statusEl = document.getElementById("status");
+    const streamIdInput = document.getElementById("streamId");
+    const startBtn = document.getElementById("start");
+    const stopBtn = document.getElementById("stop");
+    const viewerCountEl = document.getElementById("viewerCount");
+
+    // Add logging
+    function log(message, type = "info") {
+      const entry = document.createElement("div");
+      const time = new Date().toLocaleTimeString();
+      entry.textContent = `[${time}] ${message}`;
+      entry.style.color =
+        type === "error" ? "red" : type === "success" ? "green" : "black";
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(message);
+    }
+
+    // Setup variables
+    let socket = null;
+    let peerConnections = new Map(); // Store peer connections for each viewer
+    let localStream = null;
+
+    startBtn.addEventListener("click", async () => {
+      const streamId = streamIdInput.value.trim();
+      if (!streamId) {
+        log("Please enter a stream ID", "error");
+        return;
+      }
+
+      try {
+        // Get user media
+        log("Requesting camera and microphone access");
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+
+        log("Camera and microphone access granted", "success");
+        videoEl.srcObject = localStream;
+
+        // Connect to socket
+        log(`Connecting to WebSocket server for stream: ${streamId}`);
+        statusEl.textContent = "Connecting...";
+
+        socket = io("http://localhost:4003/stream", {
+          transports: ["websocket", "polling"],
+          reconnection: true,
+          auth: { token: "debug-token" }, // Temporary debug token
+        });
+
+        socket.on("connect", () => {
+          log(`Socket connected with ID: ${socket.id}`, "success");
+          statusEl.textContent = "Socket Connected";
+
+          // Start streaming
+          socket.emit("startStreaming", streamId);
+          log(`Sent startStreaming request for: ${streamId}`);
+        });
+
+        socket.on("streamingStarted", () => {
+          log("Streaming started successfully", "success");
+          statusEl.textContent = "Streaming";
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+        });
+
+        socket.on("connect_error", (error) => {
+          log(`Socket connection error: ${error.message}`, "error");
+          statusEl.textContent = `Connection Error: ${error.message}`;
+        });
+
+        // Handle new viewer joining
+        socket.on("viewerJoined", async (viewerId) => {
+          log(`New viewer joined: ${viewerId}`);
+
+          // Create a new peer connection for this viewer
+          const peerConnection = new RTCPeerConnection({
+            iceServers: [
+              { urls: "stun:stun.l.google.com:19302" },
+              { urls: "stun:stun1.l.google.com:19302" },
+            ],
+          });
+
+          // Store the peer connection
+          peerConnections.set(viewerId, peerConnection);
+          viewerCountEl.textContent = peerConnections.size;
+
+          // Add local tracks to the peer connection
+          log(
+            `Adding ${localStream.getTracks().length
+            } tracks to peer connection for viewer ${viewerId}`
+          );
+          localStream.getTracks().forEach((track) => {
+            log(
+              `Adding ${track.kind} track to peer connection for viewer ${viewerId}`
+            );
+            peerConnection.addTrack(track, localStream);
+          });
+
+          // Create and send offer
+          try {
+            log(`Creating offer for viewer ${viewerId}`);
+            const offer = await peerConnection.createOffer({
+              offerToReceiveAudio: false,
+              offerToReceiveVideo: false,
+            });
+            log(`Setting local description for viewer ${viewerId}`);
+            await peerConnection.setLocalDescription(offer);
+            log(`Sending offer to viewer ${viewerId}`);
+            socket.emit("sendOffer", { streamId, viewerId, offer });
+            log(`Offer sent to viewer ${viewerId}`);
+          } catch (error) {
+            log(
+              `Error creating offer for viewer ${viewerId}: ${error.message}`,
+              "error"
+            );
+          }
+
+          // Handle ICE candidates
+          peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+              log(`Generated ICE candidate for viewer ${viewerId}`);
+              socket.emit("sendIceCandidate", {
+                streamId,
+                viewerId,
+                candidate: event.candidate,
+              });
+            }
+          };
+
+          // Handle connection state changes
+          peerConnection.onconnectionstatechange = () => {
+            log(
+              `Connection state changed for viewer ${viewerId}: ${peerConnection.connectionState}`
+            );
+            if (
+              peerConnection.connectionState === "disconnected" ||
+              peerConnection.connectionState === "failed" ||
+              peerConnection.connectionState === "closed"
+            ) {
+              peerConnections.delete(viewerId);
+              viewerCountEl.textContent = peerConnections.size;
+            }
+          };
+
+          // Log ICE gathering state changes
+          peerConnection.onicegatheringstatechange = () => {
+            log(
+              `ICE gathering state for viewer ${viewerId}: ${peerConnection.iceGatheringState}`
+            );
+          };
+
+          // Log signaling state changes
+          peerConnection.onsignalingstatechange = () => {
+            log(
+              `Signaling state for viewer ${viewerId}: ${peerConnection.signalingState}`
+            );
+          };
+        });
+
+        // Handle viewer answers
+        socket.on("answer", async ({ viewerId, answer }) => {
+          log(`Received answer from viewer: ${viewerId}`);
+          const peerConnection = peerConnections.get(viewerId);
+
+          if (peerConnection) {
+            try {
+              log(`Setting remote description from viewer ${viewerId}`);
+              await peerConnection.setRemoteDescription(
+                new RTCSessionDescription(answer)
+              );
+              log(
+                `Remote description set successfully for viewer ${viewerId}`
+              );
+            } catch (error) {
+              log(
+                `Error handling viewer answer for ${viewerId}: ${error.message}`,
+                "error"
+              );
+            }
+          } else {
+            log(`No peer connection found for viewer: ${viewerId}`, "error");
+          }
+        });
+
+        // Handle viewer ICE candidates
+        socket.on("iceCandidate", async ({ viewerId, candidate }) => {
+          log(`Received ICE candidate from viewer: ${viewerId}`);
+          const peerConnection = peerConnections.get(viewerId);
+
+          if (peerConnection) {
+            try {
+              await peerConnection.addIceCandidate(
+                new RTCIceCandidate(candidate)
+              );
+              log(`Added ICE candidate for viewer ${viewerId}`);
+            } catch (error) {
+              log(
+                `Error adding viewer ICE candidate for ${viewerId}: ${error.message}`,
+                "error"
+              );
+            }
+          }
+        });
+
+        // Handle viewer disconnection
+        socket.on("viewerDisconnected", (viewerId) => {
+          log(`Viewer disconnected: ${viewerId}`);
+          const peerConnection = peerConnections.get(viewerId);
+          if (peerConnection) {
+            peerConnection.close();
+            peerConnections.delete(viewerId);
+            viewerCountEl.textContent = peerConnections.size;
+          }
+        });
+      } catch (error) {
+        log(`Error starting stream: ${error.message}`, "error");
+        statusEl.textContent = "Error";
+      }
+    });
+
+    stopBtn.addEventListener("click", () => {
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+        localStream = null;
+        videoEl.srcObject = null;
+      }
+
+      // Close all peer connections
+      for (const [viewerId, pc] of peerConnections.entries()) {
+        pc.close();
+        log(`Closed connection to viewer ${viewerId}`);
+      }
+      peerConnections.clear();
+      viewerCountEl.textContent = "0";
+
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      statusEl.textContent = "Disconnected";
+      log("Streaming stopped", "info");
+    });
+  </script>
+</body>
+
+</html>
