@@ -38,11 +38,19 @@ import { Follower } from 'src/domain/entities/follower.entity';
 import { UpdateProfileImageCommand } from 'src/application/commands/personal-account/update-profile-image-command';
 import { UpdateProfileImageCommandHandler } from 'src/application/handlers/personal-account/update-profile-image-command-handler';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 
 @Module({
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([PersonalAccount, User, Role, UserRole, Follower]),
+    TypeOrmModule.forFeature([
+      PersonalAccount,
+      User,
+      Role,
+      UserRole,
+      Follower,
+      OrganizationalAccount,
+    ]),
     ClientsModule.register([
       {
         name: 'KAFKA_PRODUCER',
@@ -93,4 +101,4 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
     },
   ],
 })
-export class PersonalAccountModule { }
+export class PersonalAccountModule {}

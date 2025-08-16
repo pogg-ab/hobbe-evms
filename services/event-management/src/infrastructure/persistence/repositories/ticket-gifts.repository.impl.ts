@@ -18,12 +18,14 @@ export class TicketGiftsRepositoryImpl implements ITicketGiftsRepository {
     bookingId: any,
     recipientId: any,
     gifterId: any,
+    ticketCount: number,
   ): Promise<void> {
     try {
       const newTicketGift = this.ticketGiftsRepository.create({
         booking_id: bookingId,
         recipient_id: recipientId,
         gifter_id: gifterId,
+        ticket_count: ticketCount,
         created_by: user,
         updated_by: user,
         created_at: new Date(),
@@ -51,6 +53,26 @@ export class TicketGiftsRepositoryImpl implements ITicketGiftsRepository {
     } catch (error) {
       throw new HttpException(
         `Error fetching Ticket Gift with Booking ID ${bookingId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findByBookingIdAndRecipient(
+    manager: EntityManager,
+    bookingId: string,
+    recipientId: string,
+  ): Promise<TicketGifts | null> {
+    try {
+      return await manager.findOne(TicketGifts, {
+        where: {
+          booking_id: bookingId,
+          recipient_id: recipientId,
+        },
+      });
+    } catch (error) {
+      throw new HttpException(
+        `Error finding Ticket Gift for Booking ${bookingId} and Recipient ${recipientId}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

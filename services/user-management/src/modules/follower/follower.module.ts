@@ -18,6 +18,8 @@ import { FollowerProfile } from 'src/application/mappers/follower.profile';
 import { FindAllFollowingQuery } from 'src/application/queries/follower/find-all-following.query';
 import { FollowerService } from 'src/application/services/follower.service';
 import { Follower } from 'src/domain/entities/follower.entity';
+import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
+import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
 import { USER_REPOSITORY_TOKEN } from 'src/domain/repositories/user.repository.token';
@@ -29,7 +31,12 @@ import { FollowerController } from 'src/presentation/controllers/follower.contro
 @Module({
   imports: [
     AutomapperModule,
-    TypeOrmModule.forFeature([Follower, User]),
+    TypeOrmModule.forFeature([
+      Follower,
+      User,
+      PersonalAccount,
+      OrganizationalAccount,
+    ]),
     CqrsModule,
   ],
   controllers: [FollowerController],
@@ -56,6 +63,5 @@ import { FollowerController } from 'src/presentation/controllers/follower.contro
       useClass: UserRepositoryImpl,
     },
   ],
-
 })
-export class FollowerModule { }
+export class FollowerModule {}

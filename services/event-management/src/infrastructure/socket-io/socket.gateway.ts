@@ -34,6 +34,15 @@ export class SocketIo implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.emit('count-single-event-favorites', message);
     }
 
+
+     @SubscribeMessage('shareCounters')
+    handleAllEventShareCounter(@MessageBody() message:any){
+        this.server.emit('count-all-event-share', message);
+    }
+    handleSigleEventShareCounter(@MessageBody() message:any){
+        this.server.emit('count-single-event-share', message);
+    }
+
     @SubscribeMessage('commentsCounters')
     handleAllEventsCommentsCounter(@MessageBody() message: any) {
         this.server.emit('count-all-event-comments', message);

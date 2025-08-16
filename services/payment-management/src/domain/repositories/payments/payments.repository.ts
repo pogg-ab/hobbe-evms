@@ -1,6 +1,7 @@
 
 import { CreatePaymentDto } from "src/presentation/dtos/payments/create-payments.dto";
 import { Payments } from "src/domain/entities/payments.entity";
+import { TransactionsVolumeByDateRangeDto } from "src/presentation/dtos/reports/trasaction-volume.dto";
 
 
 
@@ -16,4 +17,7 @@ export interface IPaymentsRepository{
     getLastMonthTransactions(): Promise<any>;
     getTodayTransactions(): Promise<any>;
     getYesterdayTransactions(): Promise<any>;
+
+    getTransactionVolumeByDateRange(query: TransactionsVolumeByDateRangeDto): Promise<any>;
+    getAggregatedTransactionVolume(aggregatedTransactionVolumeDto: any): Promise<any>;
 }

@@ -47,7 +47,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ClientKafka } from '@nestjs/microservices';
 import { Events } from 'src/domain/entities/events.entity';
 
-
 @Injectable()
 export class TicketBookingService {
   private readonly logger = new Logger(TicketBookingService.name);
@@ -77,21 +76,20 @@ export class TicketBookingService {
     private readonly socket: SocketIo,
     private readonly kafkaConsumerService: KafkaConsumerService,
     private readonly kafkaPaymentRpcService: KafkaPaymentRpcService,
-    @Inject('KAFKA_CHECKIN_PRIVILEGE_SERVICE') private readonly kafkaClient: ClientKafka,
+    @Inject('KAFKA_CHECKIN_PRIVILEGE_SERVICE')
+    private readonly kafkaClient: ClientKafka,
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
-
-  ) { }
+  ) {}
 
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
     user: any,
-  ): Promise<{ message: string, paymentLink: any }> {
+  ): Promise<{ message: string; paymentLink: any }> {
     const eventId = createTicketBookingDto.event_id.toString();
     const ticketCount = createTicketBookingDto.total_amount;
     const currentDate = new Date();
     const queryRunner = this.dataSource.createQueryRunner();
-
     await queryRunner.startTransaction();
 
     try {
@@ -185,7 +183,10 @@ export class TicketBookingService {
         );
       }
 
-      if (calculatedPrice !== createTicketBookingDto.total_price) {
+      if (
+        event.isPaid &&
+        calculatedPrice !== createTicketBookingDto.total_price
+      ) {
         throw new BadRequestException(
           `Total price for tickets is invalid. Expected price: ${calculatedPrice}, but received: ${createTicketBookingDto.total_price}.`,
         );
@@ -211,9 +212,7 @@ export class TicketBookingService {
         user,
       );
 
-
-
-      if (createTicketBookingDto.hasPromocode) {
+      if (event.isPaid && createTicketBookingDto.hasPromocode) {
         let promocode = null;
         promocode = await this.promocodeRepository.findByCode(
           createTicketBookingDto.promocode_value,
@@ -269,23 +268,45 @@ export class TicketBookingService {
       }
 
       if (createTicketBookingDto.hasGift) {
-        const existingGift = await this.giftRepository.findByBookingId(
-          queryRunner.manager,
-          createdBooking.booking_id,
+        const recipientTickets = createTicketBookingDto.recipient_tickets || [];
+        for (const recipient of recipientTickets) {
+          if (recipient.ticket_count < 1) {
+            throw new BadRequestException(
+              'Each recipient must have at least 1 ticket.',
+            );
+          }
+        }
+        const totalGiftedTickets = recipientTickets.reduce(
+          (sum, recipient) => sum + recipient.ticket_count,
+          0,
         );
-
-        if (!existingGift) {
-          await this.giftRepository.create(
-            queryRunner.manager,
-            user,
-            createdBooking.booking_id,
-            createTicketBookingDto.recipient_id,
-            user,
+        if (totalGiftedTickets !== ticketCount) {
+          throw new BadRequestException(
+            `Total gifted tickets (${totalGiftedTickets}) must be exactly equal to the number of tickets booked (${ticketCount}).`,
           );
+        }
+        for (const { recipient_id, ticket_count } of recipientTickets) {
+          const existingGift =
+            await this.giftRepository.findByBookingIdAndRecipient(
+              queryRunner.manager,
+              createdBooking.booking_id,
+              recipient_id,
+            );
+
+          if (!existingGift) {
+            await this.giftRepository.create(
+              queryRunner.manager,
+              user,
+              createdBooking.booking_id,
+              recipient_id,
+              user,
+              ticket_count,
+            );
+          }
         }
       }
 
-      if (createTicketBookingDto.hasPayment) {
+      if (event.isPaid) {
         await this.bookingHasPaymentRepository.create(
           queryRunner.manager,
           createdBooking.booking_id,
@@ -293,47 +314,81 @@ export class TicketBookingService {
           calculatedPrice,
           user,
         );
-      }
-
-
-      const paymentLink = await this.kafkaPaymentRpcService.sendRequest(
-        'payment-link-request-topic',
-        {
-          value: JSON.stringify({
-            ...createdBooking,
-            payment_method: createTicketBookingDto.payment_method,
-            amount: calculatedPrice,
-          })
-        });
-
-      if (paymentLink.success === false) {
-        throw new BadRequestException(paymentLink.error);
-      }
-
-      for (let i = 0; i < ticketCount; i++) {
-        const status = createTicketBookingDto.hasGift ? 'Gifted' : 'Booked';
-        const participantId = createTicketBookingDto.hasGift
-          ? createTicketBookingDto.recipient_id
-          : user;
-
-        await this.ticketRepository.updateStatus(
-          queryRunner.manager,
-          selectedTickets[i].id,
-          createdBooking.booking_id,
-          status,
-          user
-        );
-
-        await this.participantHasTicketRepository.create(
-          queryRunner.manager,
-          createdBooking.booking_id,
-          selectedTickets[i].id,
-          participantId,
-          user,
+      } else {
+        await this.ticketBookingRepository.updateStatus(
+          ticketBooking.booking_id,
+          'success',
+          new Date(),
         );
       }
-      const allTicketsCounter = await this.ticketRepository.countAllTicketsForEvent(queryRunner.manager, eventId);
+      let paymentLink: any = null;
+      if (event.isPaid) {
+        paymentLink = await this.kafkaPaymentRpcService.sendRequest(
+          'payment-link-request-topic',
+          {
+            value: JSON.stringify({
+              ...createdBooking,
+              payment_method: createTicketBookingDto.payment_method,
+              amount: calculatedPrice,
+            }),
+          },
+        );
 
+        if (paymentLink.success === false) {
+          throw new BadRequestException(paymentLink.error);
+        }
+      }
+
+      let ticketIndex = 0;
+      if (createTicketBookingDto.hasGift) {
+        for (const {
+          recipient_id,
+          ticket_count,
+        } of createTicketBookingDto.recipient_tickets) {
+          for (let i = 0; i < ticket_count; i++) {
+            await this.ticketRepository.updateStatus(
+              queryRunner.manager,
+              selectedTickets[ticketIndex].id,
+              createdBooking.booking_id,
+              'Gifted',
+              user,
+            );
+
+            await this.participantHasTicketRepository.create(
+              queryRunner.manager,
+              createdBooking.booking_id,
+              selectedTickets[ticketIndex].id,
+              recipient_id,
+              user,
+            );
+
+            ticketIndex++;
+          }
+        }
+      } else {
+        for (let i = 0; i < ticketCount; i++) {
+          await this.ticketRepository.updateStatus(
+            queryRunner.manager,
+            selectedTickets[i].id,
+            createdBooking.booking_id,
+            'Booked',
+            user,
+          );
+
+          await this.participantHasTicketRepository.create(
+            queryRunner.manager,
+            createdBooking.booking_id,
+            selectedTickets[i].id,
+            user,
+            user,
+          );
+        }
+      }
+      const allTicketsCounter =
+        await this.ticketRepository.countAllTicketsForEvent(
+          queryRunner.manager,
+          eventId,
+        );
 
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, eventId);
 
@@ -350,14 +405,16 @@ export class TicketBookingService {
     }
   }
 
-  private async notifyLiveTicketPurchaseCounter(allTicketsCounter: any, eventId: string): Promise<void> {
+  private async notifyLiveTicketPurchaseCounter(
+    allTicketsCounter: any,
+    eventId: string,
+  ): Promise<void> {
     this.socket.handleLiveTicketPurchaseCounter({
       event_id: eventId,
       totalTickets: allTicketsCounter,
     });
   }
 
-  // Helper function to randomly select tickets
   getRandomTickets(tickets: any[], ticketCount: number): any[] {
     const selectedTickets: any[] = [];
     const availableTickets = [...tickets];
@@ -439,11 +496,10 @@ export class TicketBookingService {
     success: boolean;
     message: string;
   }> {
-
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { ticket_no: ticketNumber },
-        relations: ['event_id']
+        relations: ['event_id'],
       });
 
       if (!ticket) {
@@ -453,34 +509,47 @@ export class TicketBookingService {
 
       const privilegeCheck = await this.checkCheckinPrivilege({
         staffUserId: scannedBy,
-        eventOrganizerId: eventJson.user_id
+        eventOrganizerId: eventJson.user_id,
       });
-
 
       if (!privilegeCheck || !privilegeCheck.hasPrivilege) {
         if (privilegeCheck.isExpired) {
           throw new ForbiddenException(privilegeCheck.message);
         }
-        throw new ForbiddenException('You do not have permission to check in attendees for this event');
+        throw new ForbiddenException(
+          'You do not have permission to check in attendees for this event',
+        );
       }
 
-
-      const updatedTicket = await this.ticketRepository.markAsAttended(ticketNumber, scannedBy);
+      const updatedTicket = await this.ticketRepository.markAsAttended(
+        ticketNumber,
+        scannedBy,
+      );
 
       return updatedTicket;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
       console.error('Error marking ticket as attended:', error);
-      throw new InternalServerErrorException('Failed to mark ticket as attended');
+      throw new InternalServerErrorException(
+        'Failed to mark ticket as attended',
+      );
     }
   }
 
-  async checkCheckinPrivilege(payload: { staffUserId: string; eventOrganizerId: string }): Promise<any> {
+  async checkCheckinPrivilege(payload: {
+    staffUserId: string;
+    eventOrganizerId: string;
+  }): Promise<any> {
     try {
       if (!payload.staffUserId || !payload.eventOrganizerId) {
-        throw new BadRequestException('Staff User ID and Organizer User ID are required');
+        throw new BadRequestException(
+          'Staff User ID and Organizer User ID are required',
+        );
       }
 
       const response = await firstValueFrom(
@@ -488,7 +557,9 @@ export class TicketBookingService {
       );
 
       if (!response) {
-        throw new Error('Invalid response format from checkin privilege service');
+        throw new Error(
+          'Invalid response format from checkin privilege service',
+        );
       }
 
       return response;
@@ -502,7 +573,6 @@ export class TicketBookingService {
       );
     }
   }
-
 
   async onModuleInit() {
     this.kafkaClient.subscribeToResponseOf('check-checkin-privilege');
@@ -524,10 +594,9 @@ export class TicketBookingService {
             new Date(),
           );
 
-
           await this.bookingHasPaymentRepository.updateStatus(
             paymentStatus.booking_id,
-            "paid",
+            'paid',
           );
 
           await this.ticketRepository.updateStatusAfterPayment(
@@ -535,62 +604,9 @@ export class TicketBookingService {
             paymentStatus.booking_id,
           );
 
-          console.log("Done updating ticket status after payment");
-
+          console.log('Done updating ticket status after payment');
         },
       },
     );
   }
-
-
-
-
-
-
-
-
-
-  // Kafka Consumer for payment_info_sent topic
-  // private async getPaymentLinkWithTimeout(timeoutMs: number = 3000): Promise<string> {
-  //   const paymentLinkEmitter = new EventEmitter();
-
-  //   // Create promise for payment link
-  //   const paymentLinkPromise = new Promise<string>((resolve, reject) => {
-  //     // Success handler
-  //     paymentLinkEmitter.on('received', (link: string) => {
-  //       // console.log('Received paymentLink:', link);
-  //       resolve(link);
-  //     });
-
-  //     // Timeout handler
-  //     setTimeout(() => {
-  //       reject(
-  //         new RequestTimeoutException('Oops! 😒 The payment link wasn’t received in time. Please try again.'));
-  //     }, timeoutMs);
-  //   });
-
-  //   // Start consuming Kafka messages
-  //   this.startKafkaPaymentLinkConsumer(paymentLinkEmitter);
-
-  //   return paymentLinkPromise;
-  // }
-
-  // private startKafkaPaymentLinkConsumer(emitter: EventEmitter): void {
-  //   this.kafkaConsumerService.paymentLinkConsume(
-  //     { topics: ['payment_link'],fromBeginning: true  },
-  //     {
-  //       eachMessage: async ({ message }) => {
-  //         const value = message.value?.toString();
-  //         if (!value) return;
-
-  //         try {
-  //           const paymentLink = JSON.parse(value);
-  //           emitter.emit('received', paymentLink);
-  //         } catch (error) {
-  //           console.error('Failed to parse payment link:', error);
-  //         }
-  //       },
-  //     }
-  //   );
-  // }
 }

@@ -196,6 +196,11 @@ export class EventsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Events | null> {
+    // Validate the ID format of uuid
+    if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      throw new BadRequestException('Invalid event ID format');
+    }
+
     return this.queryBus.execute(new GetEventsByIdQuery(id));
   }
 

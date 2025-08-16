@@ -2,6 +2,8 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { ParticipantHasTicketRepositoryImpl } from 'src/infrastructure/persistence/repositories/participant-has-ticket.repository.impl';
+import { QrCodeActionAfterScannedDto } from 'src/presentation/dtos/qr-code/qr-code-action-after-scanned.dto';
+import { QrAfterScannedActionsAggregateDto } from 'src/presentation/dtos/qr-code/qr-scaned-after-scanned-action-aggregate.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { EntityManager } from 'typeorm';
 
@@ -85,4 +87,17 @@ export interface ITicketsRepository {
     ticket_id: string,
     metadata: string,
   ): Promise<void>;
+
+  qrCodeLogAfterScanned(
+    dto: QrCodeActionAfterScannedDto
+  ): Promise<void>;
+
+  qrCodeActionsAfterScanned(
+    dto: QrAfterScannedActionsAggregateDto
+  ): Promise<any>;
+
+
+  countQrCodeScannedLogs(event_id: string): Promise<any>;
+  aggregateQrCodeScannedLogs(dto: any): Promise<any>;
+
 }

@@ -32,6 +32,7 @@ import { Follower } from 'src/domain/entities/follower.entity';
 import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 
 @Module({
   imports: [
@@ -43,7 +44,8 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
       Owner,
       KYC,
       User,
-      Follower
+      Follower,
+      PersonalAccount,
     ]),
     ClientsModule.register([
       {
@@ -90,4 +92,4 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
     },
   ],
 })
-export class OrganizationalAccountModule { }
+export class OrganizationalAccountModule {}

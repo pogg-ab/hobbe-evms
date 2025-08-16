@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity'; // Adjust the path
 import { Role } from 'src/domain/entities/role.entity';
 import { User } from 'src/domain/entities/user.entity';
-import { AccountStatus } from 'src/domain/value-objects/account-status.value-object';
+import { AccountStatus, Status } from 'src/domain/value-objects/account-status.value-object';
 import { CreateRoleDto } from 'src/presentation/dtos/create-role.dto';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto'; // Adjust the path
 import { UpdatePersonalAccountDto } from 'src/presentation/dtos/update-personal-account.dto';
@@ -59,7 +59,7 @@ export class PersonalAccountProfile extends AutomapperProfile {
         ),
         forMember(
           (destination) => destination.status,
-          mapFrom(() => new AccountStatus('active')),
+          mapFrom(() => Status.ACTIVE),
         ),
         forMember(
           (destination) => destination.is_verified,

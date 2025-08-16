@@ -23,38 +23,46 @@ import { Follower } from 'src/domain/entities/follower.entity';
 import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repository.token';
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
+import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
+import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 
 @Module({
-    imports: [
-        AutomapperModule,
-        TypeOrmModule.forFeature([Favorite, User, Follower]),
-        CqrsModule,
-    ],
-    controllers: [FavoriteController],
-    providers: [
-        FavoriteService,
-        ElasticsearchConfig,
-        CreateFavoriteCommand,
-        RemoveFavoriteCommand,
-        FindUserFavoritesQuery,
-        FindFavoritedByQuery,
-        CreateFavoriteCommandHandler,
-        RemoveFavoriteCommandHandler,
-        FindUserFavoritesQueryHandler,
-        FindFavoritedByQueryHandler,
-        FavoriteProfile,
-        {
-            provide: FAVORITE_REPOSITORY_TOKEN,
-            useClass: FavoriteRepositoryImpl,
-        },
-        {
-            provide: USER_REPOSITORY_TOKEN,
-            useClass: UserRepositoryImpl,
-        },
-        {
-            provide: FOLLOWER_REPOSITORY_TOKEN,
-            useClass: FollowerRepositoryImpl,
-        },
-    ],
+  imports: [
+    AutomapperModule,
+    TypeOrmModule.forFeature([
+      Favorite,
+      User,
+      Follower,
+      PersonalAccount,
+      OrganizationalAccount,
+    ]),
+    CqrsModule,
+  ],
+  controllers: [FavoriteController],
+  providers: [
+    FavoriteService,
+    ElasticsearchConfig,
+    CreateFavoriteCommand,
+    RemoveFavoriteCommand,
+    FindUserFavoritesQuery,
+    FindFavoritedByQuery,
+    CreateFavoriteCommandHandler,
+    RemoveFavoriteCommandHandler,
+    FindUserFavoritesQueryHandler,
+    FindFavoritedByQueryHandler,
+    FavoriteProfile,
+    {
+      provide: FAVORITE_REPOSITORY_TOKEN,
+      useClass: FavoriteRepositoryImpl,
+    },
+    {
+      provide: USER_REPOSITORY_TOKEN,
+      useClass: UserRepositoryImpl,
+    },
+    {
+      provide: FOLLOWER_REPOSITORY_TOKEN,
+      useClass: FollowerRepositoryImpl,
+    },
+  ],
 })
-export class FavoritesModule { }
+export class FavoritesModule {}

@@ -3,6 +3,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { start } from 'repl';
 import { Events } from 'src/domain/entities/events.entity';
+import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { Between, Repository } from 'typeorm';
@@ -13,6 +14,8 @@ export class EventRepositoryEmpl implements IEventRepository {
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
     public readonly createTicketsDto: CreateTicketsDto,
+    @InjectRepository(ParticipantHasTicket)
+    private participantHasTicketRepository: Repository<ParticipantHasTicket>,
   ) {}
 
   async create(event: Events, user: any): Promise<Events> {
@@ -169,7 +172,7 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('event.id = :id', { id })
       .getRawAndEntities();
 
-    if (!event.entities[0]) {
+    if (!event.entities.length) {
       throw new HttpException(
         `Event with ID ${id} not found`,
         HttpStatus.NOT_FOUND,
@@ -637,5 +640,25 @@ export class EventRepositoryEmpl implements IEventRepository {
       TotalLikesCount: parseInt(likeCount.count, 10),
       qrcodeStats,
     };
+  }
+
+  async countEventsOrganizedByUser(userId: string): Promise<number> {
+    const result = await this.eventRepository
+      .createQueryBuilder('event')
+      .where('event.user_id = :userId', { userId })
+      .getCount();
+
+    return result;
+  }
+
+  async countEventsUserParticipatedIn(userId: string): Promise<number> {
+    const result = await this.participantHasTicketRepository
+      .createQueryBuilder('pht')
+      .innerJoin('pht.booking_id', 'booking')
+      .select('COUNT(DISTINCT booking.event_id)', 'count')
+      .where('pht.participant_id = :userId', { userId })
+      .getRawOne();
+
+    return parseInt(result.count, 10);
   }
 }
