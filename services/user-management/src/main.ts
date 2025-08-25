@@ -3,6 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+
+// This is your existing, correct dotenv configuration.
 dotenv.config({
   path: path.resolve(
     __dirname,
@@ -10,6 +12,15 @@ dotenv.config({
     `.env.${process.env.NODE_ENV || 'development'}`,
   ),
 });
+
+// --- THIS IS THE DIAGNOSTIC TEST ---
+// We are adding these console logs to see what the value of KAFKA_BROKER is
+// at the exact moment it should be loaded.
+console.log('--- STARTING DIAGNOSTIC LOG ---');
+console.log(`Attempting to load .env file from: ${path.resolve(__dirname, '..', `.env.${process.env.NODE_ENV || 'development'}`)}`);
+console.log(`Value of KAFKA_BROKER from process.env: ${process.env.KAFKA_BROKER}`);
+console.log('--- ENDING DIAGNOSTIC LOG ---');
+// --- END OF TEST ---
 
 import { MicroserviceOptions } from '@nestjs/microservices';
 import { AppModule } from './app.module';

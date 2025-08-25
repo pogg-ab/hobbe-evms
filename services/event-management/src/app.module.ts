@@ -14,6 +14,7 @@ import { SocketIoModule } from './modules/socket-io/socket-io.module';
 import { FavoriteModule } from './modules/favorite/favorite.module';
 import { EventShareModule } from './modules/event-share/event-share.module';
 import { GuestsModule } from './modules/guest/guest.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { GuestsModule } from './modules/guest/guest.module';
     SocketIoModule,
     EventShareModule,
     GuestsModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

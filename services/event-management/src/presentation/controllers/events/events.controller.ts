@@ -45,6 +45,7 @@ import { GetEventsByDateRnage } from 'src/presentation/dtos/events/get-event-by-
 import { GetAllEventsByAuthQuery } from 'src/application/queries/events/get-all-events-by-auth.query';
 import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/get-all-events-by-auth.handler';
 import { FindEventsByUserAndStatusQuery } from 'src/application/queries/events/find-events-by-user-and-status.query';
+import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 
 @ApiTags('Events')
 @Controller('events')
@@ -99,6 +100,7 @@ export class EventsController {
   */
   @ApiBody({ type: CreateEventsDto })
   @ApiOperation({ description: 'Create a new event' })
+  @UseInterceptors(AuditLogInterceptor)
   @HttpCode(200)
   @ApiResponse({
     type: CreateEventsDto,
@@ -106,6 +108,7 @@ export class EventsController {
   @Post()
   @ApiBearerAuth('access-token')
   @Roles('User')
+   @UseInterceptors(AuditLogInterceptor) 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @UseInterceptors(
     FileInterceptor('thumbnail', multerConfig('thumbnail')),  // For 'thumbnail' field, allows 1 file only
@@ -209,6 +212,7 @@ export class EventsController {
   @ApiBearerAuth('access-token')
   @Roles('User')
   @Patch(':id')
+  @UseInterceptors(AuditLogInterceptor)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async update(
     @Param('id') id: string,
@@ -227,6 +231,7 @@ export class EventsController {
   @ApiBearerAuth('access-token')
   @Roles('User')
   @Delete(':id')
+  @UseInterceptors(AuditLogInterceptor)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async remove(@Param('id') id: string): Promise<void> {
     const event = await this.queryBus.execute(new GetEventsByIdQuery(id));
