@@ -15,6 +15,7 @@ import {
   Res,
   UnauthorizedException,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -38,9 +39,12 @@ import { UpgradeGuestDto } from '../dtos/Guest User Insight/upgrade-guest.dto';
 import { GuestUserService } from 'src/application/services/guest-user.service';
 import { SessionID } from 'src/domain/value-objects/session-id.value-object';
 import { UserID } from 'src/domain/value-objects/user-id.value-object';
+import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
+import { MfaLoginDto } from '../dtos/mfa-login.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
+@UseInterceptors(AuditLogInterceptor)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -268,6 +272,18 @@ export class AuthController {
     return this.authService.login(user, rememberMe);
   }
 
+   @Post('mfa-login')
+  @ApiOperation({ summary: 'Complete login with MFA code' })
+  @ApiBody({ type: MfaLoginDto })
+  @ApiResponse({ status: 200, description: 'MFA verification successful, final tokens returned.' })
+  @ApiResponse({ status: 401, description: 'Invalid MFA code or expired token.' })
+  @HttpCode(200)
+  async mfaLogin(@Body() mfaLoginDto: MfaLoginDto) {
+    return this.authService.verifyMfaAndLogin(
+      mfaLoginDto.interimToken,
+      mfaLoginDto.mfaCode,
+    );
+  }
   @Post('refresh-token')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
   @ApiBody({ type: RefreshTokenDto })

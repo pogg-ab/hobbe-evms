@@ -1,14 +1,9 @@
-// src/admin/admin.service.ts
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { Permission } from 'src/domain/entities/permission.entity';
 import { RolePermission } from 'src/domain/entities/role-permission.entity';
 import { Role } from 'src/domain/entities/role.entity';
@@ -22,77 +17,146 @@ import { In, Repository } from 'typeorm';
 
 @Injectable()
 export class AdminService {
+  roleTypeOrmRepository: any;
   constructor(
     @Inject(ROLE_REPOSITORY_TOKEN)
-    private roleRepository: IRoleRepository,
+    private readonly roleRepository: IRoleRepository,
     @InjectRepository(Permission)
-    private permissionRepository: Repository<Permission>,
+    private readonly permissionRepository: Repository<Permission>,
     @InjectRepository(RolePermission)
-    private rolePermissionRepository: Repository<RolePermission>,
+    private readonly rolePermissionRepository: Repository<RolePermission>,
+    @InjectRepository(AdminUser)
+    private readonly adminUserRepository: Repository<AdminUser>,
+    @InjectRepository(AdminUserRole)
+    private readonly adminUserRoleRepository: Repository<AdminUserRole>,
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
 
+  // --- CORRECTED 'create' METHOD ---
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
-    let existingPermissions: Permission[] = [];
-    if (createRoleDto.permissions && createRoleDto.permissions.length > 0) {
-      const count = await this.permissionRepository.count({
-        where: {
-          permission_id: In(createRoleDto.permissions),
-        },
-      });
+    const { name, description, permissions: permissionIds } = createRoleDto;
 
-      if (count !== createRoleDto.permissions.length) {
-        throw new HttpException(
-          'Some permissions do not exist.',
-          HttpStatus.BAD_REQUEST,
-        );
+    const roleToCreate = this.mapper.map({ name, description }, CreateRoleDto, Role);
+    
+    try {
+        const savedRole = await this.roleRepository.create(roleToCreate);
+
+        if (permissionIds && permissionIds.length > 0) {
+            const existingPermissions = await this.permissionRepository.findBy({
+                permission_id: In(permissionIds),
+            });
+
+            if (existingPermissions.length !== permissionIds.length) {
+                throw new HttpException('One or more of the provided permission IDs do not exist.', HttpStatus.BAD_REQUEST);
+            }
+
+            const linksToCreate = existingPermissions.map(permission => {
+                return this.rolePermissionRepository.create({
+                    role: savedRole,
+                    permission: permission,
+                });
+            });
+
+            await this.rolePermissionRepository.save(linksToCreate);
+        }
+
+        return savedRole;
+    } catch (error) {
+      if (error.code === '23505') {
+        throw new HttpException(`Error creating Role: A role with the name '${name}' already exists.`, HttpStatus.BAD_REQUEST);
       }
-
-      existingPermissions = await this.permissionRepository.findBy({
-        permission_id: In(createRoleDto.permissions),
-      });
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    const role = this.mapper.map(createRoleDto, CreateRoleDto, Role);
-
-    const createRole = await this.roleRepository.create(role);
-    const rolePermissions = existingPermissions.map((permission) => {
-      const rolePermission = new RolePermission();
-      rolePermission.role = createRole.role_id;
-      rolePermission.permission = permission.permission_id;
-      return rolePermission;
-    });
-    const rolePermission =
-      this.rolePermissionRepository.create(rolePermissions);
-    await this.rolePermissionRepository.save(rolePermission);
-    return createRole;
   }
 
-  async findAllRoles(): Promise<Role[]> {
-    return this.roleRepository.find();
+   async findAllRoles(): Promise<Role[]> {
+    // We can now pass the 'relations' option directly to our upgraded custom repository.
+    // This resolves the TypeScript error and the runtime error.
+    return this.roleRepository.find({
+      relations: {
+        rolePermissions: {
+          permission: true,
+        },
+      },
+    });
   }
 
   async findOneById(id: string): Promise<Role> {
-    const role = await this.roleRepository.findOneById(id);
-    return role;
+    return this.roleRepository.findOneById(id);
   }
 
+  // --- CORRECTED 'updateRole' METHOD ---
   async updateRole(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
-    const role = await this.roleRepository.findOneById(id);
-    if (!role) {
+    const { name, description, permissions: permissionIds } = updateRoleDto;
+
+    const roleToUpdate = await this.roleRepository.findOneById(id);
+    if (!roleToUpdate) {
       throw new NotFoundException(`Role with ID ${id} not found`);
     }
-    const updatedRole = this.mapper.map(updateRoleDto, UpdateRoleDto, Role);
-    return this.roleRepository.update(id, updatedRole);
+
+    roleToUpdate.name = name ?? roleToUpdate.name;
+    roleToUpdate.description = description ?? roleToUpdate.description;
+    await this.roleRepository.update(id, roleToUpdate);
+
+    if (permissionIds !== undefined) {
+      await this.rolePermissionRepository.delete({ role: { role_id: id } });
+
+      if (permissionIds.length > 0) {
+        const newPermissions = await this.permissionRepository.findBy({
+          permission_id: In(permissionIds),
+        });
+
+        if (newPermissions.length !== permissionIds.length) {
+          throw new HttpException('One or more provided permission IDs do not exist.', HttpStatus.BAD_REQUEST);
+        }
+
+        const newLinks = newPermissions.map(permission => {
+          return this.rolePermissionRepository.create({
+            role: roleToUpdate,
+            permission: permission,
+          });
+        });
+
+        await this.rolePermissionRepository.save(newLinks);
+      }
+    }
+
+    return this.roleRepository.findOneById(id);
   }
 
   async deleteRole(id: string): Promise<void> {
     await this.roleRepository.delete(id);
   }
+  
+  async assignRoleToUser(userId: string, roleId: string): Promise<AdminUserRole> {
+    const adminUser = await this.adminUserRepository.findOneBy({ admin_user_id: userId });
+    if (!adminUser) {
+      throw new NotFoundException(`Admin user with ID "${userId}" not found`);
+    }
 
-  async addPermission(
-    createPermissionDto: CreatePermissionDto,
-  ): Promise<Permission> {
+    const role = await this.roleRepository.findOneById(roleId);
+    if (!role) {
+      throw new NotFoundException(`Role with ID "${roleId}" not found`);
+    }
+
+    const existingLink = await this.adminUserRoleRepository.findOne({
+      where: { admin_user_id: userId as any, role: { role_id: roleId } },
+      relations: ['role'],
+    });
+
+    if (existingLink) {
+      throw new HttpException('User already has this role.', HttpStatus.BAD_REQUEST);
+    }
+
+    const adminUserRoleLink = this.adminUserRoleRepository.create({
+      admin_user_id: userId as any,
+      role: role,
+    });
+
+    return this.adminUserRoleRepository.save(adminUserRoleLink);
+  }
+
+  async addPermission(createPermissionDto: CreatePermissionDto): Promise<Permission> {
     const permission = this.permissionRepository.create(createPermissionDto);
     return this.permissionRepository.save(permission);
   }
@@ -101,13 +165,8 @@ export class AdminService {
     return this.permissionRepository.find();
   }
 
-  async updatePermission(
-    id: string,
-    updatePermissionDto: UpdatePermissionDto,
-  ): Promise<Permission> {
-    const permission = await this.permissionRepository.findOneBy({
-      permission_id: id,
-    });
+  async updatePermission(id: string, updatePermissionDto: UpdatePermissionDto): Promise<Permission> {
+    const permission = await this.permissionRepository.findOneBy({ permission_id: id });
     if (!permission) {
       throw new NotFoundException(`Permission with ID ${id} not found`);
     }
@@ -116,9 +175,7 @@ export class AdminService {
   }
 
   async deletePermission(id: string): Promise<void> {
-    const result = await this.permissionRepository.delete({
-      permission_id: id,
-    });
+    const result = await this.permissionRepository.delete({ permission_id: id });
     if (result.affected === 0) {
       throw new NotFoundException(`Permission with ID ${id} not found`);
     }

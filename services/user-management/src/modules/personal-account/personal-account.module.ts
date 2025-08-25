@@ -39,6 +39,8 @@ import { UpdateProfileImageCommand } from 'src/application/commands/personal-acc
 import { UpdateProfileImageCommandHandler } from 'src/application/handlers/personal-account/update-profile-image-command-handler';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 
 @Module({
   imports: [
@@ -59,6 +61,7 @@ import { OrganizationalAccount } from 'src/domain/entities/organizational-accoun
       },
     ]),
     CqrsModule,
+    AuditLogModule,
   ],
   controllers: [PersonalAccountController],
   providers: [
@@ -78,7 +81,7 @@ import { OrganizationalAccount } from 'src/domain/entities/organizational-accoun
     RoleProfile,
     MessageProducerService,
     NotificationConfigService,
-
+    AuditLogInterceptor,
     {
       provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
       useClass: PersonalAccountRepositoryImpl,

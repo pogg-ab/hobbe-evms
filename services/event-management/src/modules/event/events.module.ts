@@ -2,7 +2,7 @@ import { AutomapperModule } from '@automapper/nestjs';
 import { Inject, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
-import { ClientKafka, ClientsModule } from '@nestjs/microservices';
+import { ClientKafka, ClientsModule,Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateEventCommandHandler } from 'src/application/handlers/events/create-event.handler';
@@ -50,9 +50,15 @@ import { AnalyticsEventCommandHandler } from 'src/application/handlers/analytics
 import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
 import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/events/find-events-by-user-and-status.handler';
 import { GetUserEventStatsQueryHandler } from 'src/application/handlers/analytics/get-user-event-stats.query-handler';
+import { AuditLogModule } from 'src/modules/audit-log/audit-log.module'; 
+import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+import { ConfigModule } from '@nestjs/config';
+
+
 
 @Module({
   imports: [
+    ConfigModule, 
     TicketsHeadingModule,
     TicketsModule,
     PromocodeModule,
@@ -81,6 +87,19 @@ import { GetUserEventStatsQueryHandler } from 'src/application/handlers/analytic
     ]),
     TypeOrmModule.forFeature([Events, Tickets, ParticipantHasTicket]),
     CqrsModule,
+    AuditLogModule,
+    ClientsModule.register([
+      {
+        name: 'KAFKA_PRODUCER', // This name must match the @Inject() token
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            clientId: 'event-management-producer',
+            brokers: [process.env.KAFKA_BROKER],
+          },
+        },
+      },
+    ]),
   ],
   controllers: [EventsController, AnalyticsController],
   providers: [
@@ -114,6 +133,7 @@ import { GetUserEventStatsQueryHandler } from 'src/application/handlers/analytic
     UserValidationService,
     JwtStrategy,
     SocketIo,
+    AuditLogInterceptor, 
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
       useClass: EventRepositoryEmpl,

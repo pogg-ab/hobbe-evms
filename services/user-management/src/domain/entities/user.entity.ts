@@ -18,6 +18,8 @@ import { UserID } from '../value-objects/user-id.value-object';
 import { OrganizationalAccount } from './organizational-account.entity';
 import { PersonalAccount } from './personal-account.entity';
 import { OAuthProvider } from './oauth-provider.entity';
+import { UserSecuritySetting } from './user-security-setting.entity';
+import { UserSession } from './user-session.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -104,6 +106,12 @@ export class User {
 
   @OneToMany(() => OAuthProvider, (provider) => provider.user)
   providers: OAuthProvider[];
+
+  @OneToOne(() => UserSecuritySetting, (settings) => settings.user, { cascade: true, eager: true })
+  securitySettings: UserSecuritySetting;
+
+  @OneToMany(() => UserSession, (session) => session.user)
+  sessions: UserSession[];
 
   @AfterLoad()
   @AfterInsert()

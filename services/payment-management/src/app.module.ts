@@ -15,7 +15,8 @@ import { KafkaProducerService } from './infrastructure/kafka/kafka.producer.serv
 import { StripeModule } from './modules/payment-methods/stripe/stripe.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AnalyticsModule } from './modules/reports/analytics.module';
-
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { AuthModule } from './modules/auth/auth.module'; 
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -35,6 +36,8 @@ import { AnalyticsModule } from './modules/reports/analytics.module';
     StripeModule,
     ReportsModule,
     AnalyticsModule,
+    AuditLogModule,
+    AuthModule,
   ],
   providers: [
     AppService, 
