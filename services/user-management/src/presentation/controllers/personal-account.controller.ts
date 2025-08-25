@@ -40,8 +40,10 @@ import * as path from 'path';
 import { Response } from 'express';
 import { CurrentUserId } from '../decorators/currentUserId.decorater';
 import { UpdateProfileImageCommand } from 'src/application/commands/personal-account/update-profile-image-command';
+import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
 @ApiTags('Personal Account')
 @Controller('personal-account')
+@UseInterceptors(AuditLogInterceptor) 
 export class PersonalAccountController {
   constructor(
     private readonly commandBus: CommandBus,

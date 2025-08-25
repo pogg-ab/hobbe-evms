@@ -8,13 +8,16 @@ import {
   HttpException,
   HttpStatus,
   Res,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
 import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
+import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 
 @Controller('chapa')
 @ApiTags('Chapa')
+@UseInterceptors(AuditLogInterceptor)
 export class ChapaController {
   constructor(
     private readonly chapaSdkService: ChapaSDKService,

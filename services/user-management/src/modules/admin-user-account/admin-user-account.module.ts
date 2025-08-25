@@ -26,6 +26,12 @@ import { AdminUserRepositoryImpl } from 'src/infrastructure/persistence/reposito
 import { RoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/role.repository.impl';
 import { AdminUserAccountController } from 'src/presentation/controllers/admin-user-account.controller';
 import { AdminUserAccountService } from '../../application/services/admin-user-account.service';
+import { AssignRoleToUserCommandHandler } from 'src/application/handlers/admin-user-account/assign-role-to-user.command-handler';
+import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
+import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
+import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor'; 
+import { AuditLogModule } from '../audit-log/audit-log.module'; 
+
 
 @Module({
   imports: [
@@ -44,6 +50,7 @@ import { AdminUserAccountService } from '../../application/services/admin-user-a
       },
     ]),
     CqrsModule,
+    AuditLogModule,
   ],
   controllers: [AdminUserAccountController],
   providers: [
@@ -56,6 +63,10 @@ import { AdminUserAccountService } from '../../application/services/admin-user-a
     RemoveAdminUserAccountCommandHandler,
     RoleProfile,
     MessageProducerService,
+    AssignRoleToUserCommandHandler,
+    PermissionsGuard,
+    AdminAuthGuard,
+    AuditLogInterceptor,
     {
       provide: ADMIN_USER_ACCOUNT_REPOSITORY_TOKEN,
       useClass: AdminUserAccountRepositoryImpl,
@@ -73,5 +84,8 @@ import { AdminUserAccountService } from '../../application/services/admin-user-a
       useClass: RoleRepositoryImpl,
     },
   ],
+  exports: [
+    AdminUserAccountService,
+  ]
 })
 export class AdminUserAccountModule {}
