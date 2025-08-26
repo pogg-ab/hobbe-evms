@@ -17,24 +17,25 @@ export class AuditLogInterceptor implements NestInterceptor {
     // --- INJECT THE KAFKA CLIENT ---
     // Make sure 'KAFKA_PRODUCER' is provided in the module where this interceptor is used.
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
-  ) {}
+  ) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const { method, url, params, body, user } = request;
-    
+
     return next.handle().pipe(
       tap(async () => {
         if (method !== 'GET') {
+          const safeUrl = url ? url.split('?')[0] : '';
           const logData = {
             user_id: user?.admin_user_id || user?.user_id,
-            action: `${method} ${url.split('?')[0]}`,
+            action: `${method} ${safeUrl}`,
             module: context.getClass().name,
-            
+
             // --- ADD THE SERVICE NAME ---
             serviceName: 'user-management', // This is hardcoded for this service
 
-            target_id: params.id,
+            target_id: params?.id,
             details: { body: body },
             ip_address: request.ip,
           };
