@@ -9,6 +9,7 @@ import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
 import { RolePermission } from 'src/domain/entities/role-permission.entity';
 import { AdminUserAccount } from 'src/domain/entities/admin-user-account.entity';
 import { SystemSetting } from 'src/domain/entities/system-setting.entity';
+import { EventPermissionSeedService } from 'src/infrastructure/persistence/seeder/event-permission-seed.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { SystemSetting } from 'src/domain/entities/system-setting.entity';
       AdminUserRole,
       RolePermission,
       AdminUserAccount,
-       SystemSetting,
+      SystemSetting,
     ]),
     ClientsModule.register([
       {
@@ -37,6 +38,6 @@ import { SystemSetting } from 'src/domain/entities/system-setting.entity';
       },
     ]),
   ],
-  providers: [SeedService],
+  providers: [SeedService, EventPermissionSeedService],
 })
-export class SeedModule {}
+export class SeedModule { }

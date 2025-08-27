@@ -46,6 +46,8 @@ import { GetAllEventsByAuthQuery } from 'src/application/queries/events/get-all-
 import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/get-all-events-by-auth.handler';
 import { FindEventsByUserAndStatusQuery } from 'src/application/queries/events/find-events-by-user-and-status.query';
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+import { Permissions } from 'src/presentation/decorators/permissions.decorator';
+import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
 
 @ApiTags('Events')
 @Controller('events')
@@ -78,8 +80,8 @@ export class EventsController {
   @ApiOperation({ description: 'Get All Events' })
   @HttpCode(200)
   @ApiBearerAuth('access-token')
-  @Roles('User')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Permissions('view:event')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Get()
   async findAll(
     @CurrentUserId() user: any,
@@ -92,7 +94,7 @@ export class EventsController {
     limit: number;
   }> {
     const userId = user.user.user_id.toString();
-    return await this.queryBus.execute(new GetAllEventsByAuthQuery(userId,page, limit));
+    return await this.queryBus.execute(new GetAllEventsByAuthQuery(userId, page, limit));
   }
 
   /*
@@ -108,7 +110,7 @@ export class EventsController {
   @Post()
   @ApiBearerAuth('access-token')
   @Roles('User')
-   @UseInterceptors(AuditLogInterceptor) 
+  @UseInterceptors(AuditLogInterceptor)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @UseInterceptors(
     FileInterceptor('thumbnail', multerConfig('thumbnail')),  // For 'thumbnail' field, allows 1 file only
@@ -155,7 +157,7 @@ export class EventsController {
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('find-by-user/:status')
-  async findByUserAndStatus(@CurrentUserId() user: any,@Param('status') status:string): Promise<any> {
+  async findByUserAndStatus(@CurrentUserId() user: any, @Param('status') status: string): Promise<any> {
     const userId = user.user.user_id.toString();
     // Validate the status parameter else // throw descriptive error to frontend dev
     const validStatuses = ['past', 'future', 'drafted'];
@@ -182,7 +184,7 @@ export class EventsController {
   }
 
   @ApiOperation({ description: 'Get Events By  Daterange' })
-  @ApiBody({type:GetEventsByDateRnage})
+  @ApiBody({ type: GetEventsByDateRnage })
   @HttpCode(200)
   @Post('date-range')
   async findByDateRange(

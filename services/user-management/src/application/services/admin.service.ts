@@ -30,37 +30,37 @@ export class AdminService {
     @InjectRepository(AdminUserRole)
     private readonly adminUserRoleRepository: Repository<AdminUserRole>,
     @InjectMapper() private readonly mapper: Mapper,
-  ) {}
+  ) { }
 
   // --- CORRECTED 'create' METHOD ---
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
     const { name, description, permissions: permissionIds } = createRoleDto;
 
     const roleToCreate = this.mapper.map({ name, description }, CreateRoleDto, Role);
-    
+
     try {
-        const savedRole = await this.roleRepository.create(roleToCreate);
+      const savedRole = await this.roleRepository.create(roleToCreate);
 
-        if (permissionIds && permissionIds.length > 0) {
-            const existingPermissions = await this.permissionRepository.findBy({
-                permission_id: In(permissionIds),
-            });
+      if (permissionIds && permissionIds.length > 0) {
+        const existingPermissions = await this.permissionRepository.findBy({
+          permission_id: In(permissionIds),
+        });
 
-            if (existingPermissions.length !== permissionIds.length) {
-                throw new HttpException('One or more of the provided permission IDs do not exist.', HttpStatus.BAD_REQUEST);
-            }
-
-            const linksToCreate = existingPermissions.map(permission => {
-                return this.rolePermissionRepository.create({
-                    role: savedRole,
-                    permission: permission,
-                });
-            });
-
-            await this.rolePermissionRepository.save(linksToCreate);
+        if (existingPermissions.length !== permissionIds.length) {
+          throw new HttpException('One or more of the provided permission IDs do not exist.', HttpStatus.BAD_REQUEST);
         }
 
-        return savedRole;
+        const linksToCreate = existingPermissions.map(permission => {
+          return this.rolePermissionRepository.create({
+            role: savedRole,
+            permission: permission,
+          });
+        });
+
+        await this.rolePermissionRepository.save(linksToCreate);
+      }
+
+      return savedRole;
     } catch (error) {
       if (error.code === '23505') {
         throw new HttpException(`Error creating Role: A role with the name '${name}' already exists.`, HttpStatus.BAD_REQUEST);
@@ -69,7 +69,7 @@ export class AdminService {
     }
   }
 
-   async findAllRoles(): Promise<Role[]> {
+  async findAllRoles(): Promise<Role[]> {
     // We can now pass the 'relations' option directly to our upgraded custom repository.
     // This resolves the TypeScript error and the runtime error.
     return this.roleRepository.find({
@@ -127,7 +127,7 @@ export class AdminService {
   async deleteRole(id: string): Promise<void> {
     await this.roleRepository.delete(id);
   }
-  
+
   async assignRoleToUser(userId: string, roleId: string): Promise<AdminUserRole> {
     const adminUser = await this.adminUserRepository.findOneBy({ admin_user_id: userId });
     if (!adminUser) {
@@ -178,6 +178,56 @@ export class AdminService {
     const result = await this.permissionRepository.delete({ permission_id: id });
     if (result.affected === 0) {
       throw new NotFoundException(`Permission with ID ${id} not found`);
+    }
+  }
+
+  async checkRolePermissions(payload: any): Promise<{ hasPermissions: boolean; missingPermissions?: string[] }> {
+    const { role, requiredPermissions } = payload;
+
+    if (!role) {
+      throw new HttpException('Role is required', HttpStatus.BAD_REQUEST);
+    }
+
+    if (!requiredPermissions || !Array.isArray(requiredPermissions) || requiredPermissions.length === 0) {
+      throw new HttpException('Required permissions array is required and cannot be empty', HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      const roles = await this.roleRepository.find({
+        where: { name: role },
+        relations: ['rolePermissions', 'rolePermissions.permission'],
+      });
+
+
+      if (!roles || roles.length === 0) {
+        throw new HttpException(`Role '${role}' not found`, HttpStatus.NOT_FOUND);
+      }
+
+      const roleEntity = roles[0];
+
+      const rolePermissionNames = roleEntity.rolePermissions.map(
+        rp => rp.permission.action
+      );
+
+      const missingPermissions = requiredPermissions.filter(
+        requiredPerm => !rolePermissionNames.includes(requiredPerm)
+      );
+
+      const hasAllPermissions = missingPermissions.length === 0;
+
+      return {
+        hasPermissions: hasAllPermissions,
+        ...(hasAllPermissions ? {} : { missingPermissions })
+      };
+
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Error checking permissions: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 }

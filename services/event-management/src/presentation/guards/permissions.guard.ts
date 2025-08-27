@@ -1,40 +1,87 @@
-// In src/presentation/guards/permissions.guard.ts
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+// permissions.guard.ts
+import {
+    CanActivate,
+    ExecutionContext,
+    HttpException,
+    HttpStatus,
+    Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { JwtAuthGuard } from './jwt-auth.guard';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+import { PermissionCheckingService } from 'src/application/services/permissions-checking/permission-checking.service';
 
 @Injectable()
-export class PermissionsGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+export class PermissionsGuard extends JwtAuthGuard implements CanActivate {
+    constructor(
+        private reflector: Reflector,
+        private permissionCheckingService: PermissionCheckingService,
+    ) {
+        super();
+    }
 
- canActivate(context: ExecutionContext): boolean {
-  const requiredPermissions = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
-    context.getHandler(),
-    context.getClass(),
-  ]);
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        const canActivate = super.canActivate(context);
+        if (!canActivate) {
+            return false;
+        }
 
-  if (!requiredPermissions) {
-    return true;
-  }
+        const request = context.switchToHttp().getRequest();
 
-  const { user } = context.switchToHttp().getRequest();
+        const user = request.user;
+        const requiredPermissions = this.reflector.get<string[]>(
+            PERMISSIONS_KEY,
+            context.getHandler(),
+        );
+        console.log('--- Permissions Guard ---');
+        console.log('Required Permissions:', requiredPermissions);
+        console.log('User Role from JWT:', user);
 
-  // --- START OF DEBUGGING LOGS ---
-  console.log('--- Permissions Guard ---');
-  console.log('Required Permissions:', requiredPermissions);
-  console.log('User Permissions from JWT:', user?.permissions);
-  // --- END OF DEBUGGING LOGS ---
+        if (!requiredPermissions || requiredPermissions.length === 0) {
+            return true;
+        }
 
-  if (!user || !user.permissions) {
-    console.log('Guard Result: DENY (No user or no permissions on user object)');
-    return false;
-  }
+        if (!user) {
+            throw new HttpException(
+                {
+                    statusCode: HttpStatus.FORBIDDEN,
+                    message: 'No authenticated user',
+                },
+                HttpStatus.FORBIDDEN,
+            );
+        }
 
-  const hasPermission = requiredPermissions.every((permission) => user.permissions.includes(permission));
-  
-  console.log('Guard Result:', hasPermission ? 'ALLOW' : 'DENY');
-  console.log('-------------------------');
-  
-  return hasPermission;
-}
+        if (!user.roles || !Array.isArray(user.roles)) {
+            throw new HttpException(
+                {
+                    statusCode: HttpStatus.FORBIDDEN,
+                    message: 'User has no roles assigned',
+                },
+                HttpStatus.FORBIDDEN,
+            );
+        }
+
+        for (const role of user.roles) {
+            try {
+                const hasPermissions = await this.permissionCheckingService.checkPermissions(
+                    role,
+                    requiredPermissions
+                );
+
+                if (hasPermissions) {
+                    return true;
+                }
+            } catch (error) {
+                console.error(`Permission check failed for role ${role}:`, error);
+            }
+        }
+
+        throw new HttpException(
+            {
+                statusCode: HttpStatus.FORBIDDEN,
+                message: `User does not have the required permissions: ${requiredPermissions.join(', ')}`,
+            },
+            HttpStatus.FORBIDDEN,
+        );
+    }
 }
