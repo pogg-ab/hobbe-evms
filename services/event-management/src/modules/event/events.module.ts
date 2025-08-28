@@ -2,7 +2,7 @@ import { AutomapperModule } from '@automapper/nestjs';
 import { Inject, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
-import { ClientKafka, ClientsModule,Transport } from '@nestjs/microservices';
+import { ClientKafka, ClientsModule, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateEventCommandHandler } from 'src/application/handlers/events/create-event.handler';
@@ -50,15 +50,17 @@ import { AnalyticsEventCommandHandler } from 'src/application/handlers/analytics
 import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
 import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/events/find-events-by-user-and-status.handler';
 import { GetUserEventStatsQueryHandler } from 'src/application/handlers/analytics/get-user-event-stats.query-handler';
-import { AuditLogModule } from 'src/modules/audit-log/audit-log.module'; 
+import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 import { ConfigModule } from '@nestjs/config';
+import { kafkaPermissionConfig } from 'src/infrastructure/kafka/kafka-permission-config';
+import { PermissionCheckingService } from 'src/application/services/permissions-checking/permission-checking.service';
 
 
 
 @Module({
   imports: [
-    ConfigModule, 
+    ConfigModule,
     TicketsHeadingModule,
     TicketsModule,
     PromocodeModule,
@@ -82,6 +84,15 @@ import { ConfigModule } from '@nestjs/config';
         useFactory: async () => ({
           transport: kafkaUserInfoConfig.transport,
           options: kafkaUserInfoConfig.options,
+        }),
+      },
+    ]),
+    ClientsModule.registerAsync([
+      {
+        name: 'CHECK_PERMISSION_SERVICE',
+        useFactory: async () => ({
+          transport: kafkaPermissionConfig.transport,
+          options: kafkaPermissionConfig.options,
         }),
       },
     ]),
@@ -131,9 +142,10 @@ import { ConfigModule } from '@nestjs/config';
     GetUserEventStatsQueryHandler,
     EventsProfile,
     UserValidationService,
+    PermissionCheckingService,
     JwtStrategy,
     SocketIo,
-    AuditLogInterceptor, 
+    AuditLogInterceptor,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
       useClass: EventRepositoryEmpl,
@@ -147,7 +159,7 @@ import { ConfigModule } from '@nestjs/config';
 export class EventsModule {
   constructor(
     @Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');

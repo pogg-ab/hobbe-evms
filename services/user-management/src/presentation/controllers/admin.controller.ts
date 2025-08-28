@@ -21,6 +21,7 @@ import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
 import { AdminAuthGuard } from '../guards/admin-auth.guard'; // Assuming this is the correct name
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { Permissions } from '../decorators/permissions.decorator';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 
 @ApiTags('Role and Permission')
 @Controller('role-permission')
@@ -32,7 +33,7 @@ export class AdminController {
     private readonly commandBus: CommandBus,
     private readonly adminService: AdminService,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   // --- ROLE ENDPOINTS ---
   @Post('roles')
@@ -108,5 +109,10 @@ export class AdminController {
   @ApiOperation({ summary: 'Delete a permission by ID' })
   async deletePermission(@Param('id') id: string): Promise<void> {
     return this.adminService.deletePermission(id);
+  }
+
+  @MessagePattern('checkRolePermissions')
+  async validateJWT(@Payload() payload: any): Promise<any> {
+    return await this.adminService.checkRolePermissions(payload);
   }
 }

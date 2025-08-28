@@ -13,11 +13,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any): Promise<any> {
+    if (payload.permissions || payload.role === 'admin') {
+      return null;
+    }
     try {
-      return await this.userValidationService.validateUser(payload);
+      const user = await this.userValidationService.validateUser(payload);
+
+      return {
+        ...user,
+        isAdmin: false,
+        type: 'user'
+      };
     } catch (error) {
       console.error('Error validating JWT via Kafka:', error);
-      throw new Error('Error communicating with Kafka');
+      return null;
     }
   }
 }
