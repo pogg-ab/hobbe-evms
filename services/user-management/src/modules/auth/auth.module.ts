@@ -37,6 +37,7 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
 // Note: We don't import AdminAuthGuard here as it's a legacy file we might not need. Let's see.
 import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
 import { UserSecuritySetting } from 'src/domain/entities/user-security-setting.entity';
+import { AdminUserSecuritySetting } from 'src/domain/entities/admin-user-security-setting.entity';
 import { SessionGuard } from 'src/presentation/guards/session.guard';
 import { UserSession } from 'src/domain/entities/user-session.entity';
 
@@ -50,6 +51,9 @@ import { SystemSettingsService } from 'src/application/services/system-settings.
 import { SystemSettingsController } from 'src/presentation/controllers/system-settings.controller';
 import { SystemSetting } from 'src/domain/entities/system-setting.entity';
 import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard';
+import { AdminGoogleStrategy } from './strategies/admin-google.strategy';
+import { AdminFacebookStrategy } from './strategies/admin-facebook.strategy';
+import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
 @Module({
   imports: [
     CqrsModule,
@@ -64,11 +68,12 @@ import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard
       PersonalAccount,
       OrganizationalAccount,
       Follower,
-      UserSecuritySetting, // Your addition
-      UserSession,         // Your addition
+      UserSecuritySetting, 
+       AdminUserSecuritySetting,
+      UserSession,         
       GuestSession,
       ConfigModule, 
-      SystemSetting,       // Teammate's addition
+      SystemSetting,       
     ]),
     PassportModule,
     JwtModule.register({
@@ -101,6 +106,9 @@ import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard
     MfaService,  
     SystemSettingsService, 
     UniversalAuthGuard,  
+    AdminGoogleStrategy,
+    AdminFacebookStrategy,
+    AdminGitHubStrategy,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,

@@ -5,7 +5,7 @@ import { UserSession } from 'src/domain/entities/user-session.entity';
 import { Repository } from 'typeorm';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
-const SESSION_TIMEOUT_MINUTES = 1; // Set low for testing
+const SESSION_TIMEOUT_MINUTES = 30;
 
 @Injectable()
 export class SessionGuard implements CanActivate {

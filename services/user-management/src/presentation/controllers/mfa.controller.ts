@@ -1,15 +1,13 @@
 import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MfaService } from 'src/application/services/mfa.service';
-// --- IMPORT THE NEW GUARD ---
 import { UniversalAuthGuard } from '../guards/universal-auth.guard';
 import { EnableMfaDto } from '../dtos/enable-mfa.dto';
+import { SessionGuard } from '../guards/session.guard';
 
 @ApiTags('MFA')
-// Use the 'access-token' scheme name that we know works in Swagger
-@ApiBearerAuth('access-token') 
-// --- USE THE NEW GUARD ---
-@UseGuards(UniversalAuthGuard) 
+@ApiBearerAuth('access-token')
+@UseGuards(UniversalAuthGuard, SessionGuard)
 @Controller('mfa')
 export class MfaController {
   constructor(private readonly mfaService: MfaService) {}
@@ -19,17 +17,25 @@ export class MfaController {
   @ApiResponse({ status: 201, description: 'QR code generated successfully.' })
   @ApiResponse({ status: 400, description: 'MFA is already enabled.' })
   async generateMfaQrCode(@Req() req) {
-    // req.user will now be populated by whichever strategy succeeded.
     const payload = req.user;
     
-    // We need to reliably get the user ID and email from the payload.
-    // The admin payload has `admin_user_id` and the user payload from your strategy has `user.user_id`.
-    // Let's standardize this.
-    const userId = payload.admin_user_id || payload.user?.user_id;
-    const email = payload.user_name || payload.user?.user_name;
-    const isAdmin = payload.permissions !== undefined;
+    let userId: string;
+    let email: string;
+    let isAdmin: boolean;
+
+    // This logic is correct and handles both user types.
+    if (payload.admin_user_id) {
+        userId = payload.admin_user_id.toString();
+        email = payload.user_name; 
+        isAdmin = true;
+    } 
+    else {
+        userId = payload.user.user_id.toString();
+        email = payload.user.user_name;
+        isAdmin = false;
+    }
     
-    return this.mfaService.generateMfaSetup(userId.toString(), email, isAdmin);
+    return this.mfaService.generateMfaSetup(userId, email, isAdmin);
   }
 
   @Post('enable')
@@ -39,8 +45,20 @@ export class MfaController {
   @ApiResponse({ status: 401, description: 'Invalid authentication code.' })
   async enableMfa(@Req() req, @Body() enableMfaDto: EnableMfaDto) {
     const payload = req.user;
-    const userId = payload.admin_user_id || payload.user?.user_id;
+    
+    // --- THIS IS THE FIX ---
+    // We determine the user type and extract the ID, then pass the flag to the service.
+    let userId: string;
+    let isAdmin: boolean;
 
-    return this.mfaService.verifyAndEnableMfa(userId.toString(), enableMfaDto.token);
+    if (payload.admin_user_id) {
+        userId = payload.admin_user_id.toString();
+        isAdmin = true;
+    } else {
+        userId = payload.user.user_id.toString();
+        isAdmin = false;
+    }
+
+    return this.mfaService.verifyAndEnableMfa(userId, enableMfaDto.token, isAdmin);
   }
 }

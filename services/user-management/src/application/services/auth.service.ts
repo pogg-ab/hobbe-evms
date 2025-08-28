@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -24,6 +24,8 @@ import { UserSecuritySetting } from 'src/domain/entities/user-security-setting.e
 import { UserSession } from 'src/domain/entities/user-session.entity';
 import { SystemSetting } from 'src/domain/entities/system-setting.entity';
 import * as otplib from 'otplib';
+import { Request } from 'express';
+import { AdminUserSecuritySetting } from 'src/domain/entities/admin-user-security-setting.entity';
 
 @Injectable()
 export class AuthService {
@@ -54,6 +56,8 @@ export class AuthService {
     // --- AND ADD THIS LINE ---
     @InjectRepository(UserSecuritySetting) 
     private readonly userSecuritySettingRepository: Repository<UserSecuritySetting>,
+    @InjectRepository(AdminUserSecuritySetting)
+    private readonly adminSecuritySettingRepository: Repository<AdminUserSecuritySetting>,
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userWithAccountRepository: IUserRepository,
     private readonly messageProducerService: MessageProducerService,
@@ -174,7 +178,7 @@ export class AuthService {
     };
   }
 
-  async login(user: any, rememberMe: boolean) {
+   async login(req: Request, user: any, rememberMe: boolean) {
     const validatedUser: User = user.user;
     const mfaRequiredSetting = await this.systemSettingRepository.findOne({ where: { key: 'MFA_REQUIRED' } });
     const isMfaRequiredBySystem = mfaRequiredSetting?.value === 'true';
@@ -185,10 +189,11 @@ export class AuthService {
       const interimToken = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET, expiresIn: '5m' });
       return { mfaRequired: true, interimToken: interimToken };
     } else {
-      // CLEANED UP: Now calls the helper method
-      return this._issueUserTokens(validatedUser, rememberMe);
+      // Now we can correctly pass the 'req' object.
+      return this._issueUserTokens(req, validatedUser, rememberMe);
     }
   }
+
 
   
 
@@ -463,22 +468,21 @@ export class AuthService {
     return userAccountInfo;
   }
 
- async adminUserLogin(user: any) {
+  async adminUserLogin(req: Request, user: any) {
     const adminUser: AdminUser = user.user;
     const mfaRequiredSetting = await this.systemSettingRepository.findOne({ where: { key: 'MFA_REQUIRED' } });
     const isMfaRequiredBySystem = mfaRequiredSetting?.value === 'true';
-    const securitySettings = await this.userSecuritySettingRepository.findOne({ where: { user_id: adminUser.admin_user_id.toString() } });
+    // We need to query the correct security settings table
+    const securitySettings = await this.adminSecuritySettingRepository.findOne({ where: { admin_user_id: adminUser.admin_user_id.toString() } });
 
     if (isMfaRequiredBySystem && securitySettings?.mfa_enabled) {
       const payload = { sub: adminUser.admin_user_id.toString(), purpose: 'mfa-verification', isAdmin: true };
       const interimToken = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET, expiresIn: '5m' });
       return { mfaRequired: true, interimToken: interimToken };
     } else {
-      // CLEANED UP: Now calls the helper method
-      return this._issueAdminTokens(adminUser);
+      return this._issueAdminTokens(req, adminUser);
     }
   }
-
 
   // Add this method to resolve the missing method error
   private async getAdminPermissions(adminUserId: string): Promise<string[]> {
@@ -640,7 +644,7 @@ export class AuthService {
     return { success: true, user, roles };
   }
 
-  async validateAdminUserJwt(payload: any) {
+ async validateAdminUserJwt(payload: any) {
     const user = await this.adminUserRepository.findOne({
       where: { admin_user_id: payload.sub },
     });
@@ -656,8 +660,7 @@ export class AuthService {
     const roles = userRoles.map((userRole) => userRole.role.name);
     return { success: true, user, roles };
   }
-
-  async verifyMfaAndLogin(interimToken: string, mfaCode: string) {
+async verifyMfaAndLogin(req: Request, interimToken: string, mfaCode: string) {
     try {
       const payload = this.jwtService.verify(interimToken, { secret: process.env.JWT_SECRET });
 
@@ -666,37 +669,48 @@ export class AuthService {
       }
 
       const userId = payload.sub;
-      const userSecurity = await this.userSecuritySettingRepository.findOne({ where: { user_id: userId } });
-      
-      if (!userSecurity || !userSecurity.mfa_enabled || !userSecurity.mfa_secret) {
-        throw new HttpException('MFA is not configured for this user.', HttpStatus.BAD_REQUEST);
-      }
+      let isMfaCodeValid = false;
 
-      const isMfaCodeValid = otplib.authenticator.check(mfaCode, userSecurity.mfa_secret);
+      // Check if the user is an admin and validate against the admin security table
+      if (payload.isAdmin) {
+        const securitySettings = await this.adminSecuritySettingRepository.findOneBy({ admin_user_id: userId });
+        if (!securitySettings || !securitySettings.mfa_enabled || !securitySettings.mfa_secret) {
+          throw new HttpException('MFA is not configured for this admin.', HttpStatus.BAD_REQUEST);
+        }
+        isMfaCodeValid = otplib.authenticator.check(mfaCode, securitySettings.mfa_secret);
+      } 
+      // Otherwise, validate against the regular user security table
+      else {
+        const securitySettings = await this.userSecuritySettingRepository.findOneBy({ user_id: userId });
+        if (!securitySettings || !securitySettings.mfa_enabled || !securitySettings.mfa_secret) {
+          throw new HttpException('MFA is not configured for this user.', HttpStatus.BAD_REQUEST);
+        }
+        isMfaCodeValid = otplib.authenticator.check(mfaCode, securitySettings.mfa_secret);
+      }
 
       if (!isMfaCodeValid) {
         await this.auditLogService.logAction({ user_id: userId, action: payload.isAdmin ? 'ADMIN_MFA_FAILURE' : 'USER_MFA_FAILURE', module: 'AuthService', serviceName: 'user-management', details: { reason: 'Invalid MFA code' } });
         throw new HttpException('Invalid MFA code.', HttpStatus.UNAUTHORIZED);
       }
 
-      // This is the FIX: It calls the helper methods directly, avoiding the loop
+      // If the code is valid, issue the final tokens. This part is already correct.
       if (payload.isAdmin) {
         const adminUser = await this.adminUserRepository.findOneBy({ admin_user_id: userId });
         if (!adminUser) throw new HttpException('Admin user not found', HttpStatus.NOT_FOUND);
-        return this._issueAdminTokens(adminUser);
+        return this._issueAdminTokens(req, adminUser);
       } else {
         const user = await this.userRepository.findOneBy({ user_id: userId });
         if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-        return this._issueUserTokens(user, false);
+        return this._issueUserTokens(req, user, false);
       }
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new HttpException('Invalid or expired MFA session token.', HttpStatus.UNAUTHORIZED);
     }
-}
+  }
 
-  // ADD THIS NEW METHOD
-private async _issueUserTokens(user: User, rememberMe: boolean) {
+ 
+private async _issueUserTokens(req: unknown, user: User, rememberMe: boolean) {
     const payload = { username: user.user_name, sub: user.user_id };
     const access_token = new AccessToken(
       this.jwtService.sign(payload, {
@@ -737,12 +751,15 @@ private async _issueUserTokens(user: User, rememberMe: boolean) {
     };
 }
 
-// ADD THIS NEW METHOD
-private async _issueAdminTokens(adminUser: AdminUser) {
+private async _issueAdminTokens(req: Request, adminUser: AdminUser) {
     const adminIdString = adminUser.admin_user_id.toString();
-    const session = new UserSession();
-    session.adminUser = adminUser;
-    session.last_activity = new Date();
+    
+    const session = this.sessionRepository.create({
+      adminUser: adminUser,
+      last_activity: new Date(),
+      ip_address: req.ip,
+      user_agent: req.headers['user-agent'] || '',
+    });
     const savedSession = await this.sessionRepository.save(session);
 
     const permissions = await this.getAdminPermissions(adminIdString);
@@ -771,5 +788,53 @@ private async _issueAdminTokens(adminUser: AdminUser) {
       access_token: access_token.toString(),
       refresh_token: refresh_token.toString(),
     };
-}
+  }
+ async validateAndLoginAdminWithSso(req: Request, profile: { provider: string, id: string, email: string }) {
+    // 1. First, check if this SSO identity is already linked to an admin account.
+    let adminUser = await this.adminUserRepository.findOne({
+      where: {
+        ssoProvider: profile.provider,
+        ssoProviderId: profile.id,
+      },
+    });
+
+    if (adminUser) {
+      // The admin has logged in with SSO before. We found them.
+      // We directly issue tokens, bypassing any MFA checks.
+      return this._issueAdminTokens(req, adminUser);
+    }
+
+    // 2. If not linked, this is a first-time SSO login.
+    // We must find an EXISTING admin account by their email address.
+    adminUser = await this.adminUserRepository.findOne({
+      where: { user_name: profile.email },
+    });
+    
+    // SECURITY: If no admin exists with that email, or if they are already linked to a DIFFERENT SSO, deny access.
+    if (!adminUser || adminUser.ssoProviderId) {
+      await this.auditLogService.logAction({
+        action: 'ADMIN_SSO_LOGIN_FAILURE',
+        module: 'AuthService',
+        serviceName: 'user-management',
+        details: { reason: 'Unauthorized SSO attempt for email', email: profile.email, provider: profile.provider }
+      });
+      throw new ForbiddenException('This account is not authorized for Admin SSO access.');
+    }
+    
+    // 3. Link the SSO identity to the existing admin account and save.
+    adminUser.ssoProvider = profile.provider;
+    adminUser.ssoProviderId = profile.id;
+    const updatedAdmin = await this.adminUserRepository.save(adminUser);
+
+    await this.auditLogService.logAction({
+        user_id: updatedAdmin.admin_user_id.toString(),
+        action: 'ADMIN_SSO_LINK_SUCCESS',
+        module: 'AuthService',
+        serviceName: 'user-management',
+        details: { provider: profile.provider }
+    });
+
+    // 4. Now that the account is linked, issue the final tokens.
+    return this._issueAdminTokens(req, updatedAdmin);
+  }
 }
