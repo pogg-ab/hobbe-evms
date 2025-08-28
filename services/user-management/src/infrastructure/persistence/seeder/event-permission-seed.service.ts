@@ -29,32 +29,32 @@ export class EventPermissionSeedService implements OnModuleInit {
 
     private async seedEventPermissionsToExistingRoles() {
         const eventPermissionsToCreate = [
-            { action: 'create:event', resource: 'Event' },
-            { action: 'view:event', resource: 'Event' },
-            { action: 'update:event', resource: 'Event' },
-            { action: 'delete:event', resource: 'Event' },
+            { action: 'create', resource: 'Event' },
+            { action: 'view', resource: 'Event' },
+            { action: 'update', resource: 'Event' },
+            { action: 'delete', resource: 'Event' },
 
-            { action: 'publish:event', resource: 'Event' },
-            { action: 'unpublish:event', resource: 'Event' },
-            { action: 'change-status:event', resource: 'Event' },
+            { action: 'publish', resource: 'Event' },
+            { action: 'unpublish', resource: 'Event' },
+            { action: 'change-status', resource: 'Event' },
 
-            { action: 'view-details:event', resource: 'Event' },
-            { action: 'view-statistics:event', resource: 'Event' },
-            { action: 'view-reports:event', resource: 'Event' },
+            { action: 'view-details', resource: 'Event' },
+            { action: 'view-statistics', resource: 'Event' },
+            { action: 'view-reports', resource: 'Event' },
 
-            { action: 'manage-tickets:event', resource: 'Event' },
-            { action: 'manage-attendees:event', resource: 'Event' },
-            { action: 'manage-categories:event', resource: 'Event' },
-            { action: 'manage-locations:event', resource: 'Event' },
+            { action: 'manage-tickets', resource: 'Event' },
+            { action: 'manage-attendees', resource: 'Event' },
+            { action: 'manage-categories', resource: 'Event' },
+            { action: 'manage-locations', resource: 'Event' },
 
-            { action: 'search:event', resource: 'Event' },
-            { action: 'add-favorite:event', resource: 'Event' },
-            { action: 'remove-favorite:event', resource: 'Event' },
-            { action: 'view-favorites:event', resource: 'Event' },
+            { action: 'search', resource: 'Event' },
+            { action: 'add-favorite', resource: 'Event' },
+            { action: 'remove-favorite', resource: 'Event' },
+            { action: 'view-favorites', resource: 'Event' },
 
 
-            { action: 'approve:event', resource: 'Event' },
-            { action: 'reject:event', resource: 'Event' },
+            { action: 'approve', resource: 'Event' },
+            { action: 'reject', resource: 'Event' },
         ];
 
         const createdPermissions: Permission[] = [];

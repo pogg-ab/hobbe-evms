@@ -48,6 +48,7 @@ import { FindEventsByUserAndStatusQuery } from 'src/application/queries/events/f
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 import { Permissions } from 'src/presentation/decorators/permissions.decorator';
 import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
+import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard';
 
 @ApiTags('Events')
 @Controller('events')
@@ -80,9 +81,9 @@ export class EventsController {
   @ApiOperation({ description: 'Get All Events' })
   @HttpCode(200)
   @ApiBearerAuth('access-token')
-  @Permissions('view:event')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @Get()
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('my-events')
   async findAll(
     @CurrentUserId() user: any,
     @Query('page') page: number = 1,
@@ -95,6 +96,26 @@ export class EventsController {
   }> {
     const userId = user.user.user_id.toString();
     return await this.queryBus.execute(new GetAllEventsByAuthQuery(userId, page, limit));
+  }
+
+  @ApiOperation({ description: 'Get All Events' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Get('all-events')
+  async findAllEvents(
+    @CurrentUserId() user: any,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+
+    return await this.queryBus.execute(new GetAllEventsQuery(page, limit));
   }
 
   /*
