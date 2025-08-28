@@ -36,7 +36,7 @@ export class EventsService {
     private dataSource: DataSource,
     private readonly userInfoService: UserInfoService,
     private readonly streamProducerService: StreamProducerService,
-  ) {}
+  ) { }
 
   private createStream(user: string, event_id: IdValueObject): any {
     const stream = {
@@ -414,8 +414,8 @@ export class EventsService {
     return this.createEventRepository.countMyEvents(user);
   }
 
-  async singleEventAnalytics(user: string, event: string): Promise<any> {
-    return this.createEventRepository.singleEventAnalytics(user, event);
+  async singleEventAnalytics(event: string): Promise<any> {
+    return this.createEventRepository.singleEventAnalytics(event);
   }
 
   async getUserEventStats(

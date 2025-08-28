@@ -16,7 +16,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     public readonly createTicketsDto: CreateTicketsDto,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) {}
+  ) { }
 
   async create(event: Events, user: any): Promise<Events> {
     try {
@@ -574,9 +574,9 @@ export class EventRepositoryEmpl implements IEventRepository {
     };
   }
 
-  async singleEventAnalytics(user: string, event: string): Promise<any> {
+  async singleEventAnalytics(event: string): Promise<any> {
     const events = await this.eventRepository.find({
-      where: { id: event, user_id: user },
+      where: { id: event },
     });
 
     // Count tickets grouped by status

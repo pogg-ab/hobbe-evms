@@ -49,7 +49,7 @@ export interface IEventRepository {
   // Analytics
   analyticsEvents(): Promise<any>;
   countMyEvents(user: string): Promise<any>;
-  singleEventAnalytics(user: string, event: string): Promise<any>;
+  singleEventAnalytics(event: string): Promise<any>;
 
   countEventsOrganizedByUser(userId: string): Promise<number>;
   countEventsUserParticipatedIn(userId: string): Promise<number>;
