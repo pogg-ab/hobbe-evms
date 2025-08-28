@@ -83,7 +83,7 @@ export class EventsController {
   @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('my-events')
+  @Get()
   async findAll(
     @CurrentUserId() user: any,
     @Query('page') page: number = 1,
