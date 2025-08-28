@@ -41,6 +41,11 @@ import { SessionID } from 'src/domain/value-objects/session-id.value-object';
 import { UserID } from 'src/domain/value-objects/user-id.value-object';
 import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
 import { MfaLoginDto } from '../dtos/mfa-login.dto';
+import { UniversalAuthGuard } from '../guards/universal-auth.guard';
+import { SessionGuard } from '../guards/session.guard';
+import { Public } from '../decorators/public.decorator';
+import { ConfigService } from '@nestjs/config';
+
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -50,6 +55,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly commandBus: CommandBus,
     private readonly guestUserService: GuestUserService,
+    private readonly configService: ConfigService,
   ) { }
   private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
 
@@ -243,11 +249,69 @@ export class AuthController {
     res.send('Authentication successful! You can close this window.');
   }
 
+  
+  @Get('admin/google')
+  @Public()
+  @UseGuards(AuthGuard('admin-google'))
+  @ApiOperation({ summary: 'Initiates Google SSO for Admins' })
+  async adminGoogleAuth(@Req() req) {}
+
+  @Get('admin/google/callback')
+  @Public()
+  @UseGuards(AuthGuard('admin-google'))
+  @ApiOperation({ summary: 'Handles Google SSO callback for Admins' })
+  async adminGoogleAuthCallback(@Req() req, @Res() res: Response) {
+    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
+    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const adminPanelUrl = new URL(redirectBaseUrl);
+   adminPanelUrl.pathname = '/auth/admin/callback';
+    adminPanelUrl.searchParams.set('token', tokens.access_token);
+    res.redirect(adminPanelUrl.toString());
+  }
+
+  @Get('admin/facebook')
+  @Public()
+  @UseGuards(AuthGuard('admin-facebook'))
+  @ApiOperation({ summary: 'Initiates Facebook SSO for Admins' })
+  async adminFacebookAuth(@Req() req) {}
+
+  @Get('admin/facebook/callback')
+  @Public()
+  @UseGuards(AuthGuard('admin-facebook'))
+  @ApiOperation({ summary: 'Handles Facebook SSO callback for Admins' })
+  async adminFacebookAuthCallback(@Req() req, @Res() res: Response) {
+    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
+    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const adminPanelUrl = new URL(redirectBaseUrl);
+   adminPanelUrl.pathname = '/auth/admin/callback';
+    adminPanelUrl.searchParams.set('token', tokens.access_token);
+    res.redirect(adminPanelUrl.toString());
+  }
+
+  @Get('admin/github')
+  @Public()
+  @UseGuards(AuthGuard('admin-github'))
+  @ApiOperation({ summary: 'Initiates GitHub SSO for Admins' })
+  async adminGitHubAuth(@Req() req) {}
+
+  @Get('admin/github/callback')
+  @Public()
+  @UseGuards(AuthGuard('admin-github'))
+  @ApiOperation({ summary: 'Handles GitHub SSO callback for Admins' })
+  async adminGitHubAuthCallback(@Req() req, @Res() res: Response) {
+    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
+    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const adminPanelUrl = new URL(redirectBaseUrl);
+    adminPanelUrl.pathname = '/auth/admin/callback';
+    adminPanelUrl.searchParams.set('token', tokens.access_token);
+    res.redirect(adminPanelUrl.toString());
+  }
+
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })
   @ApiBody({ type: AuthDto })
   @HttpCode(200)
-  async login(@Body() authDto: AuthDto) {
+  async login(@Req() req: Request, @Body() authDto: AuthDto) {
     const user = await this.authService.validateUser(
       authDto.username,
       authDto.password,
@@ -269,7 +333,9 @@ export class AuthController {
     }
     const rememberMe =
       authDto.rememberMe !== undefined ? authDto.rememberMe : false;
-    return this.authService.login(user, rememberMe);
+    
+    // --- CHANGE: Pass the req object to the service ---
+    return this.authService.login(req, user, rememberMe);
   }
 
    @Post('mfa-login')
@@ -278,8 +344,9 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'MFA verification successful, final tokens returned.' })
   @ApiResponse({ status: 401, description: 'Invalid MFA code or expired token.' })
   @HttpCode(200)
-  async mfaLogin(@Body() mfaLoginDto: MfaLoginDto) {
+  async mfaLogin(@Req() req: Request, @Body() mfaLoginDto: MfaLoginDto) {
     return this.authService.verifyMfaAndLogin(
+      req,
       mfaLoginDto.interimToken,
       mfaLoginDto.mfaCode,
     );
@@ -324,11 +391,12 @@ export class AuthController {
     return this.authService.getUserAccountInfo(userId);
   }
 
-  @Post('admin-user/login')
+   @Post('admin-user/login')
   @ApiOperation({ summary: 'Authenticate an admin user' })
   @ApiBody({ type: AuthDto })
   @HttpCode(200)
-  async adminLogin(@Body() authDto: AdminUserAuthDto) {
+  // --- CHANGE: Added @Req() req: Request ---
+ async adminLogin(@Req() req: Request, @Body() authDto: AdminUserAuthDto) {
     const adminUser = await this.authService.validateAdminUser(
       authDto.username,
       authDto.password,
@@ -350,8 +418,11 @@ export class AuthController {
       );
     }
 
-    return this.authService.adminUserLogin(adminUser);
+    
+    return this.authService.adminUserLogin(req, adminUser);
   }
+
+
 
   @Post('verify-otp')
   @ApiOperation({ summary: 'Verify OTP for user registration' })
