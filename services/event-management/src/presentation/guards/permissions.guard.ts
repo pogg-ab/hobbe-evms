@@ -34,9 +34,6 @@ export class PermissionsGuard extends UniversalAuthGuard implements CanActivate 
             PERMISSIONS_KEY,
             context.getHandler(),
         );
-        console.log('--- Permissions Guard ---');
-        console.log('Required Permissions:', requiredPermissions);
-        console.log('User Role from JWT:', user);
 
         if (!requiredPermissions || requiredPermissions.length === 0) {
             return true;
