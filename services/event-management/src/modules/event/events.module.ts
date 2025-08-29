@@ -63,6 +63,7 @@ import {
   SetEventPendingCommandHandler,
 } from 'src/application/handlers/events/event-status.command.handlers';
 import { set } from 'date-fns';
+import { AdminUpdateEventCommandHandler } from 'src/application/handlers/events/admin-update-event.command.handler';
 
 @Module({
   imports: [
@@ -151,6 +152,7 @@ import { set } from 'date-fns';
     ApproveEventCommandHandler,
     SetEventPendingCommandHandler,
     CancelEventCommandHandler,
+    AdminUpdateEventCommandHandler,
     EventsProfile,
     UserValidationService,
     PermissionCheckingService,

@@ -75,6 +75,8 @@ import {
   RequestEventChangesCommand,
   SetEventPendingCommand,
 } from 'src/application/commands/event-status.commands';
+import { AdminUpdateEventCommand } from 'src/application/commands/admin-update-event.command';
+import { AdminUpdateEventsDto } from 'src/presentation/dtos/events/admin-update-events.dto';
 
 @ApiTags('Events')
 @Controller('events')
@@ -517,6 +519,28 @@ export class EventsController {
     const userId = user.user_id;
     return await this.commandBus.execute(
       new CancelEventCommand(eventId, cancelEventDto.feedback, userId),
+    );
+  }
+
+  @ApiOperation({ description: 'Update an Event' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({
+    description: 'Event updated successfully',
+    type: Events,
+  })
+  @ApiBody({ type: AdminUpdateEventsDto })
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Patch(':id/update-event-by-admin')
+  async updateEvent(
+    @Param('id') eventId: string,
+    @Body() adminUpdateEventsDto: AdminUpdateEventsDto,
+    @CurrentUserId() user: any,
+  ): Promise<Events> {
+    const adminId = user.user_id;
+    return await this.commandBus.execute(
+      new AdminUpdateEventCommand(eventId, adminUpdateEventsDto, adminId),
     );
   }
 }
