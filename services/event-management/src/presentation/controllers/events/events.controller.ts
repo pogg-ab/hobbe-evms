@@ -61,6 +61,18 @@ import { GetFilteredEventsQuery } from 'src/application/queries/events/get-filte
 import { FindAllEventsResponseDto } from 'src/presentation/dtos/events/find-all-events-response.dto';
 import { TicketSalesOverviewResponseDto } from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
 import { GetTicketSalesOverviewQuery } from 'src/application/queries/events/get-ticket-sales-overview.query';
+import {
+  ApproveEventDto,
+  RejectEventDto,
+  RequestEventChangesDto,
+  SetEventPendingDto,
+} from 'src/presentation/dtos/events/event-status.dto';
+import {
+  ApproveEventCommand,
+  RejectEventCommand,
+  RequestEventChangesCommand,
+  SetEventPendingCommand,
+} from 'src/application/commands/event-status.commands';
 
 @ApiTags('Events')
 @Controller('events')
@@ -389,6 +401,98 @@ export class EventsController {
   ): Promise<TicketSalesOverviewResponseDto> {
     return await this.queryBus.execute(
       new GetTicketSalesOverviewQuery(eventId),
+    );
+  }
+
+  @ApiOperation({ description: 'Approve an Event' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({
+    description: 'Event approved successfully',
+    type: Events,
+  })
+  @ApiBody({ type: ApproveEventDto })
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Post(':id/approve')
+  async approveEvent(
+    @Param('id') eventId: string,
+    @Body() approveEventDto: ApproveEventDto,
+    @CurrentUserId() user: any,
+  ): Promise<Events> {
+    const adminId = user.user_id;
+    return await this.commandBus.execute(
+      new ApproveEventCommand(eventId, approveEventDto.feedback, adminId),
+    );
+  }
+
+  @ApiOperation({ description: 'Reject an Event' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({
+    description: 'Event rejected successfully',
+    type: Events,
+  })
+  @ApiBody({ type: RejectEventDto })
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Post(':id/reject')
+  async rejectEvent(
+    @Param('id') eventId: string,
+    @Body() rejectEventDto: RejectEventDto,
+    @CurrentUserId() user: any,
+  ): Promise<Events> {
+    const adminId = user.user_id;
+    return await this.commandBus.execute(
+      new RejectEventCommand(eventId, rejectEventDto.feedback, adminId),
+    );
+  }
+
+  @ApiOperation({ description: 'Request Changes for an Event' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({
+    description: 'Changes requested successfully',
+    type: Events,
+  })
+  @ApiBody({ type: RequestEventChangesDto })
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Post(':id/request-changes')
+  async requestEventChanges(
+    @Param('id') eventId: string,
+    @Body() requestEventChangesDto: RequestEventChangesDto,
+    @CurrentUserId() user: any,
+  ): Promise<Events> {
+    const adminId = user.user_id;
+    return await this.commandBus.execute(
+      new RequestEventChangesCommand(
+        eventId,
+        requestEventChangesDto.feedback,
+        adminId,
+      ),
+    );
+  }
+
+  @ApiOperation({ description: 'Set Event to Pending Status' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({
+    description: 'Event set to pending status successfully',
+    type: Events,
+  })
+  @ApiBody({ type: SetEventPendingDto })
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Post(':id/set-pending')
+  async setEventPending(
+    @Param('id') eventId: string,
+    @Body() setPendingDto: SetEventPendingDto,
+    @CurrentUserId() user: any,
+  ): Promise<Events> {
+    const userId = user.user_id;
+    return await this.commandBus.execute(
+      new SetEventPendingCommand(eventId, setPendingDto.feedback, userId),
     );
   }
 }
