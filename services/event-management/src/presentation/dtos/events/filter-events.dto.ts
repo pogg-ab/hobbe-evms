@@ -75,7 +75,7 @@ export class FilterEventsDto {
     endDate?: string;
 
     @ApiProperty({
-        description: 'Search by event name or organizer name',
+        description: 'Search by event name',
         example: 'Tech Conference',
         required: false,
     })

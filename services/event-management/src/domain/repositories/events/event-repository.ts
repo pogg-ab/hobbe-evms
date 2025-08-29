@@ -20,6 +20,7 @@ export interface IEventRepository {
     total: number;
     page: number;
     limit: number;
+    totalPages: number;
   }>;
   findAllByAuth(
     user: string,

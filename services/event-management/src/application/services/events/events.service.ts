@@ -189,6 +189,7 @@ export class EventsService {
     total: number;
     page: number;
     limit: number;
+    totalPages: number;
   }> {
     const result = await this.createEventRepository.findFiltered(filterEventsDto);
     if (!result.events || result.events.length === 0) {

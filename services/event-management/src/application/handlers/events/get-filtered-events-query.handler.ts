@@ -12,6 +12,7 @@ export class GetFilteredEventsQueryHandler implements IQueryHandler<GetFilteredE
         total: number;
         page: number;
         limit: number;
+        totalPages: number;
     }> {
         const { filterEventsDto } = query;
         return this.eventsService.findFiltered(filterEventsDto);

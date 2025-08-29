@@ -354,6 +354,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     total: number;
     page: number;
     limit: number;
+    totalPages: number;
   }> {
     const {
       countType = 'all',
@@ -463,12 +464,13 @@ export class EventRepositoryEmpl implements IEventRepository {
 
     // Execute query
     const [events, total] = await queryBuilder.getManyAndCount();
+    const totalPages = Math.ceil(total / limit);
 
     if (events.length === 0) {
-      return { events: [], total, page, limit };
+      return { events: [], total, page, limit, totalPages: 0 };
     }
 
-    return { events, total, page, limit };
+    return { events, total, page, limit, totalPages };
   }
 
   async search(

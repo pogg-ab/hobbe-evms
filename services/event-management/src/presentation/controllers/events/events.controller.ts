@@ -51,6 +51,7 @@ import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
 import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard';
 import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 import { GetFilteredEventsQuery } from 'src/application/queries/events/get-filtered-events.query';
+import { FindAllEventsResponseDto } from 'src/presentation/dtos/events/find-all-events-response.dto';
 
 @ApiTags('Events')
 @Controller('events')
@@ -105,20 +106,7 @@ export class EventsController {
   @ApiBearerAuth('access-token')
   @ApiOkResponse({
     description: 'Events retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        events: {
-          type: 'array',
-          items: { $ref: '#/components/schemas/Event' }
-        },
-        total: { type: 'number' },
-        page: { type: 'number' },
-        limit: { type: 'number' },
-        totalPages: { type: 'number' },
-        filters: { $ref: '#/components/schemas/FilterEventsDto' }
-      }
-    }
+    type: FindAllEventsResponseDto,
   })
   @Permissions('view:Event')
   @UseGuards(UniversalAuthGuard, PermissionsGuard)
@@ -130,9 +118,20 @@ export class EventsController {
     total: number;
     page: number;
     limit: number;
+    totalPages: number;
+    filters: FilterEventsDto;
   }> {
 
-    return await this.queryBus.execute(new GetFilteredEventsQuery(filterEventsDto));
+    const result = await this.queryBus.execute(new GetFilteredEventsQuery(filterEventsDto));
+
+    return {
+      events: result.events,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+      filters: filterEventsDto,
+    };
   }
 
   /*
