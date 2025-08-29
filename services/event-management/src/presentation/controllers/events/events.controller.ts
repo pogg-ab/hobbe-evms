@@ -15,7 +15,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateEventCommand } from 'src/application/commands/create-event.command';
 import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
 import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
@@ -52,6 +59,8 @@ import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard
 import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 import { GetFilteredEventsQuery } from 'src/application/queries/events/get-filtered-events.query';
 import { FindAllEventsResponseDto } from 'src/presentation/dtos/events/find-all-events-response.dto';
+import { TicketSalesOverviewResponseDto } from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
+import { GetTicketSalesOverviewQuery } from 'src/application/queries/events/get-ticket-sales-overview.query';
 
 @ApiTags('Events')
 @Controller('events')
@@ -59,13 +68,12 @@ export class EventsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) { }
+  ) {}
 
   /*
      Get All Events
   */
   @ApiOperation({ description: 'Gust Get All Events' })
-
   @HttpCode(200)
   @Get('get-events-as-gust')
   async findAllAsGust(
@@ -98,7 +106,9 @@ export class EventsController {
     limit: number;
   }> {
     const userId = user.user.user_id.toString();
-    return await this.queryBus.execute(new GetAllEventsByAuthQuery(userId, page, limit));
+    return await this.queryBus.execute(
+      new GetAllEventsByAuthQuery(userId, page, limit),
+    );
   }
 
   @ApiOperation({ description: 'Get All Events' })
@@ -111,9 +121,7 @@ export class EventsController {
   @Permissions('view:Event')
   @UseGuards(UniversalAuthGuard, PermissionsGuard)
   @Get('all-events')
-  async findAllEvents(
-    @Query() filterEventsDto: FilterEventsDto,
-  ): Promise<{
+  async findAllEvents(@Query() filterEventsDto: FilterEventsDto): Promise<{
     events: Events[] | null;
     total: number;
     page: number;
@@ -121,8 +129,9 @@ export class EventsController {
     totalPages: number;
     filters: FilterEventsDto;
   }> {
-
-    const result = await this.queryBus.execute(new GetFilteredEventsQuery(filterEventsDto));
+    const result = await this.queryBus.execute(
+      new GetFilteredEventsQuery(filterEventsDto),
+    );
 
     return {
       events: result.events,
@@ -150,12 +159,12 @@ export class EventsController {
   @UseInterceptors(AuditLogInterceptor)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @UseInterceptors(
-    FileInterceptor('thumbnail', multerConfig('thumbnail')),  // For 'thumbnail' field, allows 1 file only
+    FileInterceptor('thumbnail', multerConfig('thumbnail')), // For 'thumbnail' field, allows 1 file only
     // FileInterceptor('cover_image', multerConfig('cover_image'))  // For 'cover_image' field, allows 1 file only
   )
   async createEvent(
     @Body() createEventsDto: CreateEventsDto,
-    @UploadedFile() thumbnail: Express.Multer.File,  // Handle the uploaded 'thumbnail'
+    @UploadedFile() thumbnail: Express.Multer.File, // Handle the uploaded 'thumbnail'
     // @UploadedFile() cover_image: Express.Multer.File,  // Handle the uploaded 'cover_image'
     @CurrentUserId() user: any,
   ): Promise<{ message: string; events: Events }> {
@@ -187,36 +196,39 @@ export class EventsController {
     );
   }
 
-
   @ApiOperation({ description: 'Get Events By User and event status' })
   @HttpCode(200)
   @ApiBearerAuth('access-token')
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('find-by-user/:status')
-  async findByUserAndStatus(@CurrentUserId() user: any, @Param('status') status: string): Promise<any> {
+  async findByUserAndStatus(
+    @CurrentUserId() user: any,
+    @Param('status') status: string,
+  ): Promise<any> {
     const userId = user.user.user_id.toString();
     // Validate the status parameter else // throw descriptive error to frontend dev
     const validStatuses = ['past', 'future', 'drafted'];
     if (!validStatuses.includes(status)) {
-      throw new BadRequestException(`Invalid status: ${status}. Valid statuses are: ${validStatuses.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid status: ${status}. Valid statuses are: ${validStatuses.join(', ')}`,
+      );
     }
-    return this.queryBus.execute(new FindEventsByUserAndStatusQuery(userId, status));
+    return this.queryBus.execute(
+      new FindEventsByUserAndStatusQuery(userId, status),
+    );
   }
 
   @ApiOperation({ description: 'Get This Weekend Events' })
   @HttpCode(200)
   @Get('/this-weekend-events')
-  async findByThisWeekend(
-  ): Promise<Events[] | []> {
+  async findByThisWeekend(): Promise<Events[] | []> {
     return this.queryBus.execute(new FindEventsByThisWeekendQuery());
   }
   @ApiOperation({ description: 'Get Events By Specific Date' })
   @HttpCode(200)
   @Get('/date/:date')
-  async findBySpecificDate(
-    @Param('date') date: Date
-  ): Promise<Events[] | []> {
+  async findBySpecificDate(@Param('date') date: Date): Promise<Events[] | []> {
     return this.queryBus.execute(new FindEventsBySpecificDate(date));
   }
 
@@ -225,10 +237,12 @@ export class EventsController {
   @HttpCode(200)
   @Post('date-range')
   async findByDateRange(
-    @Body() body: { startDate: Date; endDate: Date }
+    @Body() body: { startDate: Date; endDate: Date },
   ): Promise<Events[] | []> {
     const { startDate, endDate } = body;
-    return this.queryBus.execute(new FindEventsByDateRangeQuery(startDate, endDate));
+    return this.queryBus.execute(
+      new FindEventsByDateRangeQuery(startDate, endDate),
+    );
   }
 
   @ApiOperation({ description: 'Get Event By ID' })
@@ -239,7 +253,12 @@ export class EventsController {
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Events | null> {
     // Validate the ID format of uuid
-    if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    if (
+      !id ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id,
+      )
+    ) {
       throw new BadRequestException('Invalid event ID format');
     }
 
@@ -261,7 +280,11 @@ export class EventsController {
     // const event = await this.queryBus.execute(new GetEventsByIdQuery(id));
     // if (!event) throw new Error('Event not found');
     // Object.assign(event, updateEventsDto);
-    const command = new UpdateEventsCommand(id, updateEventsDto, user.user.user_id.toString());
+    const command = new UpdateEventsCommand(
+      id,
+      updateEventsDto,
+      user.user.user_id.toString(),
+    );
     return this.commandBus.execute(command);
   }
 
@@ -335,15 +358,37 @@ export class EventsController {
   })
   @HttpCode(200)
   @Get('/remaining-time/:event_id')
-  async getRemainingTime(@Param('event_id') event_id: string): Promise<{ remainingTime: string }> {
-    const event: Events = await this.queryBus.execute(new GetEventsByIdQuery(event_id));
+  async getRemainingTime(
+    @Param('event_id') event_id: string,
+  ): Promise<{ remainingTime: string }> {
+    const event: Events = await this.queryBus.execute(
+      new GetEventsByIdQuery(event_id),
+    );
 
     if (!event) {
       throw new Error('Event not found');
     }
 
-    return await this.queryBus.execute(new GetEventRemainingTimeQuery(event_id));
-
+    return await this.queryBus.execute(
+      new GetEventRemainingTimeQuery(event_id),
+    );
   }
 
+  @ApiOperation({ description: 'Get Ticket Sales Overview for an Event' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({
+    description: 'Ticket sales overview retrieved successfully',
+    type: TicketSalesOverviewResponseDto,
+  })
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Get(':id/ticket-sales-overview')
+  async getTicketSalesOverview(
+    @Param('id') eventId: string,
+  ): Promise<TicketSalesOverviewResponseDto> {
+    return await this.queryBus.execute(
+      new GetTicketSalesOverviewQuery(eventId),
+    );
+  }
 }
