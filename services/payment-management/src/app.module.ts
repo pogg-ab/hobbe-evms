@@ -16,7 +16,13 @@ import { StripeModule } from './modules/payment-methods/stripe/stripe.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AnalyticsModule } from './modules/reports/analytics.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
-import { AuthModule } from './modules/auth/auth.module'; 
+import { AuthModule } from './modules/auth/auth.module';
+import { Tax } from './domain/entities/tax.entity';
+import { TaxModule } from './modules/tax/tax.module';
+import { CommissionFee } from './domain/entities/commission-fee.entity';
+import { CommissionFeeModule } from './modules/commission-fee/commission-fee.module';
+import { PaymentGatewayFee } from './domain/entities/payment-gateway-fee.entity';
+import { PaymentGatewayFeeModule } from './modules/payment-gateway-fee/payment-gateway-fee.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,9 +44,12 @@ import { AuthModule } from './modules/auth/auth.module';
     AnalyticsModule,
     AuditLogModule,
     AuthModule,
+    TaxModule,
+    CommissionFeeModule,
+    PaymentGatewayFeeModule,
   ],
   providers: [
-    AppService, 
+    AppService,
     KafkaConsumerService,
     KafkaProducerService,
   ],
