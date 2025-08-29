@@ -1,64 +1,106 @@
-import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, HttpCode, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MfaService } from 'src/application/services/mfa.service';
-import { UniversalAuthGuard } from '../guards/universal-auth.guard';
-import { EnableMfaDto } from '../dtos/enable-mfa.dto';
-import { SessionGuard } from '../guards/session.guard';
+import { InitiateMfaDto } from '../dtos/initiate-mfa.dto';
+import { Public } from '../decorators/public.decorator';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from 'src/domain/entities/user.entity';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
+import { Repository } from 'typeorm';
+import { VerifyMfaSetupDto } from '../dtos/verify-mfa-setup.dto';
+import { AuthService } from 'src/application/services/auth.service';
+import { Request } from 'express';
 
 @ApiTags('MFA')
-@ApiBearerAuth('access-token')
-@UseGuards(UniversalAuthGuard, SessionGuard)
 @Controller('mfa')
 export class MfaController {
-  constructor(private readonly mfaService: MfaService) {}
+  constructor(
+    private readonly mfaService: MfaService,
+    private readonly jwtService: JwtService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(AdminUser)
+    private readonly adminUserRepository: Repository<AdminUser>,
+    // AuthService is required to issue the final login tokens
+    private readonly authService: AuthService,
+  ) {}
 
-  @Post('generate')
-  @ApiOperation({ summary: 'Generate a new QR code for MFA setup' })
-  @ApiResponse({ status: 201, description: 'QR code generated successfully.' })
-  @ApiResponse({ status: 400, description: 'MFA is already enabled.' })
-  async generateMfaQrCode(@Req() req) {
-    const payload = req.user;
-    
-    let userId: string;
-    let email: string;
-    let isAdmin: boolean;
+  /**
+   * Step 1 of the forced MFA setup flow.
+   * This endpoint is called when a user logs in and is required to set up MFA.
+   * It uses the short-lived 'setupToken' to generate a QR code.
+   */
+  @Post('initiate-setup')
+  @Public()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Step 1 (Login Flow): Generate QR code using a setupToken' })
+  @ApiResponse({ status: 200, description: 'QR code generated successfully.' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired setup token.' })
+  async initiateMfaSetup(@Body() initiateMfaDto: InitiateMfaDto) {
+    try {
+      const payload = this.jwtService.verify(initiateMfaDto.setupToken, { secret: process.env.JWT_SECRET });
+      if (payload.purpose !== 'mfa-setup') {
+        throw new UnauthorizedException('Invalid token purpose.');
+      }
 
-    // This logic is correct and handles both user types.
-    if (payload.admin_user_id) {
-        userId = payload.admin_user_id.toString();
-        email = payload.user_name; 
-        isAdmin = true;
-    } 
-    else {
-        userId = payload.user.user_id.toString();
-        email = payload.user.user_name;
-        isAdmin = false;
+      const { sub: userId, isAdmin } = payload;
+      let email: string;
+
+      if (isAdmin) {
+        const admin = await this.adminUserRepository.findOneBy({ admin_user_id: userId });
+        if (!admin) throw new UnauthorizedException('Admin user not found.');
+        email = admin.user_name;
+      } else {
+        const user = await this.userRepository.findOneBy({ user_id: userId });
+        if (!user) throw new UnauthorizedException('User not found.');
+        email = user.user_name;
+      }
+
+      return this.mfaService.generateMfaSetup(userId, email, isAdmin);
+
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired MFA setup token.');
     }
-    
-    return this.mfaService.generateMfaSetup(userId, email, isAdmin);
   }
 
-  @Post('enable')
+  /**
+   * Step 2 of the forced MFA setup flow.
+   * Verifies the 6-digit code from the authenticator app and, if successful,
+   * completes the login process by issuing the final access and refresh tokens.
+   */
+  @Post('verify-setup')
+  @Public()
   @HttpCode(200)
-  @ApiOperation({ summary: 'Verify a token and enable MFA' })
-  @ApiResponse({ status: 200, description: 'MFA enabled successfully.' })
-  @ApiResponse({ status: 401, description: 'Invalid authentication code.' })
-  async enableMfa(@Req() req, @Body() enableMfaDto: EnableMfaDto) {
-    const payload = req.user;
-    
-    // --- THIS IS THE FIX ---
-    // We determine the user type and extract the ID, then pass the flag to the service.
-    let userId: string;
-    let isAdmin: boolean;
+  @ApiOperation({ summary: 'Step 2 (Login Flow): Verify code and get final login tokens' })
+  @ApiResponse({ status: 200, description: 'MFA setup successful, final tokens returned.' })
+  @ApiResponse({ status: 401, description: 'Invalid MFA code or setup token.' })
+  async verifyMfaSetup(@Req() req: Request, @Body() verifyDto: VerifyMfaSetupDto) {
+    try {
+      const payload = this.jwtService.verify(verifyDto.setupToken, { secret: process.env.JWT_SECRET });
+      if (payload.purpose !== 'mfa-setup') {
+        throw new UnauthorizedException('Invalid token purpose.');
+      }
 
-    if (payload.admin_user_id) {
-        userId = payload.admin_user_id.toString();
-        isAdmin = true;
-    } else {
-        userId = payload.user.user_id.toString();
-        isAdmin = false;
+      const { sub: userId, isAdmin } = payload;
+      
+      // This verifies the 6-digit code and saves the secret permanently in the database.
+      await this.mfaService.verifyAndFinalizeSetup(userId, verifyDto.mfaCode, isAdmin);
+
+      // If verification was successful, we immediately issue the final login tokens.
+      if (isAdmin) {
+        const adminUser = await this.adminUserRepository.findOneBy({ admin_user_id: userId });
+        if (!adminUser) throw new UnauthorizedException('Admin user not found.');
+        return this.authService.issueAdminTokens(req, adminUser);
+      } else {
+        const user = await this.userRepository.findOneBy({ user_id: userId });
+        if (!user) throw new UnauthorizedException('User not found.');
+        return this.authService.issueUserTokens(req, user, false); // rememberMe is false for this flow
+      }
+
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new UnauthorizedException('Invalid or expired MFA setup session.');
     }
-
-    return this.mfaService.verifyAndEnableMfa(userId, enableMfaDto.token, isAdmin);
   }
 }
