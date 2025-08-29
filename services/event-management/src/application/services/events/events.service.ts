@@ -27,6 +27,7 @@ import { CreateStreamDto } from 'src/presentation/dtos/live-stream/create-stream
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 import { TicketSalesOverviewResponseDto } from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
+import { AdminUpdateEventsDto } from 'src/presentation/dtos/events/admin-update-events.dto';
 
 @Injectable()
 export class EventsService {
@@ -635,5 +636,36 @@ export class EventsService {
     event.update_by = userId;
     event.updated_at = new Date();
     return await this.createEventRepository.update(eventId, event, userId);
+  }
+
+  async adminUpdateEvent(
+    eventId: string,
+    adminUpdateEventsDto: AdminUpdateEventsDto,
+    admin_id: string,
+  ): Promise<Events> {
+    const event = await this.createEventRepository.findOneEventOnly(eventId);
+    if (!event) {
+      throw new NotFoundException(`Event with ID ${eventId} not found`);
+    }
+    if (!['drafted', 'pending', 'active'].includes(event.status)) {
+      throw new BadRequestException(
+        `Event with ID ${eventId} cannot be updated from ${event.status} status`,
+      );
+    }
+    const updatedEvent = this.mapper.map(
+      adminUpdateEventsDto,
+      AdminUpdateEventsDto,
+      Events,
+      {
+        extraArgs: () => ({ id: eventId, user_id: event.user_id }),
+      },
+    );
+    updatedEvent.update_by = admin_id;
+    updatedEvent.updated_at = new Date();
+    return await this.createEventRepository.update(
+      eventId,
+      updatedEvent,
+      admin_id,
+    );
   }
 }
