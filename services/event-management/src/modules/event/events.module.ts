@@ -56,8 +56,7 @@ import { ConfigModule } from '@nestjs/config';
 import { kafkaPermissionConfig } from 'src/infrastructure/kafka/kafka-permission-config';
 import { PermissionCheckingService } from 'src/application/services/permissions-checking/permission-checking.service';
 import { GetFilteredEventsQueryHandler } from 'src/application/handlers/events/get-filtered-events-query.handler';
-
-
+import { GetTicketSalesOverviewQueryHandler } from 'src/application/handlers/events/get-ticket-sales-overview.query.handler';
 
 @Module({
   imports: [
@@ -142,6 +141,7 @@ import { GetFilteredEventsQueryHandler } from 'src/application/handlers/events/g
     SearchEventQueryHandler,
     GetUserEventStatsQueryHandler,
     GetFilteredEventsQueryHandler,
+    GetTicketSalesOverviewQueryHandler,
     EventsProfile,
     UserValidationService,
     PermissionCheckingService,
@@ -161,7 +161,7 @@ import { GetFilteredEventsQueryHandler } from 'src/application/handlers/events/g
 export class EventsModule {
   constructor(
     @Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka,
-  ) { }
+  ) {}
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');

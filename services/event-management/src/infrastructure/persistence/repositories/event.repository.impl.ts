@@ -6,6 +6,10 @@ import { Events } from 'src/domain/entities/events.entity';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
+import {
+  TicketSalesOverviewResponseDto,
+  TicketTypeOverview,
+} from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { Between, Repository } from 'typeorm';
 
@@ -17,7 +21,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     public readonly createTicketsDto: CreateTicketsDto,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) { }
+  ) {}
 
   async create(event: Events, user: any): Promise<Events> {
     try {
@@ -347,9 +351,7 @@ export class EventRepositoryEmpl implements IEventRepository {
     return events;
   }
 
-  async findFiltered(
-    filterEventsDto: FilterEventsDto,
-  ): Promise<{
+  async findFiltered(filterEventsDto: FilterEventsDto): Promise<{
     events: Events[] | null;
     total: number;
     page: number;
@@ -388,13 +390,20 @@ export class EventRepositoryEmpl implements IEventRepository {
     if (status !== 'all') {
       const currentDate = new Date();
       if (status === 'Upcoming') {
-        queryBuilder.andWhere('event.event_start_date > :currentDate', { currentDate });
-      } else if (status === 'Ongoing') {
-        queryBuilder.andWhere('event.event_start_date <= :currentDate AND event.event_end_date >= :currentDate', {
+        queryBuilder.andWhere('event.event_start_date > :currentDate', {
           currentDate,
         });
+      } else if (status === 'Ongoing') {
+        queryBuilder.andWhere(
+          'event.event_start_date <= :currentDate AND event.event_end_date >= :currentDate',
+          {
+            currentDate,
+          },
+        );
       } else if (status === 'Past') {
-        queryBuilder.andWhere('event.event_end_date < :currentDate', { currentDate });
+        queryBuilder.andWhere('event.event_end_date < :currentDate', {
+          currentDate,
+        });
       } else if (status === 'Pending Approval') {
         queryBuilder.andWhere('event.status = :status', { status: 'pending' });
       }
@@ -402,7 +411,9 @@ export class EventRepositoryEmpl implements IEventRepository {
 
     // Apply eventStatus filter (drafted, pending, cancelled, rejected, postponed, active)
     if (eventStatus !== 'all') {
-      queryBuilder.andWhere('event.status = :eventStatus', { eventStatus: eventStatus.toLowerCase() });
+      queryBuilder.andWhere('event.status = :eventStatus', {
+        eventStatus: eventStatus.toLowerCase(),
+      });
     }
 
     // Apply eventType filter
@@ -417,12 +428,17 @@ export class EventRepositoryEmpl implements IEventRepository {
 
     // Apply date range filter
     if (startDate && endDate) {
-      queryBuilder.andWhere('event.event_start_date BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      queryBuilder.andWhere(
+        'event.event_start_date BETWEEN :startDate AND :endDate',
+        {
+          startDate,
+          endDate,
+        },
+      );
     } else if (startDate) {
-      queryBuilder.andWhere('event.event_start_date >= :startDate', { startDate });
+      queryBuilder.andWhere('event.event_start_date >= :startDate', {
+        startDate,
+      });
     } else if (endDate) {
       queryBuilder.andWhere('event.event_end_date <= :endDate', { endDate });
     }
@@ -436,8 +452,20 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
 
     // Apply category filter (using categories array)
-    if (eventType !== 'all' && ['Conference', 'Workshop', 'Seminar', 'Webinar', 'Networking', 'Other'].includes(eventType)) {
-      queryBuilder.andWhere('event.categories @> :category', { category: [eventType] });
+    if (
+      eventType !== 'all' &&
+      [
+        'Conference',
+        'Workshop',
+        'Seminar',
+        'Webinar',
+        'Networking',
+        'Other',
+      ].includes(eventType)
+    ) {
+      queryBuilder.andWhere('event.categories @> :category', {
+        category: [eventType],
+      });
     }
 
     // Apply sorting
@@ -787,5 +815,60 @@ export class EventRepositoryEmpl implements IEventRepository {
       .getRawOne();
 
     return parseInt(result.count, 10);
+  }
+
+  async getTicketSalesOverview(
+    eventId: string,
+  ): Promise<TicketSalesOverviewResponseDto> {
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId },
+      relations: ['ticket_heading'],
+    });
+
+    if (!event) {
+      throw new HttpException(
+        `Event with ID ${eventId} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const ticketCounts = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('event.ticket_heading', 'ticket_heading')
+      .leftJoin('ticket_heading.tickets', 'ticket')
+      .select('ticket.type', 'type')
+      .addSelect('COUNT(ticket.id)', 'total')
+      .addSelect(
+        `COUNT(CASE WHEN ticket.status IN ('Paid', 'Booked', 'Completed') THEN ticket.id END)`,
+        'sold',
+      )
+      .where('event.id = :eventId', { eventId })
+      .groupBy('ticket.type')
+      .getRawMany();
+
+    const totalTickets = ticketCounts.reduce(
+      (sum, count) => sum + parseInt(count.total, 10),
+      0,
+    );
+    const soldTickets = ticketCounts.reduce(
+      (sum, count) => sum + parseInt(count.sold, 10),
+      0,
+    );
+    const availableTickets = totalTickets - soldTickets;
+
+    const byType: TicketTypeOverview[] = ticketCounts.map((count) => ({
+      type: count.type,
+      total: parseInt(count.total, 10),
+      sold: parseInt(count.sold, 10),
+      available: parseInt(count.total, 10) - parseInt(count.sold, 10),
+    }));
+
+    return {
+      eventId,
+      totalTickets,
+      soldTickets,
+      availableTickets,
+      byType,
+    };
   }
 }

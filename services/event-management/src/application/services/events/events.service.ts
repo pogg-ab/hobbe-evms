@@ -21,6 +21,7 @@ import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.
 import { CreateStreamDto } from 'src/presentation/dtos/live-stream/create-stream.dto';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
+import { TicketSalesOverviewResponseDto } from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
 
 @Injectable()
 export class EventsService {
@@ -37,7 +38,7 @@ export class EventsService {
     private dataSource: DataSource,
     private readonly userInfoService: UserInfoService,
     private readonly streamProducerService: StreamProducerService,
-  ) { }
+  ) {}
 
   private createStream(user: string, event_id: IdValueObject): any {
     const stream = {
@@ -182,16 +183,15 @@ export class EventsService {
     };
   }
 
-  async findFiltered(
-    filterEventsDto: FilterEventsDto,
-  ): Promise<{
+  async findFiltered(filterEventsDto: FilterEventsDto): Promise<{
     events: Events[] | null;
     total: number;
     page: number;
     limit: number;
     totalPages: number;
   }> {
-    const result = await this.createEventRepository.findFiltered(filterEventsDto);
+    const result =
+      await this.createEventRepository.findFiltered(filterEventsDto);
     if (!result.events || result.events.length === 0) {
       return result;
     }
@@ -512,5 +512,18 @@ export class EventsService {
         }
       }, 1000);
     });
+  }
+
+  async getTicketSalesOverview(
+    eventId: string,
+  ): Promise<TicketSalesOverviewResponseDto> {
+    const overview =
+      await this.createEventRepository.getTicketSalesOverview(eventId);
+    if (!overview) {
+      throw new NotFoundException(
+        `Ticket sales overview for event ${eventId} not found`,
+      );
+    }
+    return overview;
   }
 }
