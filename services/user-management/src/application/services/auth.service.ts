@@ -26,9 +26,12 @@ import { SystemSetting } from 'src/domain/entities/system-setting.entity';
 import * as otplib from 'otplib';
 import { Request } from 'express';
 import { AdminUserSecuritySetting } from 'src/domain/entities/admin-user-security-setting.entity';
+import { ParamsDictionary } from 'express-serve-static-core';
+import { ParsedQs } from 'qs';
 
 @Injectable()
 export class AuthService {
+  
   constructor(
     private readonly auditLogService: AuditLogService, 
     @InjectRepository(User)
@@ -178,21 +181,35 @@ export class AuthService {
     };
   }
 
-   async login(req: Request, user: any, rememberMe: boolean) {
+async login(req: Request, user: any, rememberMe: boolean) {
     const validatedUser: User = user.user;
     const mfaRequiredSetting = await this.systemSettingRepository.findOne({ where: { key: 'MFA_REQUIRED' } });
     const isMfaRequiredBySystem = mfaRequiredSetting?.value === 'true';
     const userSecurity = await this.userSecuritySettingRepository.findOne({ where: { user_id: validatedUser.user_id.toString() } });
 
-    if (isMfaRequiredBySystem && userSecurity?.mfa_enabled) {
-      const payload = { sub: validatedUser.user_id.toString(), purpose: 'mfa-verification', isAdmin: false };
-      const interimToken = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET, expiresIn: '5m' });
-      return { mfaRequired: true, interimToken: interimToken };
-    } else {
-      // Now we can correctly pass the 'req' object.
-      return this._issueUserTokens(req, validatedUser, rememberMe);
+    if (isMfaRequiredBySystem) {
+        // Case 1.1: User has completed setup. Send the INTERIM token for verification.
+        if (userSecurity?.mfa_secret) {
+            const payload = { sub: validatedUser.user_id.toString(), purpose: 'mfa-verification', isAdmin: false };
+            const interimToken = this.jwtService.sign(payload, { expiresIn: '5m' });
+            return { mfaRequired: true, interimToken: interimToken };
+        } 
+        // Case 1.2: User has NOT completed setup. Send the SETUP token to generate a QR code.
+        else {
+            const payload = { sub: validatedUser.user_id.toString(), purpose: 'mfa-setup', isAdmin: false };
+            const setupToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+            return { mfaSetupRequired: true, setupToken: setupToken };
+        }
     }
-  }
+    else if (userSecurity?.mfa_enabled && userSecurity?.mfa_secret) {
+        const payload = { sub: validatedUser.user_id.toString(), purpose: 'mfa-verification', isAdmin: false };
+        const interimToken = this.jwtService.sign(payload, { expiresIn: '5m' });
+        return { mfaRequired: true, interimToken: interimToken };
+    }
+    else {
+        return this.issueUserTokens(req, validatedUser, rememberMe);
+    }
+}
 
 
   
@@ -468,22 +485,35 @@ export class AuthService {
     return userAccountInfo;
   }
 
-  async adminUserLogin(req: Request, user: any) {
+async adminUserLogin(req: Request, user: any) {
     const adminUser: AdminUser = user.user;
     const mfaRequiredSetting = await this.systemSettingRepository.findOne({ where: { key: 'MFA_REQUIRED' } });
     const isMfaRequiredBySystem = mfaRequiredSetting?.value === 'true';
-    // We need to query the correct security settings table
     const securitySettings = await this.adminSecuritySettingRepository.findOne({ where: { admin_user_id: adminUser.admin_user_id.toString() } });
 
-    if (isMfaRequiredBySystem && securitySettings?.mfa_enabled) {
-      const payload = { sub: adminUser.admin_user_id.toString(), purpose: 'mfa-verification', isAdmin: true };
-      const interimToken = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET, expiresIn: '5m' });
-      return { mfaRequired: true, interimToken: interimToken };
-    } else {
-      return this._issueAdminTokens(req, adminUser);
+    if (isMfaRequiredBySystem) {
+        // Case 1.1: Admin has completed setup. Send the INTERIM token for verification.
+        if (securitySettings?.mfa_secret) {
+            const payload = { sub: adminUser.admin_user_id.toString(), purpose: 'mfa-verification', isAdmin: true };
+            const interimToken = this.jwtService.sign(payload, { expiresIn: '5m' });
+            return { mfaRequired: true, interimToken: interimToken };
+        } 
+        // Case 1.2: Admin has NOT completed setup. Send the SETUP token to generate a QR code.
+        else {
+            const payload = { sub: adminUser.admin_user_id.toString(), purpose: 'mfa-setup', isAdmin: true };
+            const setupToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+            return { mfaSetupRequired: true, setupToken: setupToken };
+        }
     }
-  }
-
+    else if (securitySettings?.mfa_enabled && securitySettings?.mfa_secret) {
+        const payload = { sub: adminUser.admin_user_id.toString(), purpose: 'mfa-verification', isAdmin: true };
+        const interimToken = this.jwtService.sign(payload, { expiresIn: '5m' });
+        return { mfaRequired: true, interimToken: interimToken };
+    }
+    else {
+        return this.issueAdminTokens(req, adminUser);
+    }
+}
   // Add this method to resolve the missing method error
   private async getAdminPermissions(adminUserId: string): Promise<string[]> {
     // 1. Find all the role links for this user.
@@ -697,11 +727,11 @@ async verifyMfaAndLogin(req: Request, interimToken: string, mfaCode: string) {
       if (payload.isAdmin) {
         const adminUser = await this.adminUserRepository.findOneBy({ admin_user_id: userId });
         if (!adminUser) throw new HttpException('Admin user not found', HttpStatus.NOT_FOUND);
-        return this._issueAdminTokens(req, adminUser);
+        return this.issueAdminTokens(req, adminUser);
       } else {
         const user = await this.userRepository.findOneBy({ user_id: userId });
         if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-        return this._issueUserTokens(req, user, false);
+        return this.issueUserTokens(req, user, false);
       }
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -710,7 +740,7 @@ async verifyMfaAndLogin(req: Request, interimToken: string, mfaCode: string) {
   }
 
  
-private async _issueUserTokens(req: unknown, user: User, rememberMe: boolean) {
+public async issueUserTokens(req: unknown, user: User, rememberMe: boolean) {
     const payload = { username: user.user_name, sub: user.user_id };
     const access_token = new AccessToken(
       this.jwtService.sign(payload, {
@@ -751,7 +781,7 @@ private async _issueUserTokens(req: unknown, user: User, rememberMe: boolean) {
     };
 }
 
-private async _issueAdminTokens(req: Request, adminUser: AdminUser) {
+public async issueAdminTokens(req: Request, adminUser: AdminUser) {
     const adminIdString = adminUser.admin_user_id.toString();
     
     const session = this.sessionRepository.create({
@@ -801,7 +831,7 @@ private async _issueAdminTokens(req: Request, adminUser: AdminUser) {
     if (adminUser) {
       // The admin has logged in with SSO before. We found them.
       // We directly issue tokens, bypassing any MFA checks.
-      return this._issueAdminTokens(req, adminUser);
+      return this.issueAdminTokens(req, adminUser);
     }
 
     // 2. If not linked, this is a first-time SSO login.
@@ -835,6 +865,6 @@ private async _issueAdminTokens(req: Request, adminUser: AdminUser) {
     });
 
     // 4. Now that the account is linked, issue the final tokens.
-    return this._issueAdminTokens(req, updatedAdmin);
+    return this.issueAdminTokens(req, updatedAdmin);
   }
 }
