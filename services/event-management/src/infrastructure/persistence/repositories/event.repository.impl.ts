@@ -5,6 +5,7 @@ import { start } from 'repl';
 import { Events } from 'src/domain/entities/events.entity';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
+import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { Between, Repository } from 'typeorm';
 
@@ -344,6 +345,132 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
 
     return events;
+  }
+
+  async findFiltered(
+    filterEventsDto: FilterEventsDto,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const {
+      countType = 'all',
+      status = 'all',
+      eventStatus = 'all',
+      eventType = 'all',
+      organizer,
+      startDate,
+      endDate,
+      search,
+      page = 1,
+      limit = 10,
+      sortBy = 'startDate',
+      sortOrder = 'asc',
+    } = filterEventsDto;
+
+    const offset = (page - 1) * limit;
+    const queryBuilder = this.eventRepository.createQueryBuilder('event');
+
+    // Apply filters based on countType
+    if (countType !== 'all') {
+      if (countType === 'Total events') {
+      } else if (countType === 'Active events') {
+        queryBuilder.where('event.status = :status', { status: 'active' });
+      } else if (countType === 'Pending events') {
+        queryBuilder.where('event.status = :status', { status: 'pending' });
+      }
+    }
+
+    // Apply status filter (Upcoming, Ongoing, Past, Pending Approval)
+    if (status !== 'all') {
+      const currentDate = new Date();
+      if (status === 'Upcoming') {
+        queryBuilder.andWhere('event.event_start_date > :currentDate', { currentDate });
+      } else if (status === 'Ongoing') {
+        queryBuilder.andWhere('event.event_start_date <= :currentDate AND event.event_end_date >= :currentDate', {
+          currentDate,
+        });
+      } else if (status === 'Past') {
+        queryBuilder.andWhere('event.event_end_date < :currentDate', { currentDate });
+      } else if (status === 'Pending Approval') {
+        queryBuilder.andWhere('event.status = :status', { status: 'pending' });
+      }
+    }
+
+    // Apply eventStatus filter (drafted, pending, cancelled, rejected, postponed, active)
+    if (eventStatus !== 'all') {
+      queryBuilder.andWhere('event.status = :eventStatus', { eventStatus: eventStatus.toLowerCase() });
+    }
+
+    // Apply eventType filter
+    if (eventType !== 'all') {
+      queryBuilder.andWhere('event.event_type = :eventType', { eventType });
+    }
+
+    // Apply organizer filter (using user_id)
+    if (organizer) {
+      queryBuilder.andWhere('event.user_id = :organizer', { organizer });
+    }
+
+    // Apply date range filter
+    if (startDate && endDate) {
+      queryBuilder.andWhere('event.event_start_date BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    } else if (startDate) {
+      queryBuilder.andWhere('event.event_start_date >= :startDate', { startDate });
+    } else if (endDate) {
+      queryBuilder.andWhere('event.event_end_date <= :endDate', { endDate });
+    }
+
+    // Apply search filter (title or description)
+    if (search) {
+      queryBuilder.andWhere(
+        '(LOWER(event.title) LIKE LOWER(:search) OR LOWER(event.description) LIKE LOWER(:search))',
+        { search: `%${search}%` },
+      );
+    }
+
+    // Apply category filter (using categories array)
+    if (eventType !== 'all' && ['Conference', 'Workshop', 'Seminar', 'Webinar', 'Networking', 'Other'].includes(eventType)) {
+      queryBuilder.andWhere('event.categories @> :category', { category: [eventType] });
+    }
+
+    // Apply sorting
+    const sortFieldMap: { [key: string]: string } = {
+      startDate: 'event.event_start_date',
+      createdAt: 'event.created_at',
+      title: 'event.title',
+      eventType: 'event.event_type',
+      organizer: 'event.user_id',
+    };
+    const sortField = sortFieldMap[sortBy] || 'event.event_start_date';
+    queryBuilder.orderBy(sortField, sortOrder.toUpperCase() as 'ASC' | 'DESC');
+
+    // Load relation counts
+    queryBuilder
+      .loadRelationCountAndMap('event.likes', 'event.likes')
+      .loadRelationCountAndMap('event.favorites', 'event.favorites')
+      .loadRelationCountAndMap('event.shares', 'event.shares')
+      .loadRelationCountAndMap('event.comments', 'event.comments')
+      .loadRelationCountAndMap('event.bookings', 'event.bookings');
+
+    // Apply pagination
+    queryBuilder.skip(offset).take(limit).cache(30000);
+
+    // Execute query
+    const [events, total] = await queryBuilder.getManyAndCount();
+    const totalPages = Math.ceil(total / limit);
+
+    if (events.length === 0) {
+      return { events: [], total, page, limit, totalPages: 0 };
+    }
+
+    return { events, total, page, limit, totalPages };
   }
 
   async search(

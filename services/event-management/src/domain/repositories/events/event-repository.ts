@@ -1,5 +1,6 @@
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
 import { Events } from '../../entities/events.entity';
+import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 
 export interface IEventRepository {
   create(createEventsDto: CreateEventsDto, user: any): Promise<Events>;
@@ -11,6 +12,15 @@ export interface IEventRepository {
     total: number;
     page: number;
     limit: number;
+  }>;
+  findFiltered(
+    filterEventsDto: FilterEventsDto,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
   }>;
   findAllByAuth(
     user: string,

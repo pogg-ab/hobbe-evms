@@ -20,6 +20,7 @@ import { UserInfoService } from '../user-info/user-info.service';
 import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
 import { CreateStreamDto } from 'src/presentation/dtos/live-stream/create-stream.dto';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
+import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 
 @Injectable()
 export class EventsService {
@@ -164,6 +165,39 @@ export class EventsService {
     const userIds = result.events.map((event) => event.user_id);
     let userInfoResponse = {};
 
+    try {
+      userInfoResponse = await this.userInfoService.getUserInfo(userIds);
+    } catch (userInfoError) {
+      console.error('Failed to fetch organizer info:', userInfoError);
+    }
+
+    const enrichedEvents = result.events.map((event) => ({
+      ...event,
+      organizerInfo: userInfoResponse[event.user_id] || null,
+    }));
+
+    return {
+      ...result,
+      events: enrichedEvents,
+    };
+  }
+
+  async findFiltered(
+    filterEventsDto: FilterEventsDto,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const result = await this.createEventRepository.findFiltered(filterEventsDto);
+    if (!result.events || result.events.length === 0) {
+      return result;
+    }
+
+    const userIds = result.events.map((event) => event.user_id);
+    let userInfoResponse = {};
     try {
       userInfoResponse = await this.userInfoService.getUserInfo(userIds);
     } catch (userInfoError) {
