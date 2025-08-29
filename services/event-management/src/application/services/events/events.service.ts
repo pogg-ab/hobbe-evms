@@ -1,6 +1,11 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { endOfDay, nextSaturday, nextSunday, startOfDay } from 'date-fns';
 import { CreateTicketsCommand } from 'src/application/commands/ticket/create-tickets.command';
@@ -525,5 +530,89 @@ export class EventsService {
       );
     }
     return overview;
+  }
+
+  async approveEvent(
+    eventId: string,
+    feedback: string | undefined,
+    adminId: string,
+  ): Promise<Events> {
+    const event = await this.createEventRepository.findOneEventOnly(eventId);
+    if (!event) {
+      throw new NotFoundException(`Event with ID ${eventId} not found`);
+    }
+    if (event.status !== 'pending') {
+      throw new BadRequestException(
+        `Event with ID ${eventId} is not in pending status`,
+      );
+    }
+    event.status = 'active';
+    event.feedback = feedback || null;
+    event.update_by = adminId;
+    event.updated_at = new Date();
+    return await this.createEventRepository.update(eventId, event, adminId);
+  }
+
+  async rejectEvent(
+    eventId: string,
+    feedback: string,
+    adminId: string,
+  ): Promise<Events> {
+    const event = await this.createEventRepository.findOneEventOnly(eventId);
+    if (!event) {
+      throw new NotFoundException(`Event with ID ${eventId} not found`);
+    }
+    if (event.status !== 'pending') {
+      throw new BadRequestException(
+        `Event with ID ${eventId} is not in pending status`,
+      );
+    }
+    event.status = 'rejected';
+    event.feedback = feedback;
+    event.update_by = adminId;
+    event.updated_at = new Date();
+    return await this.createEventRepository.update(eventId, event, adminId);
+  }
+
+  async requestEventChanges(
+    eventId: string,
+    feedback: string,
+    adminId: string,
+  ): Promise<Events> {
+    const event = await this.createEventRepository.findOneEventOnly(eventId);
+    if (!event) {
+      throw new NotFoundException(`Event with ID ${eventId} not found`);
+    }
+    if (event.status !== 'pending') {
+      throw new BadRequestException(
+        `Event with ID ${eventId} is not in pending status`,
+      );
+    }
+    event.status = 'drafted';
+    event.feedback = feedback;
+    event.update_by = adminId;
+    event.updated_at = new Date();
+    return await this.createEventRepository.update(eventId, event, adminId);
+  }
+
+  async setEventPending(
+    eventId: string,
+    feedback: string | undefined,
+    userId: string,
+  ): Promise<Events> {
+    const event = await this.createEventRepository.findOneEventOnly(eventId);
+    if (!event) {
+      throw new NotFoundException(`Event with ID ${eventId} not found`);
+    }
+    if (event.status !== 'drafted') {
+      throw new BadRequestException(
+        `Event with ID ${eventId} must be in drafted status to transition to pending`,
+      );
+    }
+    event.status = 'pending';
+    event.feedback = feedback || null;
+    event.update_by = userId;
+    event.updated_at = new Date();
+    return await this.createEventRepository.update(eventId, event, userId);
   }
 }

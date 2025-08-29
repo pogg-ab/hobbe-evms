@@ -57,6 +57,11 @@ import { kafkaPermissionConfig } from 'src/infrastructure/kafka/kafka-permission
 import { PermissionCheckingService } from 'src/application/services/permissions-checking/permission-checking.service';
 import { GetFilteredEventsQueryHandler } from 'src/application/handlers/events/get-filtered-events-query.handler';
 import { GetTicketSalesOverviewQueryHandler } from 'src/application/handlers/events/get-ticket-sales-overview.query.handler';
+import {
+  ApproveEventCommandHandler,
+  SetEventPendingCommandHandler,
+} from 'src/application/handlers/events/event-status.command.handlers';
+import { set } from 'date-fns';
 
 @Module({
   imports: [
@@ -142,6 +147,8 @@ import { GetTicketSalesOverviewQueryHandler } from 'src/application/handlers/eve
     GetUserEventStatsQueryHandler,
     GetFilteredEventsQueryHandler,
     GetTicketSalesOverviewQueryHandler,
+    ApproveEventCommandHandler,
+    SetEventPendingCommandHandler,
     EventsProfile,
     UserValidationService,
     PermissionCheckingService,
