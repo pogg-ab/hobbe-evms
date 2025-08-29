@@ -29,3 +29,11 @@ export class SetEventPendingCommand {
     public readonly userId: string,
   ) {}
 }
+
+export class CancelEventCommand {
+  constructor(
+    public readonly eventId: string,
+    public readonly feedback: string | undefined,
+    public readonly userId: string,
+  ) {}
+}

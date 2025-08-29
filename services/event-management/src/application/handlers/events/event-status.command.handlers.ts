@@ -2,6 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EventsService } from 'src/application/services/events/events.service';
 import {
   ApproveEventCommand,
+  CancelEventCommand,
   RejectEventCommand,
   RequestEventChangesCommand,
   SetEventPendingCommand,
@@ -61,6 +62,21 @@ export class SetEventPendingCommandHandler
 
   async execute(command: SetEventPendingCommand): Promise<Events> {
     return await this.eventsService.setEventPending(
+      command.eventId,
+      command.feedback,
+      command.userId,
+    );
+  }
+}
+
+@CommandHandler(CancelEventCommand)
+export class CancelEventCommandHandler
+  implements ICommandHandler<CancelEventCommand>
+{
+  constructor(private readonly eventsService: EventsService) {}
+
+  async execute(command: CancelEventCommand): Promise<Events> {
+    return await this.eventsService.cancelEvent(
       command.eventId,
       command.feedback,
       command.userId,

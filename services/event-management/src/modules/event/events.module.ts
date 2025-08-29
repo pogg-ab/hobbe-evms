@@ -59,6 +59,7 @@ import { GetFilteredEventsQueryHandler } from 'src/application/handlers/events/g
 import { GetTicketSalesOverviewQueryHandler } from 'src/application/handlers/events/get-ticket-sales-overview.query.handler';
 import {
   ApproveEventCommandHandler,
+  CancelEventCommandHandler,
   SetEventPendingCommandHandler,
 } from 'src/application/handlers/events/event-status.command.handlers';
 import { set } from 'date-fns';
@@ -149,6 +150,7 @@ import { set } from 'date-fns';
     GetTicketSalesOverviewQueryHandler,
     ApproveEventCommandHandler,
     SetEventPendingCommandHandler,
+    CancelEventCommandHandler,
     EventsProfile,
     UserValidationService,
     PermissionCheckingService,

@@ -615,4 +615,25 @@ export class EventsService {
     event.updated_at = new Date();
     return await this.createEventRepository.update(eventId, event, userId);
   }
+
+  async cancelEvent(
+    eventId: string,
+    feedback: string | undefined,
+    userId: string,
+  ): Promise<Events> {
+    const event = await this.createEventRepository.findOneEventOnly(eventId);
+    if (!event) {
+      throw new NotFoundException(`Event with ID ${eventId} not found`);
+    }
+    if (!['active', 'pending', 'drafted'].includes(event.status)) {
+      throw new BadRequestException(
+        `Event with ID ${eventId} cannot be cancelled from ${event.status} status`,
+      );
+    }
+    event.status = 'cancelled';
+    event.feedback = feedback || null;
+    event.update_by = userId;
+    event.updated_at = new Date();
+    return await this.createEventRepository.update(eventId, event, userId);
+  }
 }

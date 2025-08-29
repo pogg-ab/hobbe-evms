@@ -1,12 +1,12 @@
 version: "1.0"
 
 services:
-  communication-management:
+  event-management:
     build:
-      context: ./communication-management
+      context: ./event-management
       dockerfile: Dockerfile
     ports:
-      - "4003:4003"
+      - "4001:4001"
     environment:
       NODE_ENV: production
       DB_HOST: postgres
