@@ -35,6 +35,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserService } from 'src/application/services/user.service';
 import { SuspendUserCommand } from 'src/application/commands/user/suspend-user.command';
 import { ReactivateUserCommand } from 'src/application/commands/user/reactivate-user.command';
+import { AdminAuthGuard } from '../guards/admin-auth.guard';
 
 @ApiTags('Users')
 @Controller('users')
@@ -139,6 +140,26 @@ export class UserController {
     type: [UserResponseDto],
   })
   async searchUsers(
+    @Query('query') query: string,
+    @Query() filters: SearchFilters,
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ): Promise<User[]> {
+    return this.queryBus.execute(
+      new SearchUsersQuery(query, filters, page, limit),
+    );
+  }
+
+  @Get('admin/search-organizer')
+  @ApiBearerAuth('access-token')
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({ summary: 'Search users by name or email' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of users matching search criteria',
+    type: [UserResponseDto],
+  })
+  async searchUsersAdmin(
     @Query('query') query: string,
     @Query() filters: SearchFilters,
     @Query('page') page: number,
