@@ -15,7 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateEventCommand } from 'src/application/commands/create-event.command';
 import { DeleteEventCommand } from 'src/application/commands/delete-event.commamd';
 import { UpdateEventsCommand } from 'src/application/commands/update.event.command';
@@ -49,6 +49,8 @@ import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.int
 import { Permissions } from 'src/presentation/decorators/permissions.decorator';
 import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
 import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard';
+import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
+import { GetFilteredEventsQuery } from 'src/application/queries/events/get-filtered-events.query';
 
 @ApiTags('Events')
 @Controller('events')
@@ -101,13 +103,28 @@ export class EventsController {
   @ApiOperation({ description: 'Get All Events' })
   @HttpCode(200)
   @ApiBearerAuth('access-token')
+  @ApiOkResponse({
+    description: 'Events retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        events: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Event' }
+        },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        totalPages: { type: 'number' },
+        filters: { $ref: '#/components/schemas/FilterEventsDto' }
+      }
+    }
+  })
   @Permissions('view:Event')
   @UseGuards(UniversalAuthGuard, PermissionsGuard)
   @Get('all-events')
   async findAllEvents(
-    @CurrentUserId() user: any,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query() filterEventsDto: FilterEventsDto,
   ): Promise<{
     events: Events[] | null;
     total: number;
@@ -115,7 +132,7 @@ export class EventsController {
     limit: number;
   }> {
 
-    return await this.queryBus.execute(new GetAllEventsQuery(page, limit));
+    return await this.queryBus.execute(new GetFilteredEventsQuery(filterEventsDto));
   }
 
   /*

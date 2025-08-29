@@ -55,6 +55,7 @@ import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.int
 import { ConfigModule } from '@nestjs/config';
 import { kafkaPermissionConfig } from 'src/infrastructure/kafka/kafka-permission-config';
 import { PermissionCheckingService } from 'src/application/services/permissions-checking/permission-checking.service';
+import { GetFilteredEventsQueryHandler } from 'src/application/handlers/events/get-filtered-events-query.handler';
 
 
 
@@ -140,6 +141,7 @@ import { PermissionCheckingService } from 'src/application/services/permissions-
     AnalyticsEventCommandHandler,
     SearchEventQueryHandler,
     GetUserEventStatsQueryHandler,
+    GetFilteredEventsQueryHandler,
     EventsProfile,
     UserValidationService,
     PermissionCheckingService,
