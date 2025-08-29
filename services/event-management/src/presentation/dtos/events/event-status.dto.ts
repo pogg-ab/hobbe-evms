@@ -23,6 +23,17 @@ export class SetEventPendingDto {
   feedback?: string;
 }
 
+export class CancelEventDto {
+  @ApiProperty({
+    description: 'Optional feedback for cancelling the event',
+    example: 'Event cancelled due to unforeseen circumstances.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  feedback?: string;
+}
+
 export class RejectEventDto {
   @ApiProperty({
     description: 'Reason for rejecting the event',

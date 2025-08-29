@@ -63,12 +63,14 @@ import { TicketSalesOverviewResponseDto } from 'src/presentation/dtos/events/tic
 import { GetTicketSalesOverviewQuery } from 'src/application/queries/events/get-ticket-sales-overview.query';
 import {
   ApproveEventDto,
+  CancelEventDto,
   RejectEventDto,
   RequestEventChangesDto,
   SetEventPendingDto,
 } from 'src/presentation/dtos/events/event-status.dto';
 import {
   ApproveEventCommand,
+  CancelEventCommand,
   RejectEventCommand,
   RequestEventChangesCommand,
   SetEventPendingCommand,
@@ -493,6 +495,28 @@ export class EventsController {
     const userId = user.user_id;
     return await this.commandBus.execute(
       new SetEventPendingCommand(eventId, setPendingDto.feedback, userId),
+    );
+  }
+
+  @ApiOperation({ description: 'Cancel an Event' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({
+    description: 'Event cancelled successfully',
+    type: Events,
+  })
+  @ApiBody({ type: CancelEventDto })
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Post(':id/cancel')
+  async cancelEvent(
+    @Param('id') eventId: string,
+    @Body() cancelEventDto: CancelEventDto,
+    @CurrentUserId() user: any,
+  ): Promise<Events> {
+    const userId = user.user_id;
+    return await this.commandBus.execute(
+      new CancelEventCommand(eventId, cancelEventDto.feedback, userId),
     );
   }
 }
