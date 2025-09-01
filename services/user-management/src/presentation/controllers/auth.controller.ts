@@ -18,7 +18,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from 'src/application/services/auth.service';
 import { AdminUserAuthDto } from '../dtos/create-admin-user-auth.dto';
 import { AuthDto } from '../dtos/create-auth.dto';
@@ -44,6 +44,8 @@ import { UniversalAuthGuard } from '../guards/universal-auth.guard';
 import { SessionGuard } from '../guards/session.guard';
 import { Public } from '../decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
+import { MfaLoginDto } from '../dtos/mfa-login.dto';
+import { AdminAuthGuard } from '../guards/admin-auth.guard';
 
 
 @ApiTags('Auth')
@@ -306,6 +308,19 @@ export class AuthController {
     res.redirect(adminPanelUrl.toString());
   }
 
+   @Post('mfa-login')
+  @Public() // It's public because the user isn't fully logged in yet
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Step 2 (Verification Flow): Verify MFA code and get final tokens' })
+  @ApiBody({ type: MfaLoginDto })
+  async mfaLogin(@Req() req: Request, @Body() mfaLoginDto: MfaLoginDto) {
+    return this.authService.verifyMfaAndLogin(
+      req,
+      mfaLoginDto.interimToken,
+      mfaLoginDto.mfaCode,
+    );
+  }
+
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })
   @ApiBody({ type: AuthDto })
@@ -336,6 +351,17 @@ export class AuthController {
     // --- CHANGE: Pass the req object to the service ---
     return this.authService.login(req, user, rememberMe);
   }
+
+  @Post('logout')
+@UseGuards(UniversalAuthGuard, SessionGuard) // Protected
+@ApiBearerAuth('access-token')
+@HttpCode(200)
+@ApiOperation({ summary: 'Log out a regular user' })
+async userLogout(@Req() req) {
+    const sessionId = req.user.jti;
+    return this.authService.userLogout(sessionId);
+}
+
 
  
   @Post('refresh-token')
@@ -409,7 +435,15 @@ export class AuthController {
     return this.authService.adminUserLogin(req, adminUser);
   }
 
-
+@Post('admin-user/logout')
+@UseGuards(AdminAuthGuard, SessionGuard) // Protected
+@ApiBearerAuth('access-token')
+@HttpCode(200)
+@ApiOperation({ summary: 'Log out an admin user' })
+async adminLogout(@Req() req) {
+    const sessionId = req.user.jti;
+    return this.authService.adminLogout(sessionId);
+}
 
   @Post('verify-otp')
   @ApiOperation({ summary: 'Verify OTP for user registration' })

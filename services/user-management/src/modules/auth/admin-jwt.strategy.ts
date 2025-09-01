@@ -15,8 +15,7 @@ export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET'),
-      // --- ADD THIS NEW OPTION ---
-      passReqToCallback: true, // This will pass the whole request object to validate()
+      passReqToCallback: true, 
     });
   }
 
@@ -33,6 +32,7 @@ export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') {
         user_name: payload.username,
         permissions: payload.permissions,
         jti: payload.jti,
+        isAdmin: true,
     };
   }
 }

@@ -1,17 +1,24 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Reflector } from '@nestjs/core';
-import { UserSession } from 'src/domain/entities/user-session.entity';
 import { Repository } from 'typeorm';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
-const SESSION_TIMEOUT_MINUTES = 30;
+// --- IMPORT THE TWO SEPARATE SESSION ENTITIES ---
+import { UserSession } from 'src/domain/entities/user-session.entity';
+import { AdminUserSession } from 'src/domain/entities/admin-user-session.entity';
+
+// --- Set the timeout to 15 minutes as requested ---
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class SessionGuard implements CanActivate {
+  // --- INJECT BOTH REPOSITORIES ---
   constructor(
     @InjectRepository(UserSession)
-    private readonly sessionRepository: Repository<UserSession>,
+    private readonly userSessionRepo: Repository<UserSession>,
+    @InjectRepository(AdminUserSession)
+    private readonly adminSessionRepo: Repository<AdminUserSession>,
     private readonly reflector: Reflector,
   ) {}
 
@@ -20,34 +27,55 @@ export class SessionGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
-
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-    if (!user) return true; // Let AuthGuard run first
-
-    const sessionId = user.jti;
-    if (!sessionId) {
-      throw new UnauthorizedException('Session ID (jti) is missing from token.');
+    if (isPublic) {
+      return true;
     }
 
-    const session = await this.sessionRepository.findOne({ where: { session_id: sessionId } });
+    const request = context.switchToHttp().getRequest();
+    const userPayload = request.user; // Attached by the JWT strategy
+
+    if (!userPayload || !userPayload.jti) {
+      // This case should be handled by the preceding JWT/Auth guard.
+      // If it gets here, something is misconfigured. Deny access.
+      throw new UnauthorizedException('Authentication token is missing required session information.');
+    }
+
+    const sessionId = userPayload.jti;
+    const now = new Date();
+    let session: UserSession | AdminUserSession;
+
+    // --- LOGIC TO CHECK THE CORRECT TABLE ---
+    // We use the `isAdmin` flag that we added to the admin JWT payload.
+    if (userPayload.isAdmin) {
+      session = await this.adminSessionRepo.findOneBy({ session_id: sessionId });
+    } else {
+      session = await this.userSessionRepo.findOneBy({ session_id: sessionId });
+    }
+
     if (!session || !session.is_active) {
       throw new UnauthorizedException('Session is invalid or has been terminated.');
     }
 
-    const now = new Date();
-    const lastActivity = new Date(session.last_activity);
-    const timeDifferenceMinutes = (now.getTime() - lastActivity.getTime()) / 60000;
-
-    if (timeDifferenceMinutes > SESSION_TIMEOUT_MINUTES) {
+    // --- AUTOMATIC TIMEOUT LOGIC (using milliseconds is more precise) ---
+    const timeSinceLastActivity = now.getTime() - new Date(session.last_activity).getTime();
+    if (timeSinceLastActivity > INACTIVITY_TIMEOUT_MS) {
       session.is_active = false;
-      await this.sessionRepository.save(session);
+      // Save the change back to the correct repository
+      if (userPayload.isAdmin) {
+        await this.adminSessionRepo.save(session as AdminUserSession);
+      } else {
+        await this.userSessionRepo.save(session as UserSession);
+      }
       throw new UnauthorizedException('Session has expired due to inactivity.');
     }
 
-    session.last_activity = new Date();
-    await this.sessionRepository.save(session);
+    
+    session.last_activity = now;
+    if (userPayload.isAdmin) {
+      await this.adminSessionRepo.save(session as AdminUserSession);
+    } else {
+      await this.userSessionRepo.save(session as UserSession);
+    }
 
     return true;
   }

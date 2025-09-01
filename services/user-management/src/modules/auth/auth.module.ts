@@ -40,8 +40,8 @@ import { UserSecuritySetting } from 'src/domain/entities/user-security-setting.e
 import { AdminUserSecuritySetting } from 'src/domain/entities/admin-user-security-setting.entity';
 import { SessionGuard } from 'src/presentation/guards/session.guard';
 import { UserSession } from 'src/domain/entities/user-session.entity';
+import { AdminUserSession } from 'src/domain/entities/admin-user-session.entity';
 
-// --- IMPORTS FROM DEVELOP BRANCH ---
 import { GuestSession } from 'src/domain/entities/guest-session.entity';
 import { GuestUserService } from 'src/application/services/guest-user.service';
 import { ConfigModule } from '@nestjs/config';
@@ -70,7 +70,8 @@ import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
       Follower,
       UserSecuritySetting, 
        AdminUserSecuritySetting,
-      UserSession,         
+      UserSession,  
+      AdminUserSession,       
       GuestSession,
       ConfigModule, 
       SystemSetting,       

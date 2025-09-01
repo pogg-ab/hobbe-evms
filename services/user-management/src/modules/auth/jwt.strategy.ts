@@ -32,6 +32,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       relations: ['role'],
     });
     const roles = userRoles.map((userRole) => userRole.role.name);
-    return { success: true, user, roles };
+    return { success: true, user, roles, jti: payload.jti  };
   }
 }
