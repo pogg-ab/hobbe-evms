@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -11,6 +12,7 @@ import { AdminUserAccountID } from '../value-objects/admin-user-account-id.value
 import { AdminUserID } from '../value-objects/admin-user-id.value-object';
 import { AdminUserAccount } from './admin-user-account.entity';
 import { AdminUserSecuritySetting } from './admin-user-security-setting.entity';
+import { AdminUserSession } from './admin-user-session.entity';
 
 @Entity()
 export class AdminUser {
@@ -40,6 +42,9 @@ export class AdminUser {
  
   @OneToOne(() => AdminUserSecuritySetting, (settings) => settings.adminUser, { cascade: true, eager: true })
   securitySettings: AdminUserSecuritySetting;
+
+  @OneToMany(() => AdminUserSession, (session) => session.adminUser)
+  sessions: AdminUserSession[];
 
   @Column({ default: true })
   is_active: boolean;
