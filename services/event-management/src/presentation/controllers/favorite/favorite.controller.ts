@@ -23,12 +23,15 @@ export class FavoriteController {
   ) { }
 
   @ApiOperation({ description: 'Get Users Favorite Events' })
+  @ApiBearerAuth('access-token')
+  // @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @HttpCode(200)
   @Get('events')
   async findByUsersFavorite(
     @CurrentUserId() user: any,
   ): Promise<FavoriteEvent[] | null> {
-    return this.queryBus.execute(new FindEventsByUsersFavoriteQuery(user));
+    return this.queryBus.execute(new FindEventsByUsersFavoriteQuery(user.user.user_id.toString()));
   }
 
   @ApiOperation({ description: 'Favorite Event' })

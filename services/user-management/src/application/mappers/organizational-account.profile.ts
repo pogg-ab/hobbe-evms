@@ -6,7 +6,7 @@ import { OrganizationalAccount } from 'src/domain/entities/organizational-accoun
 import { Owner } from 'src/domain/entities/owner.entity';
 import { SocialMedia } from 'src/domain/entities/social-media.entity';
 import { User } from 'src/domain/entities/user.entity';
-import { AccountStatus } from 'src/domain/value-objects/account-status.value-object';
+import { AccountStatus, Status } from 'src/domain/value-objects/account-status.value-object';
 import { AccountType } from 'src/domain/value-objects/account-type.value-object';
 import { CreateOrganizationalAccountDto } from 'src/presentation/dtos/create-organizational-account.dto';
 import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
@@ -53,7 +53,7 @@ export class OrganizationalAccountProfile extends AutomapperProfile {
         ),
         forMember(
           (destination) => destination.status,
-          mapFrom(() => new AccountStatus('active')),
+          mapFrom(() => Status.ACTIVE),
         ),
         forMember(
           (destination) => destination.is_verified,

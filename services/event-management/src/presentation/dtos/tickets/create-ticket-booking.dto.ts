@@ -1,5 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNotEmpty,
@@ -10,6 +13,24 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
+
+class RecipientTicketDto {
+  @ApiProperty({
+    description: 'Recipient ID',
+    example: 'd9b2d63d-a233-4c2b-8c6d-82e19a93cbbb',
+  })
+  @IsNotEmpty()
+  @IsUUID()
+  recipient_id: string;
+
+  @ApiProperty({
+    description: 'Number of tickets gifted to this recipient',
+    example: 2,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  ticket_count: number;
+}
 
 export class CreateTicketBookingDto {
   @ApiProperty({
@@ -41,13 +62,19 @@ export class CreateTicketBookingDto {
   hasGift?: boolean;
 
   @ApiProperty({
-    description: 'Recipient ID if booking is a gift',
-    example: 'd9b2d63d-a233-4c2b-8c6d-82e19a93cbbb',
+    description: 'Array of recipients with number of tickets gifted',
+    example: [
+      { recipient_id: 'd9b2d63d-a233-4c2b-8c6d-82e19a93cbbb', ticket_count: 2 },
+      { recipient_id: 'e8f7c6b5-a495-4a3b-9c2d-1b0a9f8e7d6c', ticket_count: 1 },
+    ],
+    type: [RecipientTicketDto],
   })
   @ValidateIf((o) => o.hasGift === true)
   @IsNotEmpty()
-  @IsUUID()
-  recipient_id?: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @Type(() => RecipientTicketDto)
+  recipient_tickets?: RecipientTicketDto[];
 
   @ApiProperty({
     description: 'Is a promocode used for the booking?',

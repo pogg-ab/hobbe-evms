@@ -2,6 +2,8 @@ import {
   Column,
   Entity,
   JoinColumn,
+  ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -13,7 +15,7 @@ export class TicketGifts {
   @PrimaryGeneratedColumn('uuid')
   gift_id: IdValueObject;
 
-  @OneToOne(() => TicketBooking, { onDelete: 'CASCADE' })
+  @ManyToOne(() => TicketBooking, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'booking_id' })
   booking_id: IdValueObject;
 
@@ -22,6 +24,9 @@ export class TicketGifts {
 
   @Column({ nullable: true })
   recipient_id: string;
+
+  @Column({ type: 'int', default: 1 })
+  ticket_count: number;
 
   @Column({ nullable: true })
   created_by: string;

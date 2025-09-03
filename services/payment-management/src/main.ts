@@ -7,9 +7,20 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Payment Microservice API Documentation')
-    .setDescription('API documentation for paymeny microservice')
+    .setDescription('API documentation for payment microservice')
     .setVersion('1.0')
-    .addTag('Payments')  
+    .addTag('Payments')
+    .addBearerAuth(
+      {
+        description: `Please enter token in format Bearer <token>`,
+        name: 'Authorization',
+        bearerFormat: 'Bearer',
+        scheme: 'Bearer',
+        type: 'http',
+        in: 'Header',
+      },
+      'access-token', 
+    ) 
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

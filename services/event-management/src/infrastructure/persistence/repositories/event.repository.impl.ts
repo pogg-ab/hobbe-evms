@@ -3,7 +3,13 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { start } from 'repl';
 import { Events } from 'src/domain/entities/events.entity';
+import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
+import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
+import {
+  TicketSalesOverviewResponseDto,
+  TicketTypeOverview,
+} from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { Between, Repository } from 'typeorm';
 
@@ -13,6 +19,8 @@ export class EventRepositoryEmpl implements IEventRepository {
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
     public readonly createTicketsDto: CreateTicketsDto,
+    @InjectRepository(ParticipantHasTicket)
+    private participantHasTicketRepository: Repository<ParticipantHasTicket>,
   ) {}
 
   async create(event: Events, user: any): Promise<Events> {
@@ -169,7 +177,7 @@ export class EventRepositoryEmpl implements IEventRepository {
       .where('event.id = :id', { id })
       .getRawAndEntities();
 
-    if (!event.entities[0]) {
+    if (!event.entities.length) {
       throw new HttpException(
         `Event with ID ${id} not found`,
         HttpStatus.NOT_FOUND,
@@ -341,6 +349,156 @@ export class EventRepositoryEmpl implements IEventRepository {
     }
 
     return events;
+  }
+
+  async findFiltered(filterEventsDto: FilterEventsDto): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const {
+      countType = 'all',
+      status = 'all',
+      eventStatus = 'all',
+      eventType = 'all',
+      organizer,
+      startDate,
+      endDate,
+      search,
+      page = 1,
+      limit = 10,
+      sortBy = 'startDate',
+      sortOrder = 'asc',
+    } = filterEventsDto;
+
+    const offset = (page - 1) * limit;
+    const queryBuilder = this.eventRepository.createQueryBuilder('event');
+
+    // Apply filters based on countType
+    if (countType !== 'all') {
+      if (countType === 'Total events') {
+      } else if (countType === 'Active events') {
+        queryBuilder.where('event.status = :status', { status: 'active' });
+      } else if (countType === 'Pending events') {
+        queryBuilder.where('event.status = :status', { status: 'pending' });
+      }
+    }
+
+    // Apply status filter (Upcoming, Ongoing, Past, Pending Approval)
+    if (status !== 'all') {
+      const currentDate = new Date();
+      if (status === 'Upcoming') {
+        queryBuilder.andWhere('event.event_start_date > :currentDate', {
+          currentDate,
+        });
+      } else if (status === 'Ongoing') {
+        queryBuilder.andWhere(
+          'event.event_start_date <= :currentDate AND event.event_end_date >= :currentDate',
+          {
+            currentDate,
+          },
+        );
+      } else if (status === 'Past') {
+        queryBuilder.andWhere('event.event_end_date < :currentDate', {
+          currentDate,
+        });
+      } else if (status === 'Pending Approval') {
+        queryBuilder.andWhere('event.status = :status', { status: 'pending' });
+      }
+    }
+
+    // Apply eventStatus filter (drafted, pending, cancelled, rejected, postponed, active)
+    if (eventStatus !== 'all') {
+      queryBuilder.andWhere('event.status = :eventStatus', {
+        eventStatus: eventStatus.toLowerCase(),
+      });
+    }
+
+    // Apply eventType filter
+    if (eventType !== 'all') {
+      queryBuilder.andWhere('event.event_type = :eventType', { eventType });
+    }
+
+    // Apply organizer filter (using user_id)
+    if (organizer) {
+      queryBuilder.andWhere('event.user_id = :organizer', { organizer });
+    }
+
+    // Apply date range filter
+    if (startDate && endDate) {
+      queryBuilder.andWhere(
+        'event.event_start_date BETWEEN :startDate AND :endDate',
+        {
+          startDate,
+          endDate,
+        },
+      );
+    } else if (startDate) {
+      queryBuilder.andWhere('event.event_start_date >= :startDate', {
+        startDate,
+      });
+    } else if (endDate) {
+      queryBuilder.andWhere('event.event_end_date <= :endDate', { endDate });
+    }
+
+    // Apply search filter (title or description)
+    if (search) {
+      queryBuilder.andWhere(
+        '(LOWER(event.title) LIKE LOWER(:search) OR LOWER(event.description) LIKE LOWER(:search))',
+        { search: `%${search}%` },
+      );
+    }
+
+    // Apply category filter (using categories array)
+    if (
+      eventType !== 'all' &&
+      [
+        'Conference',
+        'Workshop',
+        'Seminar',
+        'Webinar',
+        'Networking',
+        'Other',
+      ].includes(eventType)
+    ) {
+      queryBuilder.andWhere('event.categories @> :category', {
+        category: [eventType],
+      });
+    }
+
+    // Apply sorting
+    const sortFieldMap: { [key: string]: string } = {
+      startDate: 'event.event_start_date',
+      createdAt: 'event.created_at',
+      title: 'event.title',
+      eventType: 'event.event_type',
+      organizer: 'event.user_id',
+    };
+    const sortField = sortFieldMap[sortBy] || 'event.event_start_date';
+    queryBuilder.orderBy(sortField, sortOrder.toUpperCase() as 'ASC' | 'DESC');
+
+    // Load relation counts
+    queryBuilder
+      .loadRelationCountAndMap('event.likes', 'event.likes')
+      .loadRelationCountAndMap('event.favorites', 'event.favorites')
+      .loadRelationCountAndMap('event.shares', 'event.shares')
+      .loadRelationCountAndMap('event.comments', 'event.comments')
+      .loadRelationCountAndMap('event.bookings', 'event.bookings');
+
+    // Apply pagination
+    queryBuilder.skip(offset).take(limit).cache(30000);
+
+    // Execute query
+    const [events, total] = await queryBuilder.getManyAndCount();
+    const totalPages = Math.ceil(total / limit);
+
+    if (events.length === 0) {
+      return { events: [], total, page, limit, totalPages: 0 };
+    }
+
+    return { events, total, page, limit, totalPages };
   }
 
   async search(
@@ -571,9 +729,9 @@ export class EventRepositoryEmpl implements IEventRepository {
     };
   }
 
-  async singleEventAnalytics(user: string, event: string): Promise<any> {
+  async singleEventAnalytics(event: string): Promise<any> {
     const events = await this.eventRepository.find({
-      where: { id: event, user_id: user },
+      where: { id: event },
     });
 
     // Count tickets grouped by status
@@ -636,6 +794,81 @@ export class EventRepositoryEmpl implements IEventRepository {
       TotalCommentsCount: parseInt(commentCount.count, 10),
       TotalLikesCount: parseInt(likeCount.count, 10),
       qrcodeStats,
+    };
+  }
+
+  async countEventsOrganizedByUser(userId: string): Promise<number> {
+    const result = await this.eventRepository
+      .createQueryBuilder('event')
+      .where('event.user_id = :userId', { userId })
+      .getCount();
+
+    return result;
+  }
+
+  async countEventsUserParticipatedIn(userId: string): Promise<number> {
+    const result = await this.participantHasTicketRepository
+      .createQueryBuilder('pht')
+      .innerJoin('pht.booking_id', 'booking')
+      .select('COUNT(DISTINCT booking.event_id)', 'count')
+      .where('pht.participant_id = :userId', { userId })
+      .getRawOne();
+
+    return parseInt(result.count, 10);
+  }
+
+  async getTicketSalesOverview(
+    eventId: string,
+  ): Promise<TicketSalesOverviewResponseDto> {
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId },
+      relations: ['ticket_heading'],
+    });
+
+    if (!event) {
+      throw new HttpException(
+        `Event with ID ${eventId} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const ticketCounts = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('event.ticket_heading', 'ticket_heading')
+      .leftJoin('ticket_heading.tickets', 'ticket')
+      .select('ticket.type', 'type')
+      .addSelect('COUNT(ticket.id)', 'total')
+      .addSelect(
+        `COUNT(CASE WHEN ticket.status IN ('Paid', 'Booked', 'Completed') THEN ticket.id END)`,
+        'sold',
+      )
+      .where('event.id = :eventId', { eventId })
+      .groupBy('ticket.type')
+      .getRawMany();
+
+    const totalTickets = ticketCounts.reduce(
+      (sum, count) => sum + parseInt(count.total, 10),
+      0,
+    );
+    const soldTickets = ticketCounts.reduce(
+      (sum, count) => sum + parseInt(count.sold, 10),
+      0,
+    );
+    const availableTickets = totalTickets - soldTickets;
+
+    const byType: TicketTypeOverview[] = ticketCounts.map((count) => ({
+      type: count.type,
+      total: parseInt(count.total, 10),
+      sold: parseInt(count.sold, 10),
+      available: parseInt(count.total, 10) - parseInt(count.sold, 10),
+    }));
+
+    return {
+      eventId,
+      totalTickets,
+      soldTickets,
+      availableTickets,
+      byType,
     };
   }
 }

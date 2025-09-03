@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { KafkaConsumerService } from './infrastructure/kafka/kafka.consumer.service';
@@ -15,7 +15,22 @@ import { KafkaProducerService } from './infrastructure/kafka/kafka.producer.serv
 import { StripeModule } from './modules/payment-methods/stripe/stripe.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AnalyticsModule } from './modules/reports/analytics.module';
-
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { Tax } from './domain/entities/tax.entity';
+import { TaxModule } from './modules/tax/tax.module';
+import { CommissionFee } from './domain/entities/commission-fee.entity';
+import { CommissionFeeModule } from './modules/commission-fee/commission-fee.module';
+import { PaymentGatewayFee } from './domain/entities/payment-gateway-fee.entity';
+import { PaymentGatewayFeeModule } from './modules/payment-gateway-fee/payment-gateway-fee.module';
+import { DataSource } from 'typeorm';
+import { AccountCode } from './domain/entities/account-code.entity';
+import { runSeeders } from 'typeorm-extension';
+import AccountCodeSeeder from './infrastructure/persistence/seeder/account-code.seeder';
+import { FinancialAccountType } from './domain/entities/financial-account-type.entity';
+import FinancialAccountTypeSeeder from './infrastructure/persistence/seeder/financial-account-type.seeder';
+import CurrencySeeder from './infrastructure/persistence/seeder/currency.seeder';
+import { Currency } from './domain/entities/currency.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -35,11 +50,46 @@ import { AnalyticsModule } from './modules/reports/analytics.module';
     StripeModule,
     ReportsModule,
     AnalyticsModule,
+    AuditLogModule,
+    AuthModule,
+    TaxModule,
+    CommissionFeeModule,
+    PaymentGatewayFeeModule,
   ],
   providers: [
-    AppService, 
+    AppService,
     KafkaConsumerService,
     KafkaProducerService,
   ],
 })
-export class AppModule { }
+export class AppModule implements OnModuleInit {
+  constructor(private readonly dataSource: DataSource) { }
+
+  async onModuleInit() {
+    const accountCodeRepository = this.dataSource.getRepository(AccountCode);
+    const financialAccountTypeRepository = this.dataSource.getRepository(FinancialAccountType);
+    const currencyRepository = this.dataSource.getRepository(Currency);
+
+    const accountCodeCount = await accountCodeRepository.count();
+    const financialAccountTypeCount = await financialAccountTypeRepository.count();
+    const currencyCount = await currencyRepository.count();
+
+    if (accountCodeCount === 0) {
+      await runSeeders(this.dataSource, {
+        seeds: [AccountCodeSeeder],
+      });
+    }
+
+    if (financialAccountTypeCount === 0) {
+      await runSeeders(this.dataSource, {
+        seeds: [FinancialAccountTypeSeeder],
+      });
+    }
+
+    if (currencyCount === 0) {
+      await runSeeders(this.dataSource, {
+        seeds: [CurrencySeeder],
+      });
+    }
+  }
+}

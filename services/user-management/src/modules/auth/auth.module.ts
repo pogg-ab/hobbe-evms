@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
@@ -30,6 +30,30 @@ import { FacebookStrategy } from './strategies/facebook.strategy';
 import { LoginWithOAuthHandler } from 'src/application/handlers/sso/LoginWithOAuthHandler';
 import { OAuthProvider } from 'src/domain/entities/oauth-provider.entity';
 import { GithubStrategy } from './strategies/github.strategy';
+
+// --- IMPORTS FROM YOUR FEATURE BRANCH ---
+import { AdminJwtStrategy } from './admin-jwt.strategy';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+// Note: We don't import AdminAuthGuard here as it's a legacy file we might not need. Let's see.
+import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
+import { UserSecuritySetting } from 'src/domain/entities/user-security-setting.entity';
+import { AdminUserSecuritySetting } from 'src/domain/entities/admin-user-security-setting.entity';
+import { SessionGuard } from 'src/presentation/guards/session.guard';
+import { UserSession } from 'src/domain/entities/user-session.entity';
+
+// --- IMPORTS FROM DEVELOP BRANCH ---
+import { GuestSession } from 'src/domain/entities/guest-session.entity';
+import { GuestUserService } from 'src/application/services/guest-user.service';
+import { ConfigModule } from '@nestjs/config';
+import { MfaService } from 'src/application/services/mfa.service';
+import { MfaController } from 'src/presentation/controllers/mfa.controller';
+import { SystemSettingsService } from 'src/application/services/system-settings.service';
+import { SystemSettingsController } from 'src/presentation/controllers/system-settings.controller';
+import { SystemSetting } from 'src/domain/entities/system-setting.entity';
+import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard';
+import { AdminGoogleStrategy } from './strategies/admin-google.strategy';
+import { AdminFacebookStrategy } from './strategies/admin-facebook.strategy';
+import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
 @Module({
   imports: [
     CqrsModule,
@@ -43,7 +67,13 @@ import { GithubStrategy } from './strategies/github.strategy';
       AdminUserAuth,
       PersonalAccount,
       OrganizationalAccount,
-      Follower
+      Follower,
+      UserSecuritySetting, 
+       AdminUserSecuritySetting,
+      UserSession,         
+      GuestSession,
+      ConfigModule, 
+      SystemSetting,       
     ]),
     PassportModule,
     JwtModule.register({
@@ -57,18 +87,28 @@ import { GithubStrategy } from './strategies/github.strategy';
         options: kafkaProducerConfig.options,
       },
     ]),
+    forwardRef(() => AuditLogModule), 
   ],
   providers: [
     AuthService,
     ElasticsearchConfig,
     JwtStrategy,
+    AdminJwtStrategy, 
     GoogleStrategy,
     FacebookStrategy,
     GithubStrategy,
     MessageProducerService,
     NotificationConfigService,
-
+    GuestUserService, 
     LoginWithOAuthHandler,
+    PermissionsGuard, 
+    SessionGuard,
+    MfaService,  
+    SystemSettingsService, 
+    UniversalAuthGuard,  
+    AdminGoogleStrategy,
+    AdminFacebookStrategy,
+    AdminGitHubStrategy,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,
@@ -91,6 +131,13 @@ import { GithubStrategy } from './strategies/github.strategy';
       },
     },
   ],
-  controllers: [AuthController],
+  controllers: [AuthController,  MfaController,  SystemSettingsController],
+  exports: [
+    AuthService,
+    PermissionsGuard, 
+    SessionGuard,
+    MfaService,  
+    SystemSettingsService,   
+  ],
 })
-export class AuthModule { }
+export class AuthModule {}

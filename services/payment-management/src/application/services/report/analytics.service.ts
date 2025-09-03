@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DownloadEntity } from 'src/domain/entities/download.entity';
 import { IAnalyticsRepository } from 'src/domain/repositories/reports/analytics.repository';
 import { CreateDownloadDto } from 'src/presentation/dtos/reports/create-download.dto';
+import { GetDownloadsByDateRangeDto } from 'src/presentation/dtos/reports/get-downloads-by-daterange.dto';
 import { Repository } from 'typeorm';
 
 
@@ -31,7 +32,7 @@ export class AnalyticsService {
   }
 
   
-  async getDownloadsByDate(date: Date): Promise<DownloadEntity[]> {
-    return await this.analyticsRepository.getDownloadsByDate(date);
+  async getDownloadsByDate(dto: GetDownloadsByDateRangeDto): Promise<DownloadEntity[]> {
+    return await this.analyticsRepository.getDownloadsByDate(dto);
   }
 }

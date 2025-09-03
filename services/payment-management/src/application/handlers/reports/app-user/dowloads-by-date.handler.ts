@@ -10,7 +10,7 @@ export class DownloadsByDateQueryHandler implements IQueryHandler<AppDownloadsBy
     ) {}
 
     async execute(query: AppDownloadsByDateQuery): Promise<any> {
-        const { date } = query;
-        return await this.analyticsService.getDownloadsByDate(date);
+        const { dto } = query;
+        return await this.analyticsService.getDownloadsByDate(dto);
     }
 }

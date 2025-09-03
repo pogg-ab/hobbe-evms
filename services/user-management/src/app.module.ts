@@ -16,6 +16,8 @@ import { RolePermissionModule } from './modules/role-permission/role-permission.
 import { SubAccountModule } from './modules/sub-account/sub-account.module';
 import { UserModule } from './modules/user/user.module';
 import { UserAnayticsModule } from './modules/analytics/user-anaytics.module';
+import { SeedModule } from './modules/seed/seed.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -43,6 +45,8 @@ import { UserAnayticsModule } from './modules/analytics/user-anaytics.module';
     UserModule,
     FavoritesModule,
     UserAnayticsModule,
+     AuditLogModule,
+    SeedModule,
   ],
 })
 export class AppModule {}

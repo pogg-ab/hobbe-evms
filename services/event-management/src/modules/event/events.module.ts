@@ -2,7 +2,7 @@ import { AutomapperModule } from '@automapper/nestjs';
 import { Inject, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
-import { ClientKafka, ClientsModule } from '@nestjs/microservices';
+import { ClientKafka, ClientsModule, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateEventCommandHandler } from 'src/application/handlers/events/create-event.handler';
@@ -49,10 +49,25 @@ import { GetAllEventsByAuthQueryHandler } from 'src/application/handlers/events/
 import { AnalyticsEventCommandHandler } from 'src/application/handlers/analytics/analytics-events.handler';
 import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
 import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/events/find-events-by-user-and-status.handler';
-
+import { GetUserEventStatsQueryHandler } from 'src/application/handlers/analytics/get-user-event-stats.query-handler';
+import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
+import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+import { ConfigModule } from '@nestjs/config';
+import { kafkaPermissionConfig } from 'src/infrastructure/kafka/kafka-permission-config';
+import { PermissionCheckingService } from 'src/application/services/permissions-checking/permission-checking.service';
+import { GetFilteredEventsQueryHandler } from 'src/application/handlers/events/get-filtered-events-query.handler';
+import { GetTicketSalesOverviewQueryHandler } from 'src/application/handlers/events/get-ticket-sales-overview.query.handler';
+import {
+  ApproveEventCommandHandler,
+  CancelEventCommandHandler,
+  SetEventPendingCommandHandler,
+} from 'src/application/handlers/events/event-status.command.handlers';
+import { set } from 'date-fns';
+import { AdminUpdateEventCommandHandler } from 'src/application/handlers/events/admin-update-event.command.handler';
 
 @Module({
   imports: [
+    ConfigModule,
     TicketsHeadingModule,
     TicketsModule,
     PromocodeModule,
@@ -79,14 +94,32 @@ import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/
         }),
       },
     ]),
+    ClientsModule.registerAsync([
+      {
+        name: 'CHECK_PERMISSION_SERVICE',
+        useFactory: async () => ({
+          transport: kafkaPermissionConfig.transport,
+          options: kafkaPermissionConfig.options,
+        }),
+      },
+    ]),
     TypeOrmModule.forFeature([Events, Tickets, ParticipantHasTicket]),
     CqrsModule,
+    AuditLogModule,
+    ClientsModule.register([
+      {
+        name: 'KAFKA_PRODUCER', // This name must match the @Inject() token
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            clientId: 'event-management-producer',
+            brokers: [process.env.KAFKA_BROKER],
+          },
+        },
+      },
+    ]),
   ],
-  controllers: [
-    EventsController,
-    AnalyticsController,
-
-  ],
+  controllers: [EventsController, AnalyticsController],
   providers: [
     EventsService,
     CreateTicketsDto,
@@ -113,10 +146,19 @@ import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/
     SingleEventAnalyticsCommandHandler,
     AnalyticsEventCommandHandler,
     SearchEventQueryHandler,
+    GetUserEventStatsQueryHandler,
+    GetFilteredEventsQueryHandler,
+    GetTicketSalesOverviewQueryHandler,
+    ApproveEventCommandHandler,
+    SetEventPendingCommandHandler,
+    CancelEventCommandHandler,
+    AdminUpdateEventCommandHandler,
     EventsProfile,
     UserValidationService,
+    PermissionCheckingService,
     JwtStrategy,
     SocketIo,
+    AuditLogInterceptor,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
       useClass: EventRepositoryEmpl,
@@ -128,7 +170,9 @@ import { FindEventsByUserAndStatusQueryHandler } from 'src/application/handlers/
   ],
 })
 export class EventsModule {
-  constructor(@Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka) { }
+  constructor(
+    @Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka,
+  ) {}
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');

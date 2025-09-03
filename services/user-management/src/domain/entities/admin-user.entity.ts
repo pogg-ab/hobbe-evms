@@ -10,6 +10,7 @@ import {
 import { AdminUserAccountID } from '../value-objects/admin-user-account-id.value-object';
 import { AdminUserID } from '../value-objects/admin-user-id.value-object';
 import { AdminUserAccount } from './admin-user-account.entity';
+import { AdminUserSecuritySetting } from './admin-user-security-setting.entity';
 
 @Entity()
 export class AdminUser {
@@ -19,7 +20,8 @@ export class AdminUser {
   @Column({ unique: true })
   user_name: string;
 
-  @Column()
+  
+  @Column({ nullable: true })
   password: string;
 
   @OneToOne(() => AdminUserAccount, {
@@ -28,6 +30,16 @@ export class AdminUser {
   })
   @JoinColumn({ name: 'admin_user_account_id' })
   admin_user_account: AdminUserAccountID;
+
+ 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  ssoProvider: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  ssoProviderId: string | null;
+ 
+  @OneToOne(() => AdminUserSecuritySetting, (settings) => settings.adminUser, { cascade: true, eager: true })
+  securitySettings: AdminUserSecuritySetting;
 
   @Column({ default: true })
   is_active: boolean;

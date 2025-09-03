@@ -15,6 +15,7 @@ import {
   Res,
   UnauthorizedException,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -33,18 +34,29 @@ import { AuthGuard } from '@nestjs/passport';
 import { CommandBus } from '@nestjs/cqrs';
 import { OAuthLoginDto, Provider } from '../dtos/sso/oauth.dto';
 import { LoginWithOAuthCommand } from 'src/application/commands/sso/LoginWithOAuthCommand';
+import { CreateGuestSessionDto } from '../dtos/Guest User Insight/create-guest-session.dto';
+import { UpgradeGuestDto } from '../dtos/Guest User Insight/upgrade-guest.dto';
+import { GuestUserService } from 'src/application/services/guest-user.service';
+import { SessionID } from 'src/domain/value-objects/session-id.value-object';
+import { UserID } from 'src/domain/value-objects/user-id.value-object';
+import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
+import { UniversalAuthGuard } from '../guards/universal-auth.guard';
+import { SessionGuard } from '../guards/session.guard';
+import { Public } from '../decorators/public.decorator';
+import { ConfigService } from '@nestjs/config';
+
 
 @ApiTags('Auth')
 @Controller('auth')
+@UseInterceptors(AuditLogInterceptor)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly commandBus: CommandBus,
-  
+    private readonly guestUserService: GuestUserService,
+    private readonly configService: ConfigService,
   ) { }
   private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
-
-
 
   async oauthLogin(@Body() dto: OAuthLoginDto) {
     return await this.commandBus.execute(new LoginWithOAuthCommand(dto));
@@ -53,156 +65,252 @@ export class AuthController {
   @ApiOperation({ summary: 'Redirects to Google OAuth2 consent screen' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to Google OAuth2 consent screen'
+    description: 'Redirects to Google OAuth2 consent screen',
   })
   @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth() {
-    // Guard redirects to Google
-  }
+  @ApiOperation({
+    summary: 'Initiates Google OAuth login with dynamic redirect',
+  })
+  async googleAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
 
+    if (!redirect_uri) {
+      return res.status(400).send('Missing redirect query');
+    }
+
+    const state = encodeURIComponent(redirect_uri as string); // secure encode
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${process.env.GOOGLE_CLIENT_ID}` +
+      `&redirect_uri=${process.env.GOOGLE_CALLBACK_URL}` +
+      `&response_type=code` +
+      `&scope=email profile` +
+      `&state=${state}`;
+
+    return res.redirect(authUrl);
+  }
 
   @ApiOperation({ summary: 'Handles Google OAuth2 callback' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to success page with JWT token'
+    description: 'Redirects to success page with JWT token',
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - Invalid or expired Google token'
+    description: 'Unauthorized - Invalid or expired Google token',
   })
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(@Req() req, @Res() res: Response) {
- const data: OAuthLoginDto = {
-      provider: Provider.Google,          
-      providerId: req.user.googleId,       
+    const { state } = req.query;
+    const redirect = decodeURIComponent(state as string); // from step 1
+
+    const data: OAuthLoginDto = {
+      provider: Provider.Google,
+      providerId: req.user.googleId,
       email: req.user.email,
-      name: req.user.firstName + ' ' + req.user.lastName,
+      name: `${req.user.firstName} ${req.user.lastName}`,
       accessToken: req.user.accessToken,
       refreshToken: req.user.refreshToken,
     };
-    const result = await this.oauthLogin(data);
-    res.redirect(`/auth/success?token=${result.access_token}`);
 
-    // return result;
+    const result = await this.oauthLogin(data);
+
+    const redirectUrl = new URL(redirect);
+    redirectUrl.searchParams.set('token', result.access_token);
+
+    return res.redirect(redirectUrl.toString());
   }
 
   @Get('success')
   @ApiOperation({ summary: 'Handles successful Google login' })
   @ApiResponse({
     status: 200,
-    description: 'Successful login with JWT token'
+    description: 'Successful login with JWT token',
   })
   async googleLoginSuccess(@Query('token') token: string) {
     return { message: 'Login successful', token };
   }
 
-
   @ApiOperation({ summary: 'Redirects to Facebook OAuth2 consent screen' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to Facebook OAuth2 consent screen'
+    description: 'Redirects to Facebook OAuth2 consent screen',
   })
   @Get('facebook')
-  @UseGuards(AuthGuard('facebook'))
-  async facebookAuth() {
-    // Guard redirects to Facebook
+  @ApiOperation({
+    summary: 'Initiates Facebook OAuth login with dynamic redirect',
+  })
+  async facebookAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
+
+    if (!redirect_uri) {
+      return res.status(400).send('Missing redirect_uri query');
+    }
+
+    const state = encodeURIComponent(redirect_uri as string);
+
+    const authUrl =
+      `https://www.facebook.com/v19.0/dialog/oauth?` +
+      `client_id=${process.env.FACEBOOK_CLIENT_ID}` +
+      `&redirect_uri=${process.env.FACEBOOK_CALLBACK_URL}` +
+      `&state=${state}` +
+      `&response_type=code` +
+      `&scope=email,public_profile`;
+
+    return res.redirect(authUrl);
   }
 
-  @ApiOperation({ summary: 'Handles Facebook OAuth2 callback' })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirects to success page with JWT token'
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or expired Facebook token'
-  })
   @Get('facebook/callback')
+  @ApiOperation({ summary: 'Handles Facebook OAuth2 callback and redirects' })
   @UseGuards(AuthGuard('facebook'))
   async facebookAuthCallback(@Req() req, @Res() res: Response) {
-    if (!req.user) { 
+    if (!req.user) {
       throw new UnauthorizedException('Invalid or expired Facebook token');
     }
-   const data: OAuthLoginDto = {
-      provider: Provider.Facebook,           // e.g., 'facebook'
-      providerId: req.user.facebookId,       // e.g., '123456789'
+
+    const { state } = req.query;
+    const redirect = decodeURIComponent(state as string);
+    const data: OAuthLoginDto = {
+      provider: Provider.Facebook,
+      providerId: req.user.facebookId,
       email: req.user.email,
       name: req.user.displayName,
       accessToken: req.user.accessToken,
       refreshToken: req.user.refreshToken,
     };
+
     const result = await this.oauthLogin(data);
-    res.redirect(`/auth/success?token=${result.access_token}`);
+
+    const redirectUrl = new URL(redirect);
+    redirectUrl.searchParams.set('token', result.access_token);
+
+    return res.redirect(redirectUrl.toString());
   }
 
-
-  @ApiOperation({ summary: 'Redirects to GitHub OAuth2 consent screen' })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirects to GitHub OAuth2 consent screen'
-  })
   @Get('github')
-  @UseGuards(AuthGuard('github'))
-  async githubAuth() {
-    // Guard redirects to GitHub
+  @ApiOperation({
+    summary: 'Initiates GitHub OAuth login with dynamic redirect',
+  })
+  async githubAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
+
+    if (!redirect_uri) {
+      return res.status(400).send('Missing redirect_uri query');
+    }
+
+
+    const state = encodeURIComponent(redirect_uri as string);
+
+    const authUrl =
+      `https://github.com/login/oauth/authorize?` +
+      `client_id=${process.env.GITHUB_CLIENT_ID}` +
+      `&redirect_uri=${process.env.GITHUB_CALLBACK_URL}` +
+      `&scope=user:email` +
+      `&state=${state}`;
+
+    return res.redirect(authUrl);
   }
 
-  @ApiOperation({ summary: 'Handles GitHub OAuth2 callback' })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirects to success page with JWT token'
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or expired GitHub token'
-  })
   @Get('github/callback')
+  @ApiOperation({ summary: 'Handles GitHub OAuth2 callback and redirects' })
   @UseGuards(AuthGuard('github'))
   async githubAuthCallback(@Req() req, @Res() res: Response) {
-    // const result = await this.commandBus.execute(
-    //   new GithubLoginCommand(req.user),
-    // );
-
-    // console.log('result.user', result);
-
     if (!req.user) {
       throw new UnauthorizedException('Invalid or expired GitHub token');
     }
 
+    const { state } = req.query;
+    const redirect = decodeURIComponent(state as string);
+
     const data: OAuthLoginDto = {
-      provider: Provider.GitHub,           // e.g., 'github'
-      providerId: req.user.githubId,       // e.g., '123456789'
+      provider: Provider.GitHub,
+      providerId: req.user.githubId,
       email: req.user.email,
       name: req.user.displayName,
       accessToken: req.user.accessToken,
       refreshToken: req.user.refreshToken,
     };
-
     const result = await this.oauthLogin(data);
-    res.redirect(`/auth/success?token=${result.access_token}`);
+    const redirectUrl = new URL(redirect);
+    redirectUrl.searchParams.set('token', result.access_token);
+    return res.redirect(redirectUrl.toString());
   }
 
   @ApiOperation({ summary: 'Shows authentication success page' })
   @ApiResponse({
     status: 200,
-    description: 'Authentication successful message'
+    description: 'Authentication successful message',
   })
   @Get('success')
   async authSuccess(@Req() req, @Res() res: Response) {
-
     // This endpoint can be used to show a success page or handle the token
     res.send('Authentication successful! You can close this window.');
   }
 
   
+  @Get('admin/google')
+  @Public()
+  @UseGuards(AuthGuard('admin-google'))
+  @ApiOperation({ summary: 'Initiates Google SSO for Admins' })
+  async adminGoogleAuth(@Req() req) {}
+
+  @Get('admin/google/callback')
+  @Public()
+  @UseGuards(AuthGuard('admin-google'))
+  @ApiOperation({ summary: 'Handles Google SSO callback for Admins' })
+  async adminGoogleAuthCallback(@Req() req, @Res() res: Response) {
+    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
+    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const adminPanelUrl = new URL(redirectBaseUrl);
+   adminPanelUrl.pathname = '/auth/admin/callback';
+    adminPanelUrl.searchParams.set('token', tokens.access_token);
+    res.redirect(adminPanelUrl.toString());
+  }
+
+  @Get('admin/facebook')
+  @Public()
+  @UseGuards(AuthGuard('admin-facebook'))
+  @ApiOperation({ summary: 'Initiates Facebook SSO for Admins' })
+  async adminFacebookAuth(@Req() req) {}
+
+  @Get('admin/facebook/callback')
+  @Public()
+  @UseGuards(AuthGuard('admin-facebook'))
+  @ApiOperation({ summary: 'Handles Facebook SSO callback for Admins' })
+  async adminFacebookAuthCallback(@Req() req, @Res() res: Response) {
+    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
+    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const adminPanelUrl = new URL(redirectBaseUrl);
+   adminPanelUrl.pathname = '/auth/admin/callback';
+    adminPanelUrl.searchParams.set('token', tokens.access_token);
+    res.redirect(adminPanelUrl.toString());
+  }
+
+  @Get('admin/github')
+  @Public()
+  @UseGuards(AuthGuard('admin-github'))
+  @ApiOperation({ summary: 'Initiates GitHub SSO for Admins' })
+  async adminGitHubAuth(@Req() req) {}
+
+  @Get('admin/github/callback')
+  @Public()
+  @UseGuards(AuthGuard('admin-github'))
+  @ApiOperation({ summary: 'Handles GitHub SSO callback for Admins' })
+  async adminGitHubAuthCallback(@Req() req, @Res() res: Response) {
+    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
+    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const adminPanelUrl = new URL(redirectBaseUrl);
+    adminPanelUrl.pathname = '/auth/admin/callback';
+    adminPanelUrl.searchParams.set('token', tokens.access_token);
+    res.redirect(adminPanelUrl.toString());
+  }
 
   @Post('login')
   @ApiOperation({ summary: 'Authenticate a user' })
   @ApiBody({ type: AuthDto })
   @HttpCode(200)
-  async login(@Body() authDto: AuthDto) {
+  async login(@Req() req: Request, @Body() authDto: AuthDto) {
     const user = await this.authService.validateUser(
       authDto.username,
       authDto.password,
@@ -224,9 +332,12 @@ export class AuthController {
     }
     const rememberMe =
       authDto.rememberMe !== undefined ? authDto.rememberMe : false;
-    return this.authService.login(user, rememberMe);
+    
+    // --- CHANGE: Pass the req object to the service ---
+    return this.authService.login(req, user, rememberMe);
   }
 
+ 
   @Post('refresh-token')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
   @ApiBody({ type: RefreshTokenDto })
@@ -267,11 +378,12 @@ export class AuthController {
     return this.authService.getUserAccountInfo(userId);
   }
 
-  @Post('admin-user/login')
+   @Post('admin-user/login')
   @ApiOperation({ summary: 'Authenticate an admin user' })
   @ApiBody({ type: AuthDto })
   @HttpCode(200)
-  async adminLogin(@Body() authDto: AdminUserAuthDto) {
+  // --- CHANGE: Added @Req() req: Request ---
+ async adminLogin(@Req() req: Request, @Body() authDto: AdminUserAuthDto) {
     const adminUser = await this.authService.validateAdminUser(
       authDto.username,
       authDto.password,
@@ -293,8 +405,11 @@ export class AuthController {
       );
     }
 
-    return this.authService.adminUserLogin(adminUser);
+    
+    return this.authService.adminUserLogin(req, adminUser);
   }
+
+
 
   @Post('verify-otp')
   @ApiOperation({ summary: 'Verify OTP for user registration' })
@@ -379,7 +494,7 @@ export class AuthController {
     @Query('token') token: string,
     @Res() res: Response,
     @Req() req: Request,
-    @Headers('user-agent') userAgent: string
+    @Headers('user-agent') userAgent: string,
   ) {
     if (!this.validateToken(token)) {
       return res.status(400).send('Invalid or expired token');
@@ -394,6 +509,46 @@ export class AuthController {
     const redirectHtml = this.buildResetPasswordPage(token);
     res.setHeader('Content-Type', 'text/html');
     res.send(redirectHtml);
+  }
+
+  @Post('guest/session')
+  @ApiOperation({ summary: 'Create a new guest session' })
+  @HttpCode(200)
+  async createGuestSession(
+    @Req() req: Request,
+  ) {
+    const deviceInfo = req.headers['user-agent'] || 'unknown';
+    const ipAddress = this.getClientIp(req);
+
+    return this.guestUserService.createGuestSession(deviceInfo, ipAddress);
+  }
+
+  @Post('guest/upgrade')
+  @ApiOperation({ summary: 'Upgrade a guest session to a full user account' })
+  @ApiBody({ type: UpgradeGuestDto })
+  @HttpCode(200)
+  async upgradeGuestToUser(@Body() dto: UpgradeGuestDto) {
+    return this.guestUserService.upgradeGuestToUser(
+      new SessionID(dto.sessionId),
+      new UserID(dto.userId)
+    );
+  }
+
+  @Get('guest/session/:id')
+  @ApiOperation({ summary: 'Get guest session details' })
+  @HttpCode(200)
+  async getGuestSession(@Param('id') id: string) {
+    return this.guestUserService.getGuestSession(new SessionID(id));
+  }
+
+  @Get('guest/insights')
+  @ApiOperation({ summary: 'Get guest user analytics' })
+  @HttpCode(200)
+  async getGuestInsights(
+    @Query('days') days: number = 7,
+    @Query('limit') limit: number = 100,
+  ) {
+    return this.guestUserService.getGuestInsights(days, limit);
   }
 
   private validateToken(token: string): boolean {
@@ -421,14 +576,17 @@ export class AuthController {
     const hashedIp = createHash('sha256').update(ip).digest('hex');
     console.log(`Redirect attempt`, {
       hashedIp,
-      tokenHash: createHash('sha256').update(token).digest('hex').substring(0, 8),
+      tokenHash: createHash('sha256')
+        .update(token)
+        .digest('hex')
+        .substring(0, 8),
       platform,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   private buildResetPasswordPage(token: string): string {
-    const apiBaseUrl = process.env.API_BASE_URL || 'http://89.117.37.84:4000/auth';
+    const apiBaseUrl = process.env.API_BASE_URL;
     const apiEndpoint = `${apiBaseUrl}/password-reset`;
     const loginUrl = `${apiBaseUrl.replace('/auth', '')}/login`;
 
@@ -790,7 +948,4 @@ export class AuthController {
 </html>
     `;
   }
-
-
 }
-
