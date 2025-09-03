@@ -10,6 +10,9 @@ import { RolePermission } from 'src/domain/entities/role-permission.entity';
 import { AdminUserAccount } from 'src/domain/entities/admin-user-account.entity';
 import { SystemSetting } from 'src/domain/entities/system-setting.entity';
 import { EventPermissionSeedService } from 'src/infrastructure/persistence/seeder/event-permission-seed.service';
+import { TaxPermissionSeedService } from 'src/infrastructure/persistence/seeder/tax-permission-seeder.service';
+import { CommissionFeePermissionSeedService } from 'src/infrastructure/persistence/seeder/commission-fee-permission-seeder.service';
+import { PaymentGatewayFeePermissionSeedService } from 'src/infrastructure/persistence/seeder/payment-gateway-fee-permission-seeder.service';
 
 @Module({
   imports: [
@@ -38,6 +41,12 @@ import { EventPermissionSeedService } from 'src/infrastructure/persistence/seede
       },
     ]),
   ],
-  providers: [SeedService, EventPermissionSeedService],
+  providers: [
+    SeedService,
+    EventPermissionSeedService,
+    TaxPermissionSeedService,
+    CommissionFeePermissionSeedService,
+    PaymentGatewayFeePermissionSeedService,
+  ],
 })
-export class SeedModule { }
+export class SeedModule {}
