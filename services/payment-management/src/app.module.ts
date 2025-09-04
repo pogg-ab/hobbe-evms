@@ -31,6 +31,8 @@ import { FinancialAccountType } from './domain/entities/financial-account-type.e
 import FinancialAccountTypeSeeder from './infrastructure/persistence/seeder/financial-account-type.seeder';
 import CurrencySeeder from './infrastructure/persistence/seeder/currency.seeder';
 import { Currency } from './domain/entities/currency.entity';
+import { TransactionType } from './domain/entities/transaction-type.entity';
+import TransactionTypeSeeder from './infrastructure/persistence/seeder/transaction-type.seeder';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -69,10 +71,12 @@ export class AppModule implements OnModuleInit {
     const accountCodeRepository = this.dataSource.getRepository(AccountCode);
     const financialAccountTypeRepository = this.dataSource.getRepository(FinancialAccountType);
     const currencyRepository = this.dataSource.getRepository(Currency);
+    const transactionTypeRepository = this.dataSource.getRepository(TransactionType);
 
     const accountCodeCount = await accountCodeRepository.count();
     const financialAccountTypeCount = await financialAccountTypeRepository.count();
     const currencyCount = await currencyRepository.count();
+    const transactionTypeCount = await transactionTypeRepository.count();
 
     if (accountCodeCount === 0) {
       await runSeeders(this.dataSource, {
@@ -89,6 +93,12 @@ export class AppModule implements OnModuleInit {
     if (currencyCount === 0) {
       await runSeeders(this.dataSource, {
         seeds: [CurrencySeeder],
+      });
+    }
+
+    if (transactionTypeCount === 0) {
+      await runSeeders(this.dataSource, {
+        seeds: [TransactionTypeSeeder],
       });
     }
   }

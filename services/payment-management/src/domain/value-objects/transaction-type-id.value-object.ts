@@ -1,21 +1,20 @@
-import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
+import { validate as uuidValidate } from 'uuid';
 
 export class TransactionTypeIdValueObject {
     private readonly value: string;
 
-    constructor(value?: string) {
-        if (value) {
-            if (!this.isValid(value)) {
-                throw new Error('Invalid Transaction Type ID format. Expected a UUID string. Received: ' + value);
-            }
-            this.value = value;
-        } else {
-            this.value = uuidv4();
+    constructor(value: string) {
+        if (!this.isValid(value)) {
+            throw new Error(
+                'Invalid Transaction Type ID format. Expected a non-empty string with max length 50. Received: ' +
+                value,
+            );
         }
+        this.value = value;
     }
 
     private isValid(value: string): boolean {
-        return uuidValidate(value);
+        return value && value.length <= 50 && value.length > 0;
     }
 
     toString(): string {
