@@ -2,6 +2,7 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import {
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Inject,
@@ -35,6 +36,9 @@ import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response
 import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
 import { DataSource } from 'typeorm';
 import { CreateOrganizationalAccountDto } from '../../presentation/dtos/create-organizational-account.dto';
+import { GroupAccount } from 'src/domain/entities/group-account.entity';
+import { GROUP_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/group-account.repository.token';
+import { IGroupAccountRepository } from 'src/domain/repositories/group-account.repository';
 
 @Injectable()
 export class OrganizationalAccountService {
@@ -47,6 +51,9 @@ export class OrganizationalAccountService {
 
     @Inject(KYC_REPOSITORY_TOKEN)
     private readonly kycRepository: IKYCRepository,
+
+    @Inject(GROUP_ACCOUNT_REPOSITORY_TOKEN)
+    private readonly groupAccountRepository: IGroupAccountRepository,
 
     @Inject(SOCIAL_MEDIA_REPOSITORY_TOKEN)
     private readonly socialMediaRepository: ISocialMediaRepository,
@@ -112,11 +119,56 @@ export class OrganizationalAccountService {
         CreateOrganizationalAccountDto,
         User,
       );
+
       user.password = await this.hashPassword(
         createOrganizationalAccountDto.password,
       );
       user.organizational_account = savedAccount.organizational_account_id;
-      await this.userRepository.create(queryRunner.manager, user);
+      const newUser = await this.userRepository.create(
+        queryRunner.manager,
+        user,
+      );
+
+      if (!user.is_primary_account) {
+        const groupAccount = this.mapper.map(
+          createOrganizationalAccountDto,
+          CreateOrganizationalAccountDto,
+          GroupAccount,
+        );
+
+        if (!groupAccount.primary_user_id) {
+          throw new BadRequestException(
+            'Primary user ID is required for creating a group account.',
+          );
+        }
+
+        const primaryUser = await this.userRepository.findById(
+          groupAccount.primary_user_id.toString(),
+        );
+        if (!primaryUser) {
+          throw new BadRequestException(
+            `No user found with primary_user_id: ${groupAccount.primary_user_id}`,
+          );
+        }
+
+        const existingGroupAccount =
+          await this.groupAccountRepository.findByPrimaryAndLinked(
+            groupAccount.primary_user_id.toString(),
+            newUser.user_id.toString(),
+          );
+
+        if (existingGroupAccount) {
+          throw new ConflictException(
+            `A group account already exists between primary_user_id ${groupAccount.primary_user_id} and linked_user_id ${newUser.user_id}.`,
+          );
+        }
+
+        groupAccount.linked_user_id = newUser.user_id;
+        await this.groupAccountRepository.create(
+          queryRunner.manager,
+          groupAccount,
+        );
+      }
 
       const socialMedia = this.mapper.map(
         createOrganizationalAccountDto,
