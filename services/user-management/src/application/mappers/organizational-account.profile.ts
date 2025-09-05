@@ -1,12 +1,16 @@
 import { createMap, forMember, mapFrom, Mapper } from '@automapper/core';
 import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
+import { GroupAccount } from 'src/domain/entities/group-account.entity';
 import { KYC } from 'src/domain/entities/kyc.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { Owner } from 'src/domain/entities/owner.entity';
 import { SocialMedia } from 'src/domain/entities/social-media.entity';
 import { User } from 'src/domain/entities/user.entity';
-import { AccountStatus, Status } from 'src/domain/value-objects/account-status.value-object';
+import {
+  AccountStatus,
+  Status,
+} from 'src/domain/value-objects/account-status.value-object';
 import { AccountType } from 'src/domain/value-objects/account-type.value-object';
 import { CreateOrganizationalAccountDto } from 'src/presentation/dtos/create-organizational-account.dto';
 import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
@@ -187,7 +191,6 @@ export class OrganizationalAccountProfile extends AutomapperProfile {
           mapFrom((src) => src.operatingCountry),
         ),
 
-
         forMember(
           (destination) => destination.updated_date,
           mapFrom(() => new Date()),
@@ -214,7 +217,6 @@ export class OrganizationalAccountProfile extends AutomapperProfile {
           (destination) => destination.owner_phone_number,
           mapFrom((src) => src.ownerPhoneNumber),
         ),
-
       );
 
       createMap(
@@ -285,6 +287,25 @@ export class OrganizationalAccountProfile extends AutomapperProfile {
         forMember(
           (destination) => destination.is_active,
           mapFrom(() => false),
+        ),
+      );
+
+      createMap(
+        mapper,
+        CreateOrganizationalAccountDto,
+        GroupAccount,
+        forMember(
+          (destination) => destination.primary_user_id,
+          mapFrom((src: CreateOrganizationalAccountDto) => src.primaryAccount),
+        ),
+
+        forMember(
+          (destination) => destination.created_at,
+          mapFrom(() => new Date()),
+        ),
+        forMember(
+          (destination) => destination.updated_at,
+          mapFrom(() => new Date()),
         ),
       );
     };

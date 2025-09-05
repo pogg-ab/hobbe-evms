@@ -33,6 +33,9 @@ import { FOLLOWER_REPOSITORY_TOKEN } from 'src/domain/repositories/follower.repo
 import { FollowerRepositoryImpl } from 'src/infrastructure/persistence/repositories/follower.repository.impl';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
+import { GroupAccount } from 'src/domain/entities/group-account.entity';
+import { GROUP_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/group-account.repository.token';
+import { GroupAccountRepositoryImpl } from 'src/infrastructure/persistence/repositories/group-account.repository.impl';
 
 @Module({
   imports: [
@@ -46,6 +49,7 @@ import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
       User,
       Follower,
       PersonalAccount,
+      GroupAccount,
     ]),
     ClientsModule.register([
       {
@@ -89,6 +93,10 @@ import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
     {
       provide: FOLLOWER_REPOSITORY_TOKEN,
       useClass: FollowerRepositoryImpl,
+    },
+    {
+      provide: GROUP_ACCOUNT_REPOSITORY_TOKEN,
+      useClass: GroupAccountRepositoryImpl,
     },
   ],
 })
