@@ -18,6 +18,7 @@ import { UserModule } from './modules/user/user.module';
 import { UserAnayticsModule } from './modules/analytics/user-anaytics.module';
 import { SeedModule } from './modules/seed/seed.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { GroupAccountModule } from './modules/group-account/group-account.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -45,8 +46,9 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     UserModule,
     FavoritesModule,
     UserAnayticsModule,
-     AuditLogModule,
+    AuditLogModule,
     SeedModule,
+    GroupAccountModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
