@@ -60,6 +60,9 @@ export class User {
   @JoinColumn({ name: 'organizational_account_id' })
   organizational_account: OrganizationalAccountID;
 
+  @Column({ type: 'boolean', default: true })
+  is_primary_account: boolean;
+
   @Column({
     type: 'varchar',
     length: 6,
@@ -107,7 +110,10 @@ export class User {
   @OneToMany(() => OAuthProvider, (provider) => provider.user)
   providers: OAuthProvider[];
 
-  @OneToOne(() => UserSecuritySetting, (settings) => settings.user, { cascade: true, eager: true })
+  @OneToOne(() => UserSecuritySetting, (settings) => settings.user, {
+    cascade: true,
+    eager: true,
+  })
   securitySettings: UserSecuritySetting;
 
   @OneToMany(() => UserSession, (session) => session.user)

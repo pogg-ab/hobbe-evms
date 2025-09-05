@@ -1,12 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsDateString,
   IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsStrongPassword,
+  IsUUID,
+  ValidateIf,
 } from 'class-validator';
+import { UserID } from 'src/domain/value-objects/user-id.value-object';
 
 export class CreatePersonalAccountDto {
   @ApiProperty({ description: 'The first name of the user', example: 'John' })
@@ -93,8 +97,7 @@ export class CreatePersonalAccountDto {
   @IsString()
   profile_image?: string;
 
-
-   @ApiProperty({
+  @ApiProperty({
     description: 'URL or base64 image of the profile',
     example: 'data:image/png;base64,...',
   })
@@ -102,11 +105,31 @@ export class CreatePersonalAccountDto {
   @IsString()
   googleId?: string;
 
-   @ApiProperty({
+  @ApiProperty({
     description: 'URL or base64 image of the profile',
     example: 'data:image/png;base64,...',
   })
   @IsOptional()
   @IsString()
   accessToken?: string;
+
+  @ApiProperty({
+    description: 'Indicates whether this is the primary account',
+    example: true,
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isPrimaryAccount: boolean = true;
+
+  @ApiProperty({
+    description:
+      'The UUID of the primary account this secondary account is associated with. Required if isPrimaryAccount is false.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    required: false,
+  })
+  @ValidateIf((o) => o.isPrimaryAccount === false)
+  @IsUUID()
+  @IsNotEmpty()
+  primaryAccount?: UserID;
 }
