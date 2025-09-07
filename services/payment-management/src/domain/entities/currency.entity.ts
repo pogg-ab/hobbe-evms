@@ -1,13 +1,21 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ValueTransformer, PrimaryColumn } from 'typeorm';
 import { CurrencyIdValueObject } from '../value-objects/currency-id.value-object';
+
+const currencyIdTransformer: ValueTransformer = {
+    to: (value: CurrencyIdValueObject) =>
+        value ? value.toString() : null,
+    from: (value: string) => new CurrencyIdValueObject(value),
+};
 
 @Entity('currencies')
 export class Currency {
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryColumn({
+        type: 'varchar',
+        length: 50,
+        transformer: currencyIdTransformer,
+    })
     currency_id: CurrencyIdValueObject;
 
-    @Column()
-    currency_name: string;
 
     @Column()
     description: string;

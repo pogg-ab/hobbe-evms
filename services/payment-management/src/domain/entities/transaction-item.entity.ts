@@ -33,15 +33,15 @@ export class TransactionItem {
     @Column({ type: 'int' })
     transaction_line_number: number;
 
-    @Column()
+    @Column({ nullable: true })
     created_by: string;
 
     @Column({ nullable: true })
     updated_by: string;
 
-    @Column()
-    created_at: Date;
+    @Column({ nullable: true })
+    created_date: Date;
 
     @Column({ nullable: true })
-    updated_at: Date;
+    updated_date: Date;
 }

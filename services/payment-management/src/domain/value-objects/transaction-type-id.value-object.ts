@@ -1,5 +1,3 @@
-import { validate as uuidValidate } from 'uuid';
-
 export class TransactionTypeIdValueObject {
     private readonly value: string;
 

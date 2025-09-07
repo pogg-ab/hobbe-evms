@@ -23,10 +23,11 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
   ) { }
 
-  async create(createTicketsDto: CreateTicketsDto): Promise<void> {
+  async create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void> {
     try {
       const newTicket = this.ticketsListRepository.create(createTicketsDto);
-      await this.ticketsListRepository.save(newTicket);
+      const manager = entityManager || this.ticketsListRepository.manager;
+      await manager.save(newTicket);
     } catch (error) {
       throw new HttpException(
         `Error creating Ticket: ${error.message}`,
@@ -542,7 +543,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         .where('ticket.event_id = :eventId', { eventId: event_id })
         .getCount();
 
-        // can we add each ticket_id and count of scanned logs
+      // can we add each ticket_id and count of scanned logs
       const scannedLogs = await this.dataSource
         .getRepository('QrScanLogs')
         .createQueryBuilder('qr_scan_logs')
@@ -552,13 +553,13 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         .where('qr_scan_logs.ticket_id IN (SELECT id FROM tickets WHERE event_id = :eventId)', { eventId: event_id })
         .groupBy('qr_scan_logs.ticket_id')
         .getRawMany();
-     
+
       return scannedLogs.map(log => ({
         event: event_id,
         ticket_id: log.ticket_id,
         scannedCount: log.scanned_count,
       }));
-        
+
 
     } catch (error) {
       throw new HttpException(
@@ -634,10 +635,10 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         `Error aggregating QR code scanned logs: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
-    } 
-    
+    }
 
-   
-    
+
+
+
   }
 }

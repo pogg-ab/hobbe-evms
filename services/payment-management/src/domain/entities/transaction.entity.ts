@@ -35,7 +35,7 @@ export class Transaction {
     @Column({ nullable: true })
     external_reference_number: string;
 
-    @Column()
+    @Column({ type: 'uuid' })
     user_id: string;
 
     @ManyToOne(() => Currency)
@@ -46,10 +46,10 @@ export class Transaction {
     exchange_rate: number;
 
     @Column({ type: 'int', nullable: true })
-    _reverses: number;
+    __reverses: number;
 
     @Column({ nullable: true })
-    _reversed_by: string;
+    __reversed_by: string;
 
     @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
     foreign_currency_amount: number;
@@ -61,10 +61,10 @@ export class Transaction {
     updated_by: string;
 
     @Column()
-    created_at: Date;
+    created_date: Date;
 
     @Column({ nullable: true })
-    updated_at: Date;
+    updated_date: Date;
 
     @Column({ type: 'int', nullable: true })
     reverses: number;

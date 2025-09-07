@@ -1,6 +1,7 @@
 import { Seeder, SeederFactoryManager } from 'typeorm-extension';
 import { DataSource } from 'typeorm';
 import { Currency } from 'src/domain/entities/currency.entity';
+import { CurrencyIdValueObject } from 'src/domain/value-objects/currency-id.value-object';
 
 export default class CurrencySeeder implements Seeder {
     public async run(dataSource: DataSource, factoryManager: SeederFactoryManager): Promise<void> {
@@ -8,7 +9,7 @@ export default class CurrencySeeder implements Seeder {
 
         const currencies = [
             {
-                currency_name: 'ETB',
+                currency_id: new CurrencyIdValueObject('ETB'),
                 description: 'Ethiopian Birr',
                 created_by: 'fixture',
                 updated_by: 'fixture',
@@ -16,7 +17,7 @@ export default class CurrencySeeder implements Seeder {
                 updated_at: new Date(),
             },
             {
-                currency_name: 'USD',
+                currency_id: new CurrencyIdValueObject('USD'),
                 description: 'United States Dollar',
                 created_by: 'fixture',
                 updated_by: 'fixture',
@@ -27,7 +28,7 @@ export default class CurrencySeeder implements Seeder {
 
         for (const currencyData of currencies) {
             const currency = new Currency();
-            currency.currency_name = currencyData.currency_name;
+            currency.currency_id = currencyData.currency_id;
             currency.description = currencyData.description;
             currency.created_by = currencyData.created_by;
             currency.updated_by = currencyData.updated_by;

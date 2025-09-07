@@ -22,8 +22,8 @@ BEGIN
                	fa.total_balance,
                	fa.currency_id
             INTO isNormalDebit, FAtotalBalance, FAcurrencyId
-            FROM financial_account fa
-            JOIN account_code ac ON fa.account_code_id = ac. account_code_id
+            FROM financial_accounts fa
+            JOIN account_codes ac ON fa.account_code_id = ac. account_code_id
             WHERE fa. financial_account_id = FAfinancialAccountId
             FOR UPDATE;
  
@@ -243,7 +243,7 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION fn_insert_transaction(vPaymentid UUID,vExternalRefNo VARCHAR(100),vUsername varchar(50),vUserId UUID,v_CurrencyId VARCHAR(10),v_Providername VARCHAR(100))
-RETURNS INT AS $$
+RETURNS UUID AS $$
 DECLARE
     v_TransactionId UUID;
             	v_ShortCode VARCHAR(10);
@@ -481,7 +481,7 @@ BEGIN
             	SELECT SUBSTRING(REPLACE(gen_random_uuid()::text, '-', ''), 1, 5) INTO v_ShortCode;
             	SELECT translate(to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'), '- :', '') INTO v_referenceNumber;
             	v_referenceNumber := v_referenceNumber || '_' || v_ShortCode;
-            	SELECT total_balance INTO v_Amount FROM financial_account WHERE financial_account_type_id='ORGANIZER_VIRTUAL_ACCOUNT' AND event_id=vEventId AND user_id=vUserId LIMIT 1;
+            	SELECT total_balance INTO v_Amount FROM financial_accounts WHERE financial_account_type_id='ORGANIZER_VIRTUAL_ACCOUNT' AND event_id=vEventId AND user_id=vUserId LIMIT 1;
             	--Adding transaction
             	INSERT INTO transactions (amount,external_reference_number,created_by,fee,transaction_type_id,reference_number,short_code,transaction_date,
             	 updated_by,user_id,reversed_by,reverses,currency_id,exchange_rate,__reverses,__reversed_by,foreign_currency_amount) Values
@@ -511,7 +511,7 @@ DECLARE
             	v_Balance NUMERIC(18,2);
  
 BEGIN
-    SELECT total_balance INTO v_Balance FROM financial_account WHERE financial_account_type_id='ORGANIZER_VIRTUAL_ACCOUNT' AND event_id=vEventId AND user_id=vUserId LIMIT 1;
+    SELECT total_balance INTO v_Balance FROM financial_accounts WHERE financial_account_type_id='ORGANIZER_VIRTUAL_ACCOUNT' AND event_id=vEventId AND user_id=vUserId LIMIT 1;
 	RETURN  v_Balance;
 END;
 $$ LANGUAGE plpgsql;
