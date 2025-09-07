@@ -4,9 +4,7 @@ import { GroupAccount } from 'src/domain/entities/group-account.entity';
 import { GroupAccountController } from 'src/presentation/controllers/group-account.controller';
 import { GroupAccountService } from 'src/application/services/group-account.service';
 import { GroupAccountRepositoryImpl } from 'src/infrastructure/persistence/repositories/group-account.repository.impl';
-import { IGroupAccountRepository } from 'src/domain/repositories/group-account.repository';
 import { GROUP_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/group-account.repository.token';
-import { CreateGroupAccountCommandHandler } from 'src/application/handlers/group-account/create-group-account-command.handler';
 import { RemoveGroupAccountCommandHandler } from 'src/application/handlers/group-account/remove-group-account-command.handler';
 import { GetGroupAccountsQueryHandler } from 'src/application/handlers/group-account/get-group-accounts-query.handler';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -27,47 +25,46 @@ import { Follower } from 'src/domain/entities/follower.entity';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([
-            GroupAccount,
-            User,
-            PersonalAccount,
-            OrganizationalAccount,
-            Follower,
-        ]),
-        CqrsModule,
-        AutomapperModule.forRoot({
-            strategyInitializer: classes(),
-        }),
-    ],
-    controllers: [GroupAccountController],
-    providers: [
-        GroupAccountService,
-        ElasticsearchConfig,
-        {
-            provide: GROUP_ACCOUNT_REPOSITORY_TOKEN,
-            useClass: GroupAccountRepositoryImpl,
-        },
-        {
-            provide: USER_REPOSITORY_TOKEN,
-            useClass: UserRepositoryImpl,
-        },
-        {
-            provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
-            useClass: PersonalAccountRepositoryImpl,
-        },
-        {
-            provide: ORGANIZATIONAL_ACCOUNT_REPOSITORY_TOKEN,
-            useClass: OrganizationalAccountRepositoryImpl,
-        },
+  imports: [
+    TypeOrmModule.forFeature([
+      GroupAccount,
+      User,
+      PersonalAccount,
+      OrganizationalAccount,
+      Follower,
+    ]),
+    CqrsModule,
+    AutomapperModule.forRoot({
+      strategyInitializer: classes(),
+    }),
+  ],
+  controllers: [GroupAccountController],
+  providers: [
+    GroupAccountService,
+    ElasticsearchConfig,
+    {
+      provide: GROUP_ACCOUNT_REPOSITORY_TOKEN,
+      useClass: GroupAccountRepositoryImpl,
+    },
+    {
+      provide: USER_REPOSITORY_TOKEN,
+      useClass: UserRepositoryImpl,
+    },
+    {
+      provide: PERSONAL_ACCOUNT_REPOSITORY_TOKEN,
+      useClass: PersonalAccountRepositoryImpl,
+    },
+    {
+      provide: ORGANIZATIONAL_ACCOUNT_REPOSITORY_TOKEN,
+      useClass: OrganizationalAccountRepositoryImpl,
+    },
 
-        {
-            provide: FOLLOWER_REPOSITORY_TOKEN,
-            useClass: FollowerRepositoryImpl,
-        },
-        CreateGroupAccountCommandHandler,
-        RemoveGroupAccountCommandHandler,
-        GetGroupAccountsQueryHandler,
-    ],
+    {
+      provide: FOLLOWER_REPOSITORY_TOKEN,
+      useClass: FollowerRepositoryImpl,
+    },
+    RemoveGroupAccountCommandHandler,
+    GetGroupAccountsQueryHandler,
+  ],
 })
-export class GroupAccountModule { }
+export class GroupAccountModule {}

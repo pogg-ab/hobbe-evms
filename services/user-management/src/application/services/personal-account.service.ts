@@ -2,6 +2,7 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import {
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Inject,
@@ -41,6 +42,9 @@ import * as path from 'path';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto';
 import { UpdatePersonalAccountDto } from '../../presentation/dtos/update-personal-account.dto';
 import { deleteExistingFile } from 'src/shared/file-deletion.util';
+import { GROUP_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/group-account.repository.token';
+import { IGroupAccountRepository } from 'src/domain/repositories/group-account.repository';
+import { GroupAccount } from 'src/domain/entities/group-account.entity';
 const logger = new Logger('ProfileImageUpdate');
 
 @Injectable()
@@ -50,6 +54,8 @@ export class PersonalAccountService {
     private readonly personalAccountRepository: IPersonalAccountRepository,
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
+    @Inject(GROUP_ACCOUNT_REPOSITORY_TOKEN)
+    private readonly groupAccountRepository: IGroupAccountRepository,
     @Inject(ROLE_REPOSITORY_TOKEN)
     private readonly roleRepository: IRoleRepository,
     @Inject(USER_ROLE_REPOSITORY_TOKEN)
@@ -58,7 +64,7 @@ export class PersonalAccountService {
     private dataSource: DataSource,
     private readonly messageProducerService: MessageProducerService,
     private readonly notificationConfigService: NotificationConfigService,
-  ) { }
+  ) {}
   async create(
     createPersonalAccountDto: CreatePersonalAccountDto,
   ): Promise<PersonalAccount> {
@@ -97,6 +103,7 @@ export class PersonalAccountService {
         CreatePersonalAccountDto,
         User,
       );
+
       const otp = this.generateOtp();
       const otpExpiry = new Date();
       otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
@@ -111,6 +118,47 @@ export class PersonalAccountService {
         queryRunner.manager,
         user,
       );
+
+      if (!newUser.is_primary_account) {
+        const groupAccount = this.mapper.map(
+          createPersonalAccountDto,
+          CreatePersonalAccountDto,
+          GroupAccount,
+        );
+
+        if (!groupAccount.primary_user_id) {
+          throw new BadRequestException(
+            'Primary user ID is required for creating a group account.',
+          );
+        }
+
+        const primaryUser = await this.userRepository.findById(
+          groupAccount.primary_user_id.toString(),
+        );
+        if (!primaryUser) {
+          throw new BadRequestException(
+            `No user found with primary_user_id: ${groupAccount.primary_user_id}`,
+          );
+        }
+
+        const existingGroupAccount =
+          await this.groupAccountRepository.findByPrimaryAndLinked(
+            groupAccount.primary_user_id.toString(),
+            newUser.user_id.toString(),
+          );
+
+        if (existingGroupAccount) {
+          throw new ConflictException(
+            `A group account already exists between primary_user_id ${groupAccount.primary_user_id} and linked_user_id ${newUser.user_id}.`,
+          );
+        }
+
+        groupAccount.linked_user_id = newUser.user_id;
+        await this.groupAccountRepository.create(
+          queryRunner.manager,
+          groupAccount,
+        );
+      }
 
       const role = await this.getRoleByName('User');
 
@@ -245,7 +293,6 @@ export class PersonalAccountService {
     id: PersonalAccountID,
     updatePersonalAccountDto: UpdatePersonalAccountDto,
   ): Promise<PersonalAccount> {
-
     const updatedAccount = this.mapper.map(
       updatePersonalAccountDto,
       UpdatePersonalAccountDto,
@@ -275,13 +322,19 @@ export class PersonalAccountService {
         try {
           await deleteExistingFile('profile_image', previousImage);
         } catch (err) {
-          logger.error(`Error deleting previous file: ${err.message}`, err.stack);
+          logger.error(
+            `Error deleting previous file: ${err.message}`,
+            err.stack,
+          );
         }
       }
 
       return account;
     } catch (err) {
-      logger.error(`Error updating profile image for account ID ${id}: ${err.message}`, err.stack);
+      logger.error(
+        `Error updating profile image for account ID ${id}: ${err.message}`,
+        err.stack,
+      );
       throw new Error('Failed to update profile image');
     }
   }

@@ -41,6 +41,9 @@ import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsea
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+import { GROUP_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/group-account.repository.token';
+import { GroupAccountRepositoryImpl } from 'src/infrastructure/persistence/repositories/group-account.repository.impl';
+import { GroupAccount } from 'src/domain/entities/group-account.entity';
 
 @Module({
   imports: [
@@ -52,6 +55,7 @@ import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.int
       UserRole,
       Follower,
       OrganizationalAccount,
+      GroupAccount,
     ]),
     ClientsModule.register([
       {
@@ -101,6 +105,10 @@ import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.int
     {
       provide: FOLLOWER_REPOSITORY_TOKEN,
       useClass: FollowerRepositoryImpl,
+    },
+    {
+      provide: GROUP_ACCOUNT_REPOSITORY_TOKEN,
+      useClass: GroupAccountRepositoryImpl,
     },
   ],
 })

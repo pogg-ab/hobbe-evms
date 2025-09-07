@@ -281,6 +281,25 @@ export class EventsController {
     return this.queryBus.execute(new GetEventsByIdQuery(id));
   }
 
+  @ApiOperation({ description: 'Get Event By ID' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @Get('/admin/:id')
+  async adminFindOne(@Param('id') id: string): Promise<Events | null> {
+    if (
+      !id ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id,
+      )
+    ) {
+      throw new BadRequestException('Invalid event ID format');
+    }
+
+    return this.queryBus.execute(new GetEventsByIdQuery(id));
+  }
+
   @ApiOperation({ description: 'Update Event' })
   @HttpCode(200)
   @ApiBearerAuth('access-token')

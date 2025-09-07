@@ -251,63 +251,105 @@ export class AuthController {
   }
 
   
-  @Get('admin/google')
-  @Public()
-  @UseGuards(AuthGuard('admin-google'))
-  @ApiOperation({ summary: 'Initiates Google SSO for Admins' })
-  async adminGoogleAuth(@Req() req) {}
+  // --- ADMIN GOOGLE SSO ENDPOINTS ---
+@Get('admin/google')
+@Public()
+@ApiOperation({ summary: 'Initiates Google SSO for Admins (manual redirect)' })
+async adminGoogleAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
+    if (!redirect_uri) {
+        return res.status(400).send('Missing redirect_uri query parameter.');
+    }
+    const state = encodeURIComponent(redirect_uri as string);
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${process.env.ADMIN_GOOGLE_CLIENT_ID}` +
+      `&redirect_uri=${process.env.ADMIN_GOOGLE_CALLBACK_URL}` +
+      `&response_type=code` +
+      `&scope=email profile` +
+      `&state=${state}`;
+    return res.redirect(authUrl);
+}
 
-  @Get('admin/google/callback')
-  @Public()
-  @UseGuards(AuthGuard('admin-google'))
-  @ApiOperation({ summary: 'Handles Google SSO callback for Admins' })
-  async adminGoogleAuthCallback(@Req() req, @Res() res: Response) {
+@Get('admin/google/callback')
+@Public()
+@UseGuards(AuthGuard('admin-google'))
+@ApiOperation({ summary: 'Handles Google SSO callback for Admins' })
+async adminGoogleAuthCallback(@Req() req, @Res() res: Response) {
+    const { state } = req.query;
+    const frontendRedirectUrl = decodeURIComponent(state as string);
     const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
-    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
-    const adminPanelUrl = new URL(redirectBaseUrl);
-   adminPanelUrl.pathname = '/auth/admin/callback';
-    adminPanelUrl.searchParams.set('token', tokens.access_token);
-    res.redirect(adminPanelUrl.toString());
-  }
+    const finalRedirectUrl = new URL(frontendRedirectUrl);
+    finalRedirectUrl.searchParams.set('token', tokens.access_token);
+    return res.redirect(finalRedirectUrl.toString());
+}
 
-  @Get('admin/facebook')
-  @Public()
-  @UseGuards(AuthGuard('admin-facebook'))
-  @ApiOperation({ summary: 'Initiates Facebook SSO for Admins' })
-  async adminFacebookAuth(@Req() req) {}
 
-  @Get('admin/facebook/callback')
-  @Public()
-  @UseGuards(AuthGuard('admin-facebook'))
-  @ApiOperation({ summary: 'Handles Facebook SSO callback for Admins' })
-  async adminFacebookAuthCallback(@Req() req, @Res() res: Response) {
+// --- ADMIN FACEBOOK SSO ENDPOINTS ---
+@Get('admin/facebook')
+@Public()
+@ApiOperation({ summary: 'Initiates Facebook SSO for Admins (manual redirect)' })
+async adminFacebookAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
+    if (!redirect_uri) {
+        return res.status(400).send('Missing redirect_uri query parameter.');
+    }
+    const state = encodeURIComponent(redirect_uri as string);
+    const authUrl =
+      `https://www.facebook.com/v19.0/dialog/oauth?` +
+      `client_id=${process.env.ADMIN_FACEBOOK_CLIENT_ID}` +
+      `&redirect_uri=${process.env.ADMIN_FACEBOOK_CALLBACK_URL}` +
+      `&state=${state}` +
+      `&response_type=code` +
+      `&scope=email`;
+    return res.redirect(authUrl);
+}
+
+@Get('admin/facebook/callback')
+@Public()
+@UseGuards(AuthGuard('admin-facebook'))
+@ApiOperation({ summary: 'Handles Facebook SSO callback for Admins' })
+async adminFacebookAuthCallback(@Req() req, @Res() res: Response) {
+    const { state } = req.query;
+    const frontendRedirectUrl = decodeURIComponent(state as string);
     const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
-    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
-    const adminPanelUrl = new URL(redirectBaseUrl);
-   adminPanelUrl.pathname = '/auth/admin/callback';
-    adminPanelUrl.searchParams.set('token', tokens.access_token);
-    res.redirect(adminPanelUrl.toString());
-  }
+    const finalRedirectUrl = new URL(frontendRedirectUrl);
+    finalRedirectUrl.searchParams.set('token', tokens.access_token);
+    return res.redirect(finalRedirectUrl.toString());
+}
 
-  @Get('admin/github')
-  @Public()
-  @UseGuards(AuthGuard('admin-github'))
-  @ApiOperation({ summary: 'Initiates GitHub SSO for Admins' })
-  async adminGitHubAuth(@Req() req) {}
 
-  @Get('admin/github/callback')
-  @Public()
-  @UseGuards(AuthGuard('admin-github'))
-  @ApiOperation({ summary: 'Handles GitHub SSO callback for Admins' })
-  async adminGitHubAuthCallback(@Req() req, @Res() res: Response) {
+// ---  ADMIN GITHUB SSO ENDPOINTS ---
+@Get('admin/github')
+@Public()
+@ApiOperation({ summary: 'Initiates GitHub SSO for Admins (manual redirect)' })
+async adminGitHubAuth(@Req() req: Request, @Res() res: Response) {
+    const { redirect_uri } = req.query;
+    if (!redirect_uri) {
+        return res.status(400).send('Missing redirect_uri query parameter.');
+    }
+    const state = encodeURIComponent(redirect_uri as string);
+    const authUrl =
+      `https://github.com/login/oauth/authorize?` +
+      `client_id=${process.env.ADMIN_GITHUB_CLIENT_ID}` +
+      `&redirect_uri=${process.env.ADMIN_GITHUB_CALLBACK_URL}` +
+      `&scope=user:email` +
+      `&state=${state}`;
+    return res.redirect(authUrl);
+}
+
+@Get('admin/github/callback')
+@Public()
+@UseGuards(AuthGuard('admin-github'))
+@ApiOperation({ summary: 'Handles GitHub SSO callback for Admins' })
+async adminGitHubAuthCallback(@Req() req, @Res() res: Response) {
+    const { state } = req.query;
+    const frontendRedirectUrl = decodeURIComponent(state as string);
     const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
-    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
-    const adminPanelUrl = new URL(redirectBaseUrl);
-    adminPanelUrl.pathname = '/auth/admin/callback';
-    adminPanelUrl.searchParams.set('token', tokens.access_token);
-    res.redirect(adminPanelUrl.toString());
-  }
-
+    const finalRedirectUrl = new URL(frontendRedirectUrl);
+    finalRedirectUrl.searchParams.set('token', tokens.access_token);
+    return res.redirect(finalRedirectUrl.toString());
+}
    @Post('mfa-login')
   @Public() // It's public because the user isn't fully logged in yet
   @HttpCode(200)
