@@ -2,9 +2,10 @@ import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto'
 import { Events } from '../../entities/events.entity';
 import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 import { TicketSalesOverviewResponseDto } from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
+import { EntityManager } from 'typeorm';
 
 export interface IEventRepository {
-  create(createEventsDto: CreateEventsDto, user: any): Promise<Events>;
+  create(createEventsDto: CreateEventsDto, user: any, entityManager?: EntityManager): Promise<Events>;
   findAll(
     page: number,
     limit: number,

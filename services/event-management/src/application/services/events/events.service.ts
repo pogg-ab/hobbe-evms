@@ -2,9 +2,12 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { endOfDay, nextSaturday, nextSunday, startOfDay } from 'date-fns';
@@ -20,7 +23,7 @@ import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { CreateEventsDto } from 'src/presentation/dtos/events/create-events.dto';
 import { UpdateEventsDto } from 'src/presentation/dtos/events/update-events.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { DataSource } from 'typeorm';
+import { Connection, DataSource } from 'typeorm';
 import { UserInfoService } from '../user-info/user-info.service';
 import { StreamProducerService } from 'src/infrastructure/kafka/stream.producer.service';
 import { CreateStreamDto } from 'src/presentation/dtos/live-stream/create-stream.dto';
@@ -44,7 +47,8 @@ export class EventsService {
     private dataSource: DataSource,
     private readonly userInfoService: UserInfoService,
     private readonly streamProducerService: StreamProducerService,
-  ) {}
+    private readonly connection: Connection,
+  ) { }
 
   private createStream(user: string, event_id: IdValueObject): any {
     const stream = {
@@ -55,62 +59,112 @@ export class EventsService {
   }
 
   async create(createEventsDto: CreateEventsDto, user: any): Promise<Events> {
-    const mappedEvent = this.mapper.map(
-      createEventsDto,
-      CreateEventsDto,
-      Events,
-    );
-    const event = await this.createEventRepository.create(mappedEvent, user);
+    const queryRunner = this.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const mappedEvent = this.mapper.map(
+        createEventsDto,
+        CreateEventsDto,
+        Events,
+      );
+      const event = await this.createEventRepository.create(mappedEvent, user, queryRunner.manager);
+      const accounts = createEventsDto.bank_accounts;
+      if (accounts) {
+        const accountsWithIds = accounts.map((account) => ({
+          ...account,
+          event_id: event.id,
+          user_id: event.user_id,
+        }));
+        const kafkaTimeout = 5000;
+        const kafkaPromise = this.kafkaProducerService.produce({
+          topic: 'bank-account-list-sent',
+          messages: [{ value: JSON.stringify(accountsWithIds) }],
+        });
 
-    const accounts = createEventsDto.bank_accounts;
-    if (accounts) {
-      accounts.forEach((account) => {
-        (account as any).event_id = event.id;
-      });
-      this.kafkaProducerService.produce({
-        topic: 'bank-account-list-sent',
-        messages: [{ value: JSON.stringify(accounts) }],
-      });
-    }
-    if (event.ticket_heading) {
-      for (let i = 0; i < event.ticket_heading.quantity; i++) {
-        const ticketDto = await new CustomEventTicketMapper().map(
-          event,
-          this.createTicketsDto,
-          'Regular',
-        );
-        const command = new CreateTicketsCommand(ticketDto);
-        await this.commandBus.execute(command);
+        try {
+          await Promise.race([
+            kafkaPromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Kafka producer timeout')), kafkaTimeout)
+            )
+          ]);
+        } catch (kafkaError) {
+          await queryRunner.rollbackTransaction();
+          await queryRunner.release();
+          throw new ServiceUnavailableException('Kafka service unavailable. Event creation aborted.');
+        }
+      }
+      if (event.ticket_heading) {
+        const ticketPromises = [];
+        for (let i = 0; i < event.ticket_heading.quantity; i++) {
+          const ticketDto = await new CustomEventTicketMapper().map(
+            event,
+            this.createTicketsDto,
+            'Regular',
+          );
+          const command = new CreateTicketsCommand(ticketDto, queryRunner.manager);
+          ticketPromises.push(this.commandBus.execute(command));
+        }
+
+        for (let i = 0; i < event.ticket_heading.vip_quantity; i++) {
+          const ticketDto = await new CustomEventTicketMapper().map(
+            event,
+            this.createTicketsDto,
+            'VIP',
+          );
+          const command = new CreateTicketsCommand(ticketDto, queryRunner.manager);
+          ticketPromises.push(this.commandBus.execute(command));
+        }
+
+        for (let i = 0; i < event.ticket_heading.vvip_quantity; i++) {
+          const ticketDto = await new CustomEventTicketMapper().map(
+            event,
+            this.createTicketsDto,
+            'VVIP',
+          );
+          const command = new CreateTicketsCommand(ticketDto, queryRunner.manager);
+          ticketPromises.push(this.commandBus.execute(command));
+        }
+
+        await Promise.all(ticketPromises);
       }
 
-      for (let i = 0; i < event.ticket_heading.vip_quantity; i++) {
-        const ticketDto = await new CustomEventTicketMapper().map(
-          event,
-          this.createTicketsDto,
-          'VIP',
-        );
-        const command = new CreateTicketsCommand(ticketDto);
-        await this.commandBus.execute(command);
+      if (event.location == 'Live') {
+        const stream = this.createStream(user, event.id);
+
+        await this.streamProducerService.sendStreamToKafka(stream);
       }
 
-      for (let i = 0; i < event.ticket_heading.vvip_quantity; i++) {
-        const ticketDto = await new CustomEventTicketMapper().map(
-          event,
-          this.createTicketsDto,
-          'VVIP',
-        );
-        const command = new CreateTicketsCommand(ticketDto);
-        await this.commandBus.execute(command);
+      await queryRunner.commitTransaction();
+
+      return event;
+
+
+    } catch (error) {
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
       }
+
+      if (error.code === '23505') {
+        throw new ConflictException('Event with similar details already exists');
+      } else if (error.code === '23503') {
+        throw new BadRequestException('Invalid reference data provided');
+      } else if (error.name === 'QueryFailedError') {
+        throw new InternalServerErrorException('Database operation failed');
+      } else if (error.message.includes('Kafka') ||
+        error.message.includes('stream') ||
+        error.message.includes('producer') ||
+        error.message.includes('timeout')) {
+        throw new ServiceUnavailableException('External service temporarily unavailable');
+      } else if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to create event. Please try again later.');
+    } finally {
+      await queryRunner.release();
     }
 
-    if (event.location == 'Live') {
-      const stream = this.createStream(user, event.id);
-
-      await this.streamProducerService.sendStreamToKafka(stream);
-    }
-
-    return event;
   }
 
   async findAll(

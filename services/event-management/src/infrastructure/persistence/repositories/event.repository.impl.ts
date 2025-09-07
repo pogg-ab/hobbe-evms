@@ -11,7 +11,7 @@ import {
   TicketTypeOverview,
 } from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-import { Between, Repository } from 'typeorm';
+import { Between, EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class EventRepositoryEmpl implements IEventRepository {
@@ -21,17 +21,23 @@ export class EventRepositoryEmpl implements IEventRepository {
     public readonly createTicketsDto: CreateTicketsDto,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) {}
+  ) { }
 
-  async create(event: Events, user: any): Promise<Events> {
+  async create(event: Events, user: any, entityManager?: EntityManager): Promise<Events> {
     try {
       const newEvent = this.eventRepository.create(event);
       newEvent.user_id = user;
       newEvent.created_by = user;
       newEvent.created_at = new Date();
-      const storedEvent = await this.eventRepository.save(newEvent);
+      let storedEvent: Events;
+      if (entityManager) {
+        storedEvent = await entityManager.save(Events, newEvent);
+      } else {
+        storedEvent = await this.eventRepository.save(newEvent);
+      }
 
       return storedEvent;
+
     } catch (error) {
       throw new HttpException(
         `Error creating Event: ${error.message}`,

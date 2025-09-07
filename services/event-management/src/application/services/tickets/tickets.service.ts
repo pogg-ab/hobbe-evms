@@ -10,6 +10,7 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
 import { group } from 'console';
 import { QrCodeActionAfterScannedDto } from 'src/presentation/dtos/qr-code/qr-code-action-after-scanned.dto';
 import { QrAfterScannedActionsAggregateDto } from 'src/presentation/dtos/qr-code/qr-scaned-after-scanned-action-aggregate.dto';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class TicketsService {
@@ -19,13 +20,13 @@ export class TicketsService {
     @InjectMapper() private readonly mapper: Mapper,
   ) { }
 
-  async create(createTicketsDto: CreateTicketsDto): Promise<void> {
+  async create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void> {
     const tickets = this.mapper.map(
       createTicketsDto,
       CreateTicketsDto,
       Tickets,
     );
-    await this.createTicketsRepository.create(tickets);
+    await this.createTicketsRepository.create(tickets, entityManager);
   }
 
   async getEventsAllTicketsList(ticket_id: IdValueObject) {
@@ -200,7 +201,7 @@ export class TicketsService {
   }
 
   async qrCodeLogAfterScanned(
-   dto: QrCodeActionAfterScannedDto
+    dto: QrCodeActionAfterScannedDto
   ): Promise<void> {
     return await this.createTicketsRepository.qrCodeLogAfterScanned(dto);
   }
@@ -208,23 +209,23 @@ export class TicketsService {
 
   async countQrCodeScannedLogs(event_id: string): Promise<any> {
     // Assuming you have a method in your repository to count scanned logs
-    
-    const data =  await this.createTicketsRepository.countQrCodeScannedLogs(event_id);
-    
+
+    const data = await this.createTicketsRepository.countQrCodeScannedLogs(event_id);
+
     return data;
   }
 
   async qrAfterScannedActionsAggregate(dto: QrAfterScannedActionsAggregateDto): Promise<any> {
     // Assuming you have a method in your repository to handle actions after scanned
     const actions = await this.createTicketsRepository.qrCodeActionsAfterScanned(dto);
-    
+
     return actions;
   }
 
   async aggregateQrCodeScannedLogs(dto: any): Promise<any> {
     // Assuming you have a method in your repository to aggregate scanned logs
     const aggregatedLogs = await this.createTicketsRepository.aggregateQrCodeScannedLogs(dto);
-    
+
     return aggregatedLogs;
   }
 

@@ -16,7 +16,7 @@ export class CommissionFee {
   })
   commission_fee_id: CommissionFeeIdValueObject;
 
-  @Column()
+  @Column({ type: 'uuid' })
   organizer_id: string;
 
   @Column()

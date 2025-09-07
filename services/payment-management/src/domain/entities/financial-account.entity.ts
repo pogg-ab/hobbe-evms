@@ -3,6 +3,7 @@ import { FinancialAccountIdValueObject } from '../value-objects/financial-accoun
 import { AccountCode } from '../entities/account-code.entity';
 import { BankAccounts } from './bank_accounts.entity';
 import { FinancialAccountType } from '../entities/financial-account-type.entity';
+import { Currency } from './currency.entity';
 
 @Entity('financial_accounts')
 export class FinancialAccount {
@@ -21,6 +22,10 @@ export class FinancialAccount {
     @JoinColumn({ name: 'financial_account_type_id' })
     financial_account_type: FinancialAccountType;
 
+    @ManyToOne(() => Currency)
+    @JoinColumn({ name: 'currency_id' })
+    currency: string;
+
     @Column({ type: 'decimal', precision: 15, scale: 2 })
     total_balance: number;
 
@@ -28,10 +33,10 @@ export class FinancialAccount {
     @JoinColumn({ name: 'holding_financial_account_id' })
     holding_financial_account: FinancialAccount;
 
-    @Column()
+    @Column({ type: 'uuid' })
     user_id: string;
 
-    @Column({ nullable: true })
+    @Column({ type: 'uuid', nullable: true })
     event_id: string;
 
     @Column()
@@ -41,8 +46,8 @@ export class FinancialAccount {
     updated_by: string;
 
     @Column()
-    created_at: Date;
+    created_date: Date;
 
     @Column({ nullable: true })
-    updated_at: Date;
+    updated_date: Date;
 }

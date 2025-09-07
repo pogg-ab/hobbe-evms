@@ -8,7 +8,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
 import { EntityManager } from 'typeorm';
 
 export interface ITicketsRepository {
-  create(createTicketsDto: CreateTicketsDto): Promise<void>;
+  create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void>;
   findAll(
     page: number,
     limit: number,
