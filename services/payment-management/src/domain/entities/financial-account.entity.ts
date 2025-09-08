@@ -33,7 +33,7 @@ export class FinancialAccount {
     @JoinColumn({ name: 'holding_financial_account_id' })
     holding_financial_account: FinancialAccount;
 
-    @Column({ type: 'uuid' })
+    @Column({ type: 'uuid', nullable: true })
     user_id: string;
 
     @Column({ type: 'uuid', nullable: true })
@@ -45,7 +45,7 @@ export class FinancialAccount {
     @Column({ nullable: true })
     updated_by: string;
 
-    @Column()
+    @Column({ nullable: true })
     created_date: Date;
 
     @Column({ nullable: true })

@@ -1,3 +1,51 @@
+DO $$
+DECLARE
+    vaccountcodeid UUID;
+BEGIN
+            	--Pool account
+    SELECT account_code_id
+    INTO vaccountcodeid
+    FROM account_codes
+            	WHERE code=1010
+    LIMIT 1;
+     INSERT INTO financial_accounts (account_code_id,created_by,currency_id,financial_account_type_id,total_balance,updated_by) Values
+	(vaccountcodeid,'fixture','ETB','HOBBE_POOL_ACCOUNT',0.00,'fixture');
+            	--Revenue account
+            	SELECT account_code_id
+    INTO vaccountcodeid
+    FROM account_codes
+            	WHERE code=4010
+    LIMIT 1;
+  	INSERT INTO financial_accounts (account_code_id,created_by,currency_id,financial_account_type_id,total_balance,updated_by) Values
+	(vaccountcodeid,'fixture','ETB','HOBBE_REVENUE_ACCOUNT',0.00,'fixture');
+            	
+            	--Tax account
+            	SELECT account_code_id
+    INTO vaccountcodeid
+    FROM account_codes
+            	WHERE code=2040
+    LIMIT 1;
+  INSERT INTO financial_accounts (account_code_id,created_by,currency_id,financial_account_type_id,total_balance,updated_by) Values
+(vaccountcodeid,'fixture','ETB','TAX_PAYABLE_ACCOUNT',0.00,'fixture');
+            	
+            	--Gateway fee account
+            	SELECT account_code_id
+    INTO vaccountcodeid
+    FROM account_codes
+            	WHERE code=5030
+    LIMIT 1;
+            	INSERT INTO financial_accounts (account_code_id,created_by,currency_id,financial_account_type_id,total_balance,updated_by) Values
+(vaccountcodeid,'fixture','ETB','PAYMENT_GATEWAY_FEE_ACCOUNT',0.00,'fixture');
+	
+            	--Gateway clearing account
+SELECT account_code_id
+    INTO vaccountcodeid
+    FROM account_codes
+            	WHERE code=1020
+    LIMIT 1;
+            	INSERT INTO financial_accounts (account_code_id,created_by,currency_id,financial_account_type_id,total_balance,updated_by) Values
+(vaccountcodeid,'fixture','ETB','PAYMENT_GATEWAY_EXPENSE_ACCOUNT',0.00,'fixture');
+END $$;
 
 CREATE OR REPLACE FUNCTION tr_update_financial_account_balances()
 RETURNS TRIGGER AS $$
@@ -60,12 +108,12 @@ BEGIN
                     	END IF;
  
                     	-- Update balance
-                    	UPDATE financial_account
+                    	UPDATE financial_accounts
                     	SET total_balance = total_balance + ACdelta
                     	WHERE financial_account_id = FAfinancialAccountId;
  
                     	-- Insert change record
-                    	INSERT INTO account_change (
+                    	INSERT INTO account_changes (
                         	created_by, balance, delta,
                         	financial_account_id, transaction_id,
                         	transaction_item_id,updated_by
