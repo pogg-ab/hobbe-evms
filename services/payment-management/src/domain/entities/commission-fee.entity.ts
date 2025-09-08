@@ -16,7 +16,7 @@ export class CommissionFee {
   })
   commission_fee_id: CommissionFeeIdValueObject;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: 'uuid', nullable: true })
   organizer_id: string;
 
   @Column()
@@ -34,7 +34,7 @@ export class CommissionFee {
   @Column({ nullable: true })
   updated_by: string;
 
-  @Column()
+  @Column({ nullable: true })
   created_at: Date;
 
   @Column({ nullable: true })
