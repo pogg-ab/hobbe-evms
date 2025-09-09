@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
-    .setTitle('Payment Microservice API Documentation')
+    .setTitle('Payment Microservice API Docs')
     .setDescription('API documentation for payment microservice')
     .setVersion('1.0')
     .addTag('Payments')
