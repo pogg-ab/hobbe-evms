@@ -4,7 +4,8 @@ import { AdminUserAccountID } from '../value-objects/admin-user-account-id.value
 export interface IAdminUserAccountRepository {
   create(adminUserAccount: AdminUserAccount): Promise<AdminUserAccount>;
   findAll(): Promise<AdminUserAccount[]>;
-  findOneById(id: AdminUserAccountID): Promise<AdminUserAccount | null>;
+  // findOneById(id: AdminUserAccountID): Promise<AdminUserAccount | null>;
+  findOneById(id: AdminUserAccountID | string): Promise<AdminUserAccount | null>;
   update(
     id: AdminUserAccountID,
     adminUserAccount: AdminUserAccount,

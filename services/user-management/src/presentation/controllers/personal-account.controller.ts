@@ -33,7 +33,8 @@ import { UpdatePersonalAccountDto } from '../dtos/update-personal-account.dto';
 import { VerifyEmailDto } from '../dtos/verify-email.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
-import { File } from 'multer';
+// import { File } from 'multer';
+import { Express } from 'express'
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
 import * as path from 'path';
@@ -62,7 +63,7 @@ export class PersonalAccountController {
   @UseInterceptors(FileInterceptor('profile_image', multerConfig('profile_image')))
   async create(
     @Body() createPersonalAccountDto: CreatePersonalAccountDto,
-    @UploadedFile() profile_image: File,
+    @UploadedFile() profile_image: Express.Multer.File,
   ): Promise<{ message: string; account: PersonalAccount }> {
     if (profile_image) {
       createPersonalAccountDto.profile_image = profile_image.path;
@@ -84,7 +85,7 @@ export class PersonalAccountController {
   @UseInterceptors(FileInterceptor('profile_image', multerConfig('profile_image')))
   async updateProfileImage(
     @Param('id') id: PersonalAccountID,
-    @UploadedFile() profile_image: File,
+    @UploadedFile() profile_image: Express.Multer.File,
     @Res() res: Response,
   ): Promise<any> {
     if (!profile_image) {
