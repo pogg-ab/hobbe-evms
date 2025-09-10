@@ -1,25 +1,24 @@
-import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { Chapa } from 'chapa-nodejs';
 import { ConfigService } from '@nestjs/config';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
 import axios from 'axios';
-import { CreatePaymentDto } from 'src/presentation/dtos/payments/create-payments.dto';
-import { Payments } from 'src/domain/entities/payments.entity';
-import { PaymentsService } from '../../payments/payments.service';
 import { CREATE_PAYMENT_TOKEN } from 'src/domain/repositories/payments/payments.repository.token';
 import { IPaymentsRepository } from 'src/domain/repositories/payments/payments.repository';
 import { Connection } from 'typeorm';
 import { InjectConnection } from '@nestjs/typeorm';
 import { validate as uuidValidate } from 'uuid';
 import { UUID } from 'crypto';
-
+import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
 
 @Injectable()
 export class ChapaSDKService {
+  private readonly logger = new Logger(ChapaSDKService.name);
   private chapa: Chapa;
   private readonly API_KEY: string;
   private readonly CALLBACK_BASE_URL: string;
-  private readonly BASE_URL = 'https://api.chapa.co/v1';
+  private readonly CHAPA_BASE_URL = 'https://api.chapa.co/v1';
+  private readonly TRANSFER_ENDPOINT = `${this.CHAPA_BASE_URL}/transfers`;
 
   constructor(
     private readonly configService: ConfigService,
@@ -36,9 +35,17 @@ export class ChapaSDKService {
     if (!callback_baseurl) {
       throw new Error('CALLBACK_BASE_URL is not defined in the environment variables');
     }
+    // Initialize Chapa SDK
     this.chapa = new Chapa({ secretKey });
     this.API_KEY = secretKey;
     this.CALLBACK_BASE_URL = callback_baseurl;
+    
+    // Log mode based on API key
+    const isTestMode = secretKey.startsWith('CHAPUBK_TEST-');
+    this.logger.log(`Chapa SDK initialized in ${isTestMode ? 'TEST' : 'LIVE'} MODE`);
+    if (!isTestMode) {
+      this.logger.warn('Using a LIVE Chapa API key. For testing, use a key that starts with CHAPUBK_TEST-');
+    }
   }
 
   async paymentInit(chapaPayDto: CreateChapaPayDto): Promise<any> {
@@ -67,9 +74,10 @@ export class ChapaSDKService {
     }
   }
 
+
   async verifyPayment(txRef: string): Promise<void> {
     try {
-      const response = await axios.get(`${this.BASE_URL}/transaction/verify/${txRef}`, {
+      const response = await axios.get(`${this.CHAPA_BASE_URL}/transaction/verify/${txRef}`, {
         headers: { Authorization: `Bearer ${this.API_KEY}` },
       });
 
@@ -123,6 +131,94 @@ export class ChapaSDKService {
     }
   }
 
+  
+  async payoutInit(chapaPayDto: ChapaPayoutDto) {
+    try {
+      const res = await axios.post(
+        `${this.CHAPA_BASE_URL}/transfers`,
+        {
+          account_name: chapaPayDto.account_name,
+          account_number: chapaPayDto.account_number,
+          amount: chapaPayDto.amount,
+          currency: 'ETB',
+          bank_code: chapaPayDto.bank_code,
+          reference: `HOBBE-PO-${Date.now()}`,
+          narration: chapaPayDto.reference ?? 'Payout',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      return res.data;
+    } catch (error: any) {
+      if (error.response) {
+        throw new HttpException(error.response.data, error.response.status);
+      }
+      throw new HttpException(error.message, 500);
+    }
+  }
+
+  async verifyPayout(reference: string) {
+    try {
+      const res = await axios.get(
+        `${this.CHAPA_BASE_URL}/transfers/verify/${reference}`, 
+        {
+          headers: {
+            Authorization: `Bearer ${this.API_KEY}`, 
+          },
+        },
+      );
+      return res.data; 
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
+
+
+  async getTransactions(from?: string, to?: string, page = 1, per_page = 20) {
+    try {
+      const res = await axios.get(`${this.CHAPA_BASE_URL}/transactions`, {
+        headers: {
+          Authorization: `Bearer ${this.API_KEY}`,
+        },
+        params: { from, to, page, per_page },
+      });
+      return res.data;
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
+
+  async getTransfers(from?: string, to?: string, page = 1, per_page = 20, status?: string) {
+    try {
+      const res = await axios.get(`${this.CHAPA_BASE_URL}/transfers`, {
+        headers: {
+          Authorization: `Bearer ${this.API_KEY}`,
+        },
+        params: { from, to, page, per_page, status },
+      });
+      return res.data;
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
+  
+  
+  
+
 
   async generateReference(): Promise<string> {
     try {
@@ -136,4 +232,24 @@ export class ChapaSDKService {
       throw new InternalServerErrorException('Failed to generate transaction reference');
     }
   }
+
+
+  async getSupportedBanks() {
+    try {
+      const res = await axios.get(`${this.CHAPA_BASE_URL}/banks`, {
+        headers: {
+          Authorization: `Bearer ${this.API_KEY}`,
+        },
+      });
+      return res.data; // returns array of banks with name and code
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
+
+  
+
 }
