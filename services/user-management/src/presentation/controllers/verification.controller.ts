@@ -135,6 +135,7 @@ async requestVerificationMultipart(
   @ApiOperation({ summary: 'List all pending verification requests (admin)' })
   @ApiResponse({ status: 200, description: 'List of pending verification requests', type: [VerificationResponseDto] })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiBearerAuth('access-token')
   @UseGuards(AdminAuthGuard, PermissionsGuard)
   @Permissions('update:Event')
   @Get('pending')
@@ -148,6 +149,7 @@ async requestVerificationMultipart(
   @ApiResponse({ status: 200, description: 'Review saved', type: VerificationResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid decision or non-pending request' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiBearerAuth('access-token')
   @UseGuards(AdminAuthGuard, PermissionsGuard)
   @Permissions('update:Event')
   @Patch('review/:id')
@@ -169,6 +171,7 @@ async requestVerificationMultipart(
   @ApiParam({ name: 'personalAccountId', description: 'personal account id', type: 'string', required: true })
   @ApiResponse({ status: 200, description: 'Account unverifed' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiBearerAuth('access-token')
   @UseGuards(AdminAuthGuard, PermissionsGuard)
   @Permissions('update:Event')
   @Patch('unverify/:personalAccountId')
@@ -176,7 +179,6 @@ async requestVerificationMultipart(
     @Param('personalAccountId', ParseUUIDPipe) personalAccountId: string, 
     @CurrentUserId() userPayload: string
   ) {
-
      const adminId = this.getIdFromPayload(userPayload);
     if (!adminId) throw new BadRequestException('Unable to resolve admin id');
     return this.commandBus.execute(new UnverifyAccountCommand(await adminId, personalAccountId));
