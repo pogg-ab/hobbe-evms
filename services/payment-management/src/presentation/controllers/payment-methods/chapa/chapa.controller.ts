@@ -9,13 +9,15 @@ import {
   HttpStatus,
   Res,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
 import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
-import { CreateChapaPayoutDto } from 'src/presentation/dtos/chapa/create-chapa-payout.dto';
 import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
+import { GetTransactionDto } from 'src/presentation/dtos/chapa/get-transactions.dto';
+import { GetTransferDto } from 'src/presentation/dtos/chapa/get-transfers.dto';
 
 @Controller('chapa')
 @ApiTags('Chapa')
@@ -76,6 +78,55 @@ export class ChapaController {
   @Get('verify-payout/:reference')
   async verifyPayout(@Param('reference') reference: string) {
     return await this.chapaSdkService.verifyPayout(reference);
+  }
+
+
+  @ApiOperation({ description: 'Get Transactions' })
+  @HttpCode(200)
+  @ApiResponse({
+    description: 'Returns transactions with optional filters',
+    type: Array, 
+  })
+  @Get('transactions')
+  async getTransactions(@Query() getTransactionDto: GetTransactionDto) {
+    return await this.chapaSdkService.getTransactions(
+      getTransactionDto.from,
+      getTransactionDto.to,
+      getTransactionDto.page,
+      getTransactionDto.per_page,
+    );
+  }
+  
+
+
+  @ApiOperation({ description: 'Get Transfers' })
+  @HttpCode(200)
+  @ApiResponse({
+    description: 'Returns an array of transfers',
+    type: GetTransferDto,
+  })
+  @Get('transfers')
+  async getTransfers(
+   @Param() getTransferDto: GetTransferDto
+  ) {
+    return await this.chapaSdkService.getTransfers(
+      getTransferDto.from,
+      getTransferDto.to,
+      getTransferDto.page,
+      getTransferDto.per_page,
+    );
+  }
+
+
+  @ApiOperation({ description: 'Get Supported Banks' })
+  @HttpCode(200)
+  @ApiResponse({
+    description: 'Returns an array of supported banks',
+    type: Array,
+  })
+  @Get('banks')
+  async getBanks() {
+    return await this.chapaSdkService.getSupportedBanks();
   }
 
 

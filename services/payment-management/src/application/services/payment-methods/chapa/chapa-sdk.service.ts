@@ -2,14 +2,7 @@ import { BadRequestException, HttpException, Inject, Injectable, InternalServerE
 import { Chapa } from 'chapa-nodejs';
 import { ConfigService } from '@nestjs/config';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
-import { 
-  CreateChapaPayoutDto, 
-  ChapaPayoutResponseDto,
-  PayoutStatusResponseDto,
-  PayoutMethod,
-  Currency
-} from 'src/presentation/dtos/chapa/create-chapa-payout.dto';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { CREATE_PAYMENT_TOKEN } from 'src/domain/repositories/payments/payments.repository.token';
 import { IPaymentsRepository } from 'src/domain/repositories/payments/payments.repository';
 import { Connection } from 'typeorm';
@@ -187,13 +180,43 @@ export class ChapaSDKService {
       );
     }
   }
-  
-  
-  
-  
 
 
+  async getTransactions(from?: string, to?: string, page = 1, per_page = 20) {
+    try {
+      const res = await axios.get(`${this.CHAPA_BASE_URL}/transactions`, {
+        headers: {
+          Authorization: `Bearer ${this.API_KEY}`,
+        },
+        params: { from, to, page, per_page },
+      });
+      return res.data;
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
 
+  async getTransfers(from?: string, to?: string, page = 1, per_page = 20, status?: string) {
+    try {
+      const res = await axios.get(`${this.CHAPA_BASE_URL}/transfers`, {
+        headers: {
+          Authorization: `Bearer ${this.API_KEY}`,
+        },
+        params: { from, to, page, per_page, status },
+      });
+      return res.data;
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
+  
+  
   
 
 
@@ -209,4 +232,24 @@ export class ChapaSDKService {
       throw new InternalServerErrorException('Failed to generate transaction reference');
     }
   }
+
+
+  async getSupportedBanks() {
+    try {
+      const res = await axios.get(`${this.CHAPA_BASE_URL}/banks`, {
+        headers: {
+          Authorization: `Bearer ${this.API_KEY}`,
+        },
+      });
+      return res.data; // returns array of banks with name and code
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
+
+  
+
 }
