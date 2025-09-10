@@ -14,6 +14,8 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
 import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+import { CreateChapaPayoutDto } from 'src/presentation/dtos/chapa/create-chapa-payout.dto';
+import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
 
 @Controller('chapa')
 @ApiTags('Chapa')
@@ -50,6 +52,30 @@ export class ChapaController {
         HttpStatus.BAD_REQUEST,
       );
     }
+  }
+
+  // chapa payout
+
+  @ApiOperation({ description: 'Initialize Payout' })
+  @HttpCode(200)
+  @ApiResponse({
+    description: 'Initializes the payout process',
+    type: Object,
+  })
+  @Post('payout')
+  async initializePayout(@Body() chapaPayoutDto: ChapaPayoutDto): Promise<any> {
+    return await this.chapaSdkService.payoutInit(chapaPayoutDto);
+  }
+
+  @ApiOperation({ description: 'Verify Payout' })
+  @HttpCode(200)
+  @ApiResponse({
+    description: 'Verifies the payout status',
+    type: Object, // You can define a specific response DTO for payout status if needed
+  })
+  @Get('verify-payout/:reference')
+  async verifyPayout(@Param('reference') reference: string) {
+    return await this.chapaSdkService.verifyPayout(reference);
   }
 
 
