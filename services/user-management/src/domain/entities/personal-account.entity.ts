@@ -4,6 +4,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -12,6 +14,7 @@ import {
   Status,
 } from '../value-objects/account-status.value-object';
 import { PersonalAccountID } from '../value-objects/personal-account-id.value-object';
+import { VerificationRequest } from './verification-request.entity';
 
 @Entity()
 export class PersonalAccount {
@@ -87,4 +90,11 @@ export class PersonalAccount {
 
   @UpdateDateColumn()
   updated_date: Date;
+    
+  @OneToMany(() => VerificationRequest, (vr) => vr.personal_account, {
+    cascade: true,
+    nullable: true,
+    eager: false,
+  })
+  verification_request?: VerificationRequest | null;
 }

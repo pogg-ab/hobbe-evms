@@ -9,6 +9,7 @@ import { PushNotificationModule } from './modules/push-notification/push-notific
 import { SmsModule } from './modules/sms/sms.module';
 import { StreamModule } from './modules/live-stream/stream.module';
 import { HobbeChatModule } from './modules/hobbe-chat/hobbe-chat.module';
+import { FreshdeskModule } from './modules/freshdesk/freshdesk.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { HobbeChatModule } from './modules/hobbe-chat/hobbe-chat.module';
     SmsModule,
     PushNotificationModule,
     StreamModule,
-    HobbeChatModule
+    HobbeChatModule,
+    FreshdeskModule
   ],
 })
 export class AppModule { }
