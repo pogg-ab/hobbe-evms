@@ -37,14 +37,7 @@ export class TicketProfile extends AutomapperProfile {
                     (destination) => destination.status,
                     mapFrom((src) => src.status),
                 ),
-                forMember(
-                    (destination) => destination.createdAt,
-                    mapFrom(() => new Date()),
-                ),
-                forMember(
-                    (destination) => destination.updatedAt,
-                    mapFrom(() => new Date()),
-                ),
+
             );
 
             // UpdateTicketDto -> Ticket (partial mapping)
@@ -72,10 +65,7 @@ export class TicketProfile extends AutomapperProfile {
                     (destination) => destination.status,
                     mapFrom((src) => src.status),
                 ),
-                forMember(
-                    (destination) => destination.updatedAt,
-                    mapFrom(() => new Date()),
-                ),
+
             );
         };
     }

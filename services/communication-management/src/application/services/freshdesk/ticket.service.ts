@@ -12,14 +12,12 @@ export class TicketService {
 
     async createTicket(createTicketDto: CreateTicketDto): Promise<TicketResponseDto> {
         const ticket: Ticket = {
-            id: 0, // ID will be assigned by the API
             subject: createTicketDto.subject,
             description: createTicketDto.description,
             email: createTicketDto.email,
             priority: createTicketDto.priority,
             status: createTicketDto.status,
-            createdAt: new Date(),
-            updatedAt: new Date()
+
         };
         const createdTicket = await this.ticketRepository.create(ticket);
         return this.mapToTicketResponseDto(createdTicket);
@@ -77,14 +75,11 @@ export class TicketService {
 
     private mapToTicketResponseDto(ticket: Ticket): TicketResponseDto {
         return {
-            id: ticket.id,
             subject: ticket.subject,
             description: ticket.description,
             email: ticket.email,
             priority: ticket.priority,
             status: ticket.status,
-            createdAt: ticket.createdAt,
-            updatedAt: ticket.updatedAt
         };
     }
 }

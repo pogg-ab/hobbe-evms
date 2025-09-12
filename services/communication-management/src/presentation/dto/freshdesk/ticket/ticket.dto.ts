@@ -52,9 +52,7 @@ export class UpdateTicketDto {
 }
 
 export class TicketResponseDto {
-    @ApiProperty({ description: 'Unique identifier of the ticket', example: 12345 })
-    @IsNumber()
-    id: number;
+
 
     @ApiProperty({ description: 'Subject of the ticket', example: 'Website not loading' })
     @IsString()
@@ -76,11 +74,5 @@ export class TicketResponseDto {
     @IsNumber()
     status: number;
 
-    @ApiProperty({ description: 'Creation timestamp', example: '2023-01-15T10:30:00.000Z' })
-    @IsDate()
-    createdAt: Date;
 
-    @ApiProperty({ description: 'Last update timestamp', example: '2023-01-15T14:45:00.000Z' })
-    @IsDate()
-    updatedAt: Date;
 }

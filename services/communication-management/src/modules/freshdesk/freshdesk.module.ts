@@ -38,6 +38,7 @@ import { TicketService } from 'src/application/services/freshdesk/ticket.service
 import { AgentService } from 'src/application/services/freshdesk/agent.service';
 import { ConversationService } from 'src/application/services/freshdesk/conversation.service';
 import { TimeEntryService } from 'src/application/services/freshdesk/time-entry.service';
+import { SupportController } from 'src/presentation/controller/freshdesk/support.controller';
 
 const commandHandlers = [
     CreateTicketCommandHandler,
@@ -75,6 +76,7 @@ const queryHandlers = [
         HttpModule,
         AutomapperModule
     ],
+    controllers: [SupportController],
     providers: [
         TicketService,
         AgentService,
