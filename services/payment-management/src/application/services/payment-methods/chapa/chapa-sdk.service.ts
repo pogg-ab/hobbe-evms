@@ -39,7 +39,7 @@ export class ChapaSDKService {
     this.chapa = new Chapa({ secretKey });
     this.API_KEY = secretKey;
     this.CALLBACK_BASE_URL = callback_baseurl;
-    
+
     // Log mode based on API key
     const isTestMode = secretKey.startsWith('CHAPUBK_TEST-');
     this.logger.log(`Chapa SDK initialized in ${isTestMode ? 'TEST' : 'LIVE'} MODE`);
@@ -103,6 +103,7 @@ export class ChapaSDKService {
         userId,
         verifiedPayment.paymentStatus.currency,
         verifiedPayment.paymentStatus.payment_method,
+        'Regular'
       );
       return verifiedPayment
     } catch (error) {
@@ -117,12 +118,13 @@ export class ChapaSDKService {
     username: string,
     userId: UUID,
     currencyId: string,
-    providerName: string
+    providerName: string,
+    appliesToEventType: string = 'Regular'
   ): Promise<void> {
     try {
       await this.connection.query(
-        `SELECT fn_insert_transaction($1::uuid, $2, $3, $4::uuid, $5, $6)`,
-        [paymentId, externalRefNo, username, userId, currencyId, providerName]
+        `SELECT fn_insert_transaction($1::uuid, $2, $3, $4::uuid, $5, $6, $7)`,
+        [paymentId, externalRefNo, username, userId, currencyId, providerName, appliesToEventType]
       );
       console.log(`✅ Transaction function executed for payment: ${paymentId}`);
     } catch (error) {
@@ -131,7 +133,7 @@ export class ChapaSDKService {
     }
   }
 
-  
+
   async payoutInit(chapaPayDto: ChapaPayoutDto) {
     try {
       const res = await axios.post(
@@ -165,14 +167,14 @@ export class ChapaSDKService {
   async verifyPayout(reference: string) {
     try {
       const res = await axios.get(
-        `${this.CHAPA_BASE_URL}/transfers/verify/${reference}`, 
+        `${this.CHAPA_BASE_URL}/transfers/verify/${reference}`,
         {
           headers: {
-            Authorization: `Bearer ${this.API_KEY}`, 
+            Authorization: `Bearer ${this.API_KEY}`,
           },
         },
       );
-      return res.data; 
+      return res.data;
     } catch (error: any) {
       throw new HttpException(
         error.response?.data || { message: error.message },
@@ -215,9 +217,9 @@ export class ChapaSDKService {
       );
     }
   }
-  
-  
-  
+
+
+
 
 
   async generateReference(): Promise<string> {
@@ -250,6 +252,6 @@ export class ChapaSDKService {
     }
   }
 
-  
+
 
 }

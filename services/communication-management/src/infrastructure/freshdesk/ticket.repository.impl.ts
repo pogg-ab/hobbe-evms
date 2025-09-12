@@ -93,9 +93,14 @@ export class TicketRepositoryImpl implements ITicketRepository {
     }
 
     async findByStatus(status: number): Promise<Ticket[]> {
+
+        const query = `status:${status}`;
         const response = await axios.get(
-            `${this.configService.baseUrl}/tickets?status=${status}`,
-            { headers: this.configService.authHeader }
+            `${this.configService.baseUrl}/search/tickets`,
+            {
+                headers: this.configService.authHeader,
+                params: { query: `"${query}"` }
+            }
         );
         return response.data as Ticket[];
     }

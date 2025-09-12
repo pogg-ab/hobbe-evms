@@ -8,7 +8,7 @@ export class ListTicketsQueryHandler implements IQueryHandler<ListTicketsQuery> 
     constructor(private readonly ticketService: TicketService) { }
 
     async execute(query: ListTicketsQuery): Promise<TicketResponseDto[]> {
-        const { page, perPage, status, priority } = query;
-        return this.ticketService.findAllTickets(page, perPage, status, priority);
+        const { page, perPage, } = query;
+        return this.ticketService.findAllTickets(page, perPage,);
     }
 }
