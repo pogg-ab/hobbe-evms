@@ -86,17 +86,9 @@ export class AgentTimeReportResponseDto {
     @IsNumber()
     agentId: number;
 
-    @ApiProperty({ description: 'Agent name', example: 'John Smith' })
-    @IsString()
-    agentName: string;
-
     @ApiProperty({ description: 'Total time spent in format "HH:MM"', example: '15:30' })
     @IsString()
     totalTime: string;
-
-    @ApiProperty({ description: 'Billable time spent in format "HH:MM"', example: '12:45' })
-    @IsString()
-    billableTime: string;
 
     @ApiProperty({ description: 'Start date of the report period', example: '2023-01-01T00:00:00.000Z' })
     @IsDate()

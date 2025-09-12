@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsDateString } from 'class-validator';
+import { IsString, IsNumber, IsDateString, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTimeEntryDto {
@@ -17,7 +17,7 @@ export class CreateTimeEntryDto {
     @ApiPropertyOptional({ description: 'Date and time when the work was executed', example: '2023-01-15T10:30:00.000Z' })
     @IsOptional()
     @IsDateString()
-    executedAt?: string;
+    executedAt?: Date;
 }
 
 export class TimeEntryResponseDto {
