@@ -10,6 +10,8 @@ import { InjectConnection } from '@nestjs/typeorm';
 import { validate as uuidValidate } from 'uuid';
 import { UUID } from 'crypto';
 import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
+import { CREATE_PAYOUT_TOKEN } from 'src/domain/repositories/payments/payouts.repository.token';
+import { IPayoutsRepository } from 'src/domain/repositories/payments/payouts.repository';
 
 @Injectable()
 export class ChapaSDKService {
@@ -24,6 +26,8 @@ export class ChapaSDKService {
     private readonly configService: ConfigService,
     @Inject(CREATE_PAYMENT_TOKEN)
     private readonly paymentRepository: IPaymentsRepository,
+    @Inject(CREATE_PAYOUT_TOKEN)
+    private readonly payoutRepository: IPayoutsRepository,
     @InjectConnection() private readonly connection: Connection,
   ) {
     const secretKey = this.configService.get<string>('CHAPA_SECRET_KEY');
@@ -132,7 +136,8 @@ export class ChapaSDKService {
   }
 
   
-  async payoutInit(chapaPayDto: ChapaPayoutDto) {
+  async payoutInit(chapaPayDto: ChapaPayoutDto,userId:string) {
+    const tx_ref =  `HOBBE-PO-${Date.now()}`;
     try {
       const res = await axios.post(
         `${this.CHAPA_BASE_URL}/transfers`,
@@ -142,8 +147,8 @@ export class ChapaSDKService {
           amount: chapaPayDto.amount,
           currency: 'ETB',
           bank_code: chapaPayDto.bank_code,
-          reference: `HOBBE-PO-${Date.now()}`,
-          narration: chapaPayDto.reference ?? 'Payout',
+          reference: tx_ref,
+          narration: chapaPayDto.narration ?? 'Payout',
         },
         {
           headers: {
@@ -152,6 +157,15 @@ export class ChapaSDKService {
           },
         },
       );
+
+      const payoutDto = {
+        ...chapaPayDto,
+        user_id:userId,
+        tx_ref: tx_ref,
+        event_id:userId,
+        payment_method: "Chapa",
+      }
+      await this.payoutRepository.create(payoutDto);
 
       return res.data;
     } catch (error: any) {
@@ -172,12 +186,46 @@ export class ChapaSDKService {
           },
         },
       );
-      return res.data; 
+
+     
+       const paid = await this.payoutRepository.verifyChapaPayout("Chapa", reference, res.data.data.charge);
+       const data = paid.paymentStatus;
+
+       console.log(data.tx_ref);
+
+       const payoutTransaction = await this.insertPayoutTransaction(
+        data.tx_ref,
+        data.account_number,
+        data.event_id,
+        data.user_id,
+        data.currency,
+      );
+
+      return payoutTransaction; 
     } catch (error: any) {
       throw new HttpException(
         error.response?.data || { message: error.message },
         error.response?.status || 500,
       );
+    }
+  }
+
+  private async insertPayoutTransaction(
+    externalRefNo: string,
+    username: string,
+    eventId:UUID,
+    userId: UUID,
+    currencyId: string,
+  ){
+    try {
+      await this.connection.query(
+        `SELECT fn_insert_transaction($1::text, $2::text, $3::uuid, $4::uuid, $5::text)`,
+        [externalRefNo, username, eventId, userId, currencyId]
+      );
+      console.log(`✅ Transaction function executed for payout: ${externalRefNo}`);
+    } catch (error) {
+      console.error('Error calling transaction function:', error);
+      throw new Error(`Failed to insert transaction: ${error.message}`);
     }
   }
 
@@ -198,6 +246,8 @@ export class ChapaSDKService {
       );
     }
   }
+
+
 
   async getTransfers(from?: string, to?: string, page = 1, per_page = 20, status?: string) {
     try {
