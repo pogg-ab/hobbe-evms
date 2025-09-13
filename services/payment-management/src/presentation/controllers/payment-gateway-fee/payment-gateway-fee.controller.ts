@@ -50,7 +50,7 @@ export class PaymentGatewayFeeController {
     type: PaymentGatewayFee,
   })
   @ApiBody({ type: CreatePaymentGatewayFeeDto })
-  @Permissions('manage:PaymentGatewayFee')
+  // @Permissions('manage:PaymentGatewayFee')
   @UseGuards(UniversalAuthGuard, PermissionsGuard)
   @Post()
   async createPaymentGatewayFee(

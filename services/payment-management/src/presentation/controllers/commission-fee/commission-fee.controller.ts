@@ -50,7 +50,7 @@ export class CommissionFeeController {
     type: CommissionFee,
   })
   @ApiBody({ type: CreateCommissionFeeDto })
-  @Permissions('manage:CommissionFee')
+  // @Permissions('manage:CommissionFee')
   @UseGuards(UniversalAuthGuard, PermissionsGuard)
   @Post()
   async createCommissionFee(

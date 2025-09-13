@@ -199,6 +199,7 @@ export class ChapaSDKService {
         data.event_id,
         data.user_id,
         data.currency,
+        data.amount,
       );
 
       return payoutTransaction; 
@@ -216,11 +217,12 @@ export class ChapaSDKService {
     eventId:UUID,
     userId: UUID,
     currencyId: string,
+    amount:number
   ){
     try {
       await this.connection.query(
-        `SELECT fn_insert_transaction($1::text, $2::text, $3::uuid, $4::uuid, $5::text)`,
-        [externalRefNo, username, eventId, userId, currencyId]
+        `SELECT fn_insert_payout_transaction($1::text, $2::text, $3::uuid, $4::uuid, $5::text, $6::numeric)`,
+        [externalRefNo, username, eventId, userId, currencyId, amount]
       );
       console.log(`✅ Transaction function executed for payout: ${externalRefNo}`);
     } catch (error) {

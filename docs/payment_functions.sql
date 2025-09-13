@@ -77,7 +77,7 @@ BEGIN
  
             SELECT ft.currency_id,ft.reverses
             INTO FTcurrencyId,reversesTxnId
-            FROM transaction ft
+            FROM transactions ft
             WHERE ft. transaction_id = NEW. transaction_id
             FOR UPDATE;
  
@@ -86,7 +86,7 @@ BEGIN
             	-- Check reversal validity
             	IF reversesTxnId IS NULL OR NOT EXISTS (
                 	SELECT 1
-                	FROM transaction
+                	FROM transactions
                 	WHERE transaction_id = reversesTxnId
                   	AND reversed_by IS NOT NULL
             	) THEN
@@ -178,7 +178,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
 CREATE OR REPLACE FUNCTION fn_get_revenue_account()
 RETURNS TABLE(FinancialAccountId UUID,accountcodeid UUID)
 AS $$
@@ -189,7 +188,6 @@ BEGIN
             	WHERE FA. financial_account_type_id ='HOBBE_REVENUE_ACCOUNT';
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE OR REPLACE FUNCTION fn_get_tax_account()
 RETURNS TABLE(FinancialAccountId UUID,accountcodeid UUID)
@@ -226,7 +224,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
 CREATE OR REPLACE FUNCTION fn_get_gateway_expense_account()
 RETURNS TABLE(FinancialAccountId UUID,accountcodeid UUID)
 AS $$
@@ -238,29 +235,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION fn_cal_commission(vAmount NUMERIC(18,2), vOrganizerid UUID)
+CREATE OR REPLACE FUNCTION fn_cal_commission(vAmount NUMERIC(18,2), vOrganizerid UUID, vappliestoevent_type VARCHAR DEFAULT 'Regular')
 RETURNS  NUMERIC(18,2) AS $$
+
 DECLARE
     vRate NUMERIC(18,2);
 BEGIN
     IF EXISTS (SELECT 1 FROM commission_fees WHERE organizer_id = vOrganizerid) THEN
         SELECT rate INTO vRate
         FROM commission_fees
-        WHERE applies_to_event_type = 'All'
+        WHERE applies_to_event_type =vappliestoevent_type
           AND organizer_id = vOrganizerid
         LIMIT 1;
     ELSE
         SELECT rate INTO vRate
         FROM commission_fees
-        WHERE applies_to_event_type = 'All'
+        WHERE applies_to_event_type = vappliestoevent_type
           AND organizer_id IS NULL
         LIMIT 1;
     END IF;
  
     RETURN vAmount * vRate;
 END;
-$$ LANGUAGE plpgsql;
 
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION fn_cal_tax(vAmount NUMERIC(18,2))
 RETURNS NUMERIC(18,2) AS $$
@@ -273,7 +271,6 @@ BEGIN
     RETURN vAmount * vRate;
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE OR REPLACE FUNCTION fn_cal_gateway_fee(vAmount NUMERIC(18,2),vProvidername VARCHAR(100))
 RETURNS NUMERIC(18,2) AS $$
@@ -288,10 +285,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-
-CREATE OR REPLACE FUNCTION fn_insert_transaction(vPaymentid UUID,vExternalRefNo VARCHAR(100),vUsername varchar(50),vUserId UUID,v_CurrencyId VARCHAR(10),v_Providername VARCHAR(100))
+CREATE OR REPLACE FUNCTION fn_insert_transaction(vPaymentid UUID,vExternalRefNo VARCHAR(100),vUsername varchar(50),vUserId UUID,v_CurrencyId VARCHAR(10),v_Providername VARCHAR(100), vappliestoevent_type VARCHAR DEFAULT 'Regular')
 RETURNS UUID AS $$
+
 DECLARE
     v_TransactionId UUID;
             	v_ShortCode VARCHAR(10);
@@ -324,7 +320,7 @@ BEGIN
             	FROM payments WHERE id=vPaymentid LIMIT 1;
             	SELECT user_id INTO v_Organizerid FROM events where id=v_EventId;
             	--calculate Hobbe fee
-            	SELECT fn_cal_commission INTO v_Fee FROM fn_cal_commission(v_Amount, v_UserId);
+            	SELECT fn_cal_commission INTO v_Fee FROM fn_cal_commission(v_Amount, v_UserId,vappliestoevent_type);
             	
             	SELECT SUBSTRING(REPLACE(gen_random_uuid()::text, '-', ''), 1, 5) INTO v_ShortCode;
             	SELECT translate(to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'), '- :', '') INTO v_referenceNumber;
@@ -364,8 +360,8 @@ updated_by,updated_date,user_id,reversed_by,reverses,currency_id,exchange_rate,_
  
             	SELECt fn_cal_tax INTO v_Tax FROM fn_cal_tax(v_Amount);
             	SELECT fn_cal_gateway_fee INTO v_GatewayFee FROM fn_cal_gateway_fee(v_Amount,v_Providername);
-            	v_Organizerpayout := v_Amount-( v_Fee+ v_Tax + v_GatewayFee);
-            	v_PoolAccountAmount := v_Amount-v_GatewayFee;
+            	v_Organizerpayout := v_Amount-( COALESCE(v_Fee,0)+ COALESCE(v_Tax,0) + COALESCE(v_GatewayFee,0));
+            	v_PoolAccountAmount := v_Amount-COALESCE(v_GatewayFee,0);
  
 INSERT INTO transaction_items(account_code_id,created_by,Credit_Amount,Debit_Amount,Description,Financial_Account_Id,Transaction_Id,Transaction_Line_Number,Updated_By) Values
 (v_Pool_AccountCodeId,'fixture',0.00  ,v_PoolAccountAmount,'The pool account is increased by sales amount - gateway fee',v_Pool_FinancialAccountId,v_TransactionId,1,'fixture'),
@@ -378,8 +374,8 @@ INSERT INTO transaction_items(account_code_id,created_by,Credit_Amount,Debit_Amo
  
 RETURN v_TransactionId;
 END;
-$$ LANGUAGE plpgsql;
 
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION fn_auto_refund(vPaymentid UUID,vExternalRefNo VARCHAR(100),vUsername varchar(50),vUserId UUID)
 RETURNS TEXT AS $$
@@ -444,8 +440,6 @@ WHERE transaction_id=v_OriginalTransactionId;
 RETURN FORMAT('Refund process completed: %s lines inserted for original transaction ID %s.', inserted_count, v_OriginalTransactionId);
 END;
 $$ LANGUAGE plpgsql;
-
-
 
 CREATE OR REPLACE FUNCTION fn_manual_refund(vPaymentid UUID,vExternalRefNo VARCHAR(100),vUsername varchar(50),vUserId UUID)
 RETURNS TEXT AS $$
@@ -512,7 +506,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION fn_insert_payout_transaction(vExternalRefNo VARCHAR(100),vUsername varchar(50),vEventId UUID,vUserId UUID,v_CurrencyId VARCHAR(10))
-RETURNS INT AS $$
+RETURNS UUID AS $$
 DECLARE
     			v_TransactionId UUID;
             	v_ShortCode VARCHAR(10);
@@ -551,8 +545,6 @@ INSERT INTO transaction_Items(account_code_id,Created_By,Credit_Amount,Debit_Amo
 END;
 $$ LANGUAGE plpgsql;
 
-
-
 CREATE OR REPLACE FUNCTION fn_get_organizer_balance(vUserId UUID,vEventId UUID)
 RETURNS NUMERIC(18,2) AS $$
 DECLARE
@@ -563,6 +555,7 @@ BEGIN
 	RETURN  v_Balance;
 END;
 $$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION fn_report_live_revenue_dashboard(
     p_start_date DATE,
     p_end_date DATE
@@ -602,7 +595,6 @@ BEGIN
     ORDER BY report_date, event_name;
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE OR REPLACE FUNCTION fn_report_revenue_history(
     p_start_date DATE,
@@ -648,7 +640,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
 CREATE OR REPLACE FUNCTION fn_report_refund_history(
     p_start_date DATE,
     p_end_date DATE
@@ -681,7 +672,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
 CREATE OR REPLACE FUNCTION fn_report_payment_method_usage(
     p_start_date DATE,
     p_end_date DATE
@@ -709,7 +699,6 @@ BEGIN
     ORDER BY total_amount DESC;
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE OR REPLACE FUNCTION fn_financial_fees_payout_report(
     p_start_date DATE,
@@ -774,7 +763,6 @@ BEGIN
     ORDER BY tf.transaction_date,tf.event_id, tf.user_id;
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE OR REPLACE FUNCTION fn_net_revenue_report(
     p_start_date DATE,
@@ -852,7 +840,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
 CREATE OR REPLACE FUNCTION fn_dashboard_analytics(
     p_start_date DATE,
     p_end_date DATE
@@ -923,22 +910,3 @@ BEGIN
     SELECT 'Organizer Payouts', v_payouts;
 END;
 $$ LANGUAGE plpgsql;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
