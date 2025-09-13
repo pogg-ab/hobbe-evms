@@ -10,14 +10,18 @@ import {
   Res,
   UseInterceptors,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
 import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
 import { GetTransactionDto } from 'src/presentation/dtos/chapa/get-transactions.dto';
 import { GetTransferDto } from 'src/presentation/dtos/chapa/get-transfers.dto';
+import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/presentation/guards/roles.guard';
+import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 
 @Controller('chapa')
 @ApiTags('Chapa')
@@ -65,8 +69,13 @@ export class ChapaController {
     type: Object,
   })
   @Post('payout')
-  async initializePayout(@Body() chapaPayoutDto: ChapaPayoutDto): Promise<any> {
-    return await this.chapaSdkService.payoutInit(chapaPayoutDto);
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async initializePayout(
+    @Body() chapaPayoutDto: ChapaPayoutDto,
+    @CurrentUserId() user: any,
+  ): Promise<any> {
+    return await this.chapaSdkService.payoutInit(chapaPayoutDto,user.userId);
   }
 
   @ApiOperation({ description: 'Verify Payout' })
@@ -77,7 +86,14 @@ export class ChapaController {
   })
   @Get('verify-payout/:reference')
   async verifyPayout(@Param('reference') reference: string) {
-    return await this.chapaSdkService.verifyPayout(reference);
+    const payout = await this.chapaSdkService.verifyPayout(reference);
+
+    // if (payout.data.status === 'success') {
+    //   // we gonna call here payout transaction function
+    //   return {message:"Payout successful",payout};
+      
+    // }
+    return {message:"Payout waiting for confirmation from HoBBE Admin",payout};
   }
 
 

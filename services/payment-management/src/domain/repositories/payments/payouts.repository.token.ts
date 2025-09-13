@@ -1,0 +1,3 @@
+
+
+export const CREATE_PAYOUT_TOKEN = 'CREATE_PAYOUT_TOKEN';

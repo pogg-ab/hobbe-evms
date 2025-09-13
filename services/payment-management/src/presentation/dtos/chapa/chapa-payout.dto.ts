@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsNumber, IsNumberString, IsOptional, IsString, ValidateIf } from "class-validator";
+import { IsNotEmpty, IsNumber, IsNumberString, IsOptional, IsString, IsUUID, ValidateIf } from "class-validator";
 
 export class ChapaPayoutDto {
   @ApiProperty({ example: 'John Doe', description: 'Account name' })
@@ -34,8 +34,13 @@ export class ChapaPayoutDto {
   @IsNotEmpty()
   currency: string;
 
-  @ApiProperty({ example: 'payout-1234567890', description: 'Unique reference for the payout' })
+  @ApiProperty({ example: '849b4dda-fc2b-452d-bc12-e8dd0bc8b6f3', description: 'event id' })
+  @IsUUID()
+  @IsNotEmpty()
+  event_id: string;
+
+  @ApiProperty({ example: 'Payout', description: 'Narration' })
   @IsString()
   @IsNotEmpty()
-  reference: string;
+  narration: string;
 }

@@ -60,7 +60,7 @@ export class Transaction {
     @Column({ nullable: true })
     updated_by: string;
 
-    @Column()
+    @Column({default:new Date()})
     created_date: Date;
 
     @Column({ nullable: true })
