@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { Chapa } from 'chapa-nodejs';
 import { ConfigService } from '@nestjs/config';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
@@ -164,7 +164,6 @@ export class ChapaSDKService {
         ...chapaPayDto,
         user_id:userId,
         tx_ref: tx_ref,
-        event_id:userId,
         payment_method: "Chapa",
       }
       await this.payoutRepository.create(payoutDto);
@@ -189,11 +188,19 @@ export class ChapaSDKService {
         },
       );
 
-     
+      
+       console.log('Payout verification status:', res);
+       
+       if (res.data.data.status !== 'success') {
+         throw new HttpException(
+           `Payout with reference ${reference} waiting for HoBBE Admin Approval or is not successful`,
+           HttpStatus.BAD_REQUEST,
+         );
+       }
+
+    
        const paid = await this.payoutRepository.verifyChapaPayout("Chapa", reference, res.data.data.charge);
        const data = paid.paymentStatus;
-
-       console.log(data.tx_ref);
 
        const payoutTransaction = await this.insertPayoutTransaction(
         data.tx_ref,
@@ -201,10 +208,11 @@ export class ChapaSDKService {
         data.event_id,
         data.user_id,
         data.currency,
-        data.amount,
       );
 
-      return payoutTransaction; 
+
+
+      return res.data; 
     } catch (error: any) {
       throw new HttpException(
         error.response?.data || { message: error.message },
@@ -219,12 +227,11 @@ export class ChapaSDKService {
     eventId:UUID,
     userId: UUID,
     currencyId: string,
-    amount:number
   ){
     try {
       await this.connection.query(
-        `SELECT fn_insert_payout_transaction($1::text, $2::text, $3::uuid, $4::uuid, $5::text, $6::numeric)`,
-        [externalRefNo, username, eventId, userId, currencyId, amount]
+        `SELECT fn_insert_payout_transaction($1::text, $2::text, $3::uuid, $4::uuid, $5::text)`,
+        [externalRefNo, username, eventId, userId, currencyId]
       );
       console.log(`✅ Transaction function executed for payout: ${externalRefNo}`);
     } catch (error) {

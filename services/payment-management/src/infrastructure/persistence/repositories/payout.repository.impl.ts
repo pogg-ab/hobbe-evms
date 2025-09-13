@@ -100,8 +100,7 @@ export class PayoutRepositoryImpl implements IPayoutsRepository{
         }
   
        paymentToBeVerify.verified_at = new Date();
-      //  paymentToBeVerify.payment_status = "success";
-       paymentToBeVerify.payment_status = "Pending";
+       paymentToBeVerify.payment_status = "success";
        paymentToBeVerify.charge = charge;
   
        const paymentStatus =  await this.payoutRepository.save(paymentToBeVerify);
