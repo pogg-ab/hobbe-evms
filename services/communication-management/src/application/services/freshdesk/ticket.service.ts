@@ -11,12 +11,14 @@ export class TicketService {
         private readonly ticketRepository: ITicketRepository) { }
 
     async createTicket(createTicketDto: CreateTicketDto): Promise<TicketResponseDto> {
+        const validStatus = [2, 3, 4, 5, 6, 7];
+        const validPriority = [1, 2, 3, 4];
         const ticket: Ticket = {
             subject: createTicketDto.subject,
             description: createTicketDto.description,
             email: createTicketDto.email,
-            priority: createTicketDto.priority,
-            status: createTicketDto.status,
+            status: validStatus.includes(createTicketDto.status) ? createTicketDto.status : 2,
+            priority: validPriority.includes(createTicketDto.priority) ? createTicketDto.priority : 1,
 
         };
         const createdTicket = await this.ticketRepository.create(ticket);
@@ -26,22 +28,9 @@ export class TicketService {
     async findAllTickets(
         page?: number,
         perPage?: number,
-        status?: number,
-        priority?: number
+
     ): Promise<TicketResponseDto[]> {
-        const skip = page && perPage ? (page - 1) * perPage : undefined;
-        const take = perPage;
-
-        let tickets: Ticket[];
-
-        if (status !== undefined) {
-            tickets = await this.ticketRepository.findByStatus(status);
-        } else if (priority !== undefined) {
-            tickets = await this.ticketRepository.findByPriority(priority);
-        } else {
-            tickets = await this.ticketRepository.findAll(skip, take);
-        }
-
+        const tickets = await this.ticketRepository.findAll(page, perPage);
         return tickets.map(this.mapToTicketResponseDto);
     }
 

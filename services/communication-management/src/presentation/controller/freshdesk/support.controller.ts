@@ -70,9 +70,7 @@ export class SupportController {
     @Get('tickets')
     @ApiOperation({ summary: 'Get all tickets with optional pagination and filtering' })
     @ApiQuery({ name: 'page', required: false, description: 'Page number for pagination', example: 1 })
-    @ApiQuery({ name: 'perPage', required: false, description: 'Number of items per page', example: 20 })
-    @ApiQuery({ name: 'status', required: false, description: 'Filter by status', example: 2 })
-    @ApiQuery({ name: 'priority', required: false, description: 'Filter by priority', example: 1 })
+    @ApiQuery({ name: 'perPage', required: false, description: 'Number of items per page', example: 10 })
     @ApiResponse({
         status: 200,
         description: 'List of tickets retrieved successfully',
@@ -84,10 +82,9 @@ export class SupportController {
     async getTickets(
         @Query('page') page?: number,
         @Query('perPage') perPage?: number,
-        @Query('status') status?: number,
-        @Query('priority') priority?: number,
+
     ): Promise<TicketResponseDto[]> {
-        const tickets = await this.queryBus.execute(new ListTicketsQuery(page, perPage, status, priority));
+        const tickets = await this.queryBus.execute(new ListTicketsQuery(page, perPage));
         return tickets;
     }
 

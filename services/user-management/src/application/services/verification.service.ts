@@ -1,5 +1,5 @@
 // src/application/services/verification.service.ts
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectMapper } from '@automapper/nestjs';
 import { Mapper } from '@automapper/core';
 import { RequestVerificationDto } from '../../presentation/dtos/request-verification.dto';
@@ -19,6 +19,9 @@ import { AdminUserID } from 'src/domain/value-objects/admin-user-id.value-object
 
 @Injectable()
 export class VerificationService {
+
+    private readonly logger = new Logger(VerificationService.name);
+
   constructor(
     @Inject(IVerificationRequestRepositoryToken)
     private readonly verificationRepo: IVerificationRequestRepository,
@@ -108,11 +111,26 @@ async cancelVerification(currentUserId: string): Promise<VerificationResponseDto
   return this.mapper.map(populated, VerificationRequest, VerificationResponseDto);
 }
 
+  // async findPendingVerifications(): Promise<VerificationResponseDto[]> {
+  //   const list = await this.verificationRepo.findPendingRequests();
+
+  //   return list.map((item) => this.mapper.map(item, VerificationRequest, VerificationResponseDto));
+  // }
 
   async findPendingVerifications(): Promise<VerificationResponseDto[]> {
-    const list = await this.verificationRepo.findPendingRequests();
-    // map each to DTO
-    return list.map((item) => this.mapper.map(item, VerificationRequest, VerificationResponseDto));
+    try {
+      const list = await this.verificationRepo.findPendingRequests();
+      if (!list || (Array.isArray(list) && list.length === 0)) {
+        this.logger.verbose('No pending verifications found');
+        return [];
+      }
+      return list.map(item =>
+        this.mapper.map(item, VerificationRequest, VerificationResponseDto),
+      );
+    } catch (err) {
+      this.logger.error('findPendingVerifications repo failed', err?.stack ?? err);
+      return [];
+    }
   }
 
   async reviewVerificationRequest(adminId: string, verificationRequestId: string, decision: { decision: VerificationStatus; rejectionReason?: string | null; }): Promise<VerificationResponseDto> {

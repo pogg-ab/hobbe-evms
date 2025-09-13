@@ -1,7 +1,8 @@
 import { Ticket } from "src/domain/entities/freshdesk/ticket.entity";
+import { TicketResponseDto } from "src/presentation/dto/freshdesk/ticket/ticket.dto";
 
 export interface ITicketRepository {
-    create(ticket: Ticket): Promise<Ticket>;
+    create(ticket: Ticket): Promise<TicketResponseDto>;
     findAll(skip?: number, take?: number): Promise<Ticket[]>;
     findOneById(id: number): Promise<Ticket | null>;
     update(id: number, ticket: Partial<Ticket>): Promise<Ticket>;

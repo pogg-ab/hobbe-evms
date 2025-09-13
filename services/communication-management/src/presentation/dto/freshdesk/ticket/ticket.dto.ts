@@ -17,10 +17,12 @@ export class CreateTicketDto {
 
     @ApiProperty({ description: 'Priority level (1-4)', example: 2, enum: [1, 2, 3, 4] })
     @IsNumber()
+    @IsOptional()
     priority: number;
 
     @ApiProperty({ description: 'Status of the ticket', example: 2, enum: [2, 3, 4, 5, 6] })
     @IsNumber()
+    @IsOptional()
     status: number;
 }
 
