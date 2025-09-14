@@ -53,7 +53,6 @@ async getIdFromPayload(payload: any): Promise<string> {
   return payload.admin_user_id ?? payload.user?.user_id ?? payload.sub ?? null;
 }
 
-
 @UseInterceptors(FileInterceptor('nationalIdImage', multerConfig('national_id') as any))
 @Post('request/upload')
 @ApiBearerAuth('access-token')
