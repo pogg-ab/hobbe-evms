@@ -1,8 +1,9 @@
+import { FileStream } from "src/application/commands/support/create-ticket.command";
 import { Ticket } from "src/domain/entities/support/ticket.entity";
 import { TicketResponseDto } from "src/presentation/dto/support/ticket/ticket.dto";
 
 export interface ITicketRepository {
-    create(ticket: Ticket): Promise<TicketResponseDto>;
+    create(ticket: Partial<Ticket> & { attachments?: FileStream[] }): Promise<TicketResponseDto>;
     findAll(skip?: number, take?: number): Promise<Ticket[]>;
     findOneById(id: number): Promise<Ticket | null>;
     update(id: number, ticket: Partial<Ticket>): Promise<Ticket>;

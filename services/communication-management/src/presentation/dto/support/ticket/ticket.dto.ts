@@ -1,7 +1,11 @@
-// src/presentation/dtos/ticket.dto.ts
-import { IsString, IsEmail, IsNumber, IsOptional, IsDate } from 'class-validator';
+import { IsString, IsEmail, IsNumber, IsOptional, IsDate, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
+export interface FileStream {
+    filename: string;
+    buffer: Uint8Array;
+    contentType: string;
+    size: number;
+}
 export class CreateTicketDto {
     @ApiProperty({ description: 'Subject of the ticket', example: 'Website not loading' })
     @IsString()
@@ -24,6 +28,14 @@ export class CreateTicketDto {
     @IsNumber()
     @IsOptional()
     status: number;
+
+    @ApiPropertyOptional({
+        description: 'File attachments',
+        type: 'array',
+        items: { type: 'string', format: 'binary' },
+    })
+    @IsOptional()
+    attachments?: FileStream[];
 }
 
 export class UpdateTicketDto {
@@ -51,6 +63,14 @@ export class UpdateTicketDto {
     @IsOptional()
     @IsNumber()
     status?: number;
+
+    @ApiPropertyOptional({
+        description: 'File attachments',
+        type: 'array',
+        items: { type: 'object' }
+    })
+    @IsOptional()
+    attachments?: FileStream[];
 }
 
 export class TicketResponseDto {

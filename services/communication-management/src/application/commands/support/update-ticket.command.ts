@@ -1,3 +1,9 @@
+export interface FileStream {
+    filename: string;
+    buffer: Uint8Array;
+    contentType: string;
+    size: number;
+}
 export class UpdateTicketCommand {
     constructor(
         public readonly id: number,
@@ -6,5 +12,6 @@ export class UpdateTicketCommand {
         public readonly email?: string,
         public readonly priority?: number,
         public readonly status?: number,
+        public readonly attachments: FileStream[] = [],
     ) { }
 }

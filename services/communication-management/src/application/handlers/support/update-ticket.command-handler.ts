@@ -9,8 +9,8 @@ export class UpdateTicketCommandHandler implements ICommandHandler<UpdateTicketC
     constructor(private readonly ticketService: TicketService) { }
 
     async execute(command: UpdateTicketCommand): Promise<TicketResponseDto> {
-        const { id, subject, description, email, priority, status } = command;
-        const updateTicketDto: UpdateTicketDto = { subject, description, email, priority, status };
+        const { id, subject, description, email, priority, status, attachments } = command;
+        const updateTicketDto: UpdateTicketDto = { subject, description, email, priority, status, attachments };
         return this.ticketService.updateTicket(id, updateTicketDto);
     }
 }

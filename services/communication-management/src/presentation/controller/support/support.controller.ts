@@ -10,6 +10,9 @@ import {
     Query,
     HttpCode,
     HttpStatus,
+    UseInterceptors,
+    BadRequestException,
+    UploadedFiles,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
@@ -21,6 +24,7 @@ import {
     ApiBody,
     ApiExtraModels,
     getSchemaPath,
+    ApiConsumes,
 } from '@nestjs/swagger';
 
 import { AgentResponseDto, AgentTimeReportResponseDto, CreateAgentDto, UpdateAgentAvailabilityDto, UpdateAgentDto } from 'src/presentation/dto/support/agent/agent.dto';
@@ -51,6 +55,10 @@ import { CreateConversationCommand } from 'src/application/commands/support/crea
 import { UpdateConversationCommand } from 'src/application/commands/support/update-conversation.command';
 import { DeleteConversationCommand } from 'src/application/commands/support/delete-conversation.command';
 import { TicketProfile } from 'src/application/mappers/support/ticket.profile';
+import { FileFieldsInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { extname } from 'path';
+import { diskStorage, memoryStorage } from 'multer';
+import { Readable } from 'stream';
 
 @ApiTags('support')
 @Controller('support')
@@ -105,6 +113,31 @@ export class SupportController {
     @Post('tickets')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Create a new ticket' })
+    @ApiConsumes('multipart/form-data')
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'attachments', maxCount: 10 }
+    ], {
+        storage: memoryStorage(),
+        fileFilter: (req, file, callback) => {
+            const allowedMimes = [
+                'image/jpeg',
+                'image/png',
+                'image/gif',
+                'application/pdf',
+                'text/plain',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            if (allowedMimes.includes(file.mimetype)) {
+                callback(null, true);
+            } else {
+                callback(new BadRequestException('Invalid file type'), false);
+            }
+        },
+        limits: {
+            fileSize: 20 * 1024 * 1024, // 20MB limit
+        },
+    }))
     @ApiBody({ type: CreateTicketDto })
     @ApiResponse({
         status: 201,
@@ -112,7 +145,15 @@ export class SupportController {
         type: TicketResponseDto,
     })
     @ApiResponse({ status: 400, description: 'Invalid input data' })
-    async createTicket(@Body() createTicketDto: CreateTicketDto): Promise<TicketResponseDto> {
+    async createTicket(
+        @Body() createTicketDto: CreateTicketDto,
+        @UploadedFiles() files: { attachments?: Express.Multer.File[] }): Promise<TicketResponseDto> {
+        const attachmentBuffers = files.attachments?.map(file => ({
+            filename: file.originalname,
+            buffer: new Uint8Array(file.buffer),
+            contentType: file.mimetype,
+            size: file.size,
+        })) || [];
         const ticket = await this.commandBus.execute(
             new CreateTicketCommand(
                 createTicketDto.subject,
@@ -120,6 +161,7 @@ export class SupportController {
                 createTicketDto.email,
                 createTicketDto.priority,
                 createTicketDto.status,
+                attachmentBuffers
             ),
         );
         return ticket;
@@ -127,6 +169,30 @@ export class SupportController {
 
     @Put('tickets/:id')
     @ApiOperation({ summary: 'Update an existing ticket' })
+    @ApiConsumes('multipart/form-data')
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'attachments', maxCount: 10 }
+    ], {
+        fileFilter: (req, file, callback) => {
+            const allowedMimes = [
+                'image/jpeg',
+                'image/png',
+                'image/gif',
+                'application/pdf',
+                'text/plain',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            if (allowedMimes.includes(file.mimetype)) {
+                callback(null, true);
+            } else {
+                callback(new BadRequestException('Invalid file type'), false);
+            }
+        },
+        limits: {
+            fileSize: 20 * 1024 * 1024, // 20MB limit
+        },
+    }))
     @ApiParam({ name: 'id', description: 'Ticket ID', example: 12345 })
     @ApiBody({ type: UpdateTicketDto })
     @ApiResponse({
@@ -139,7 +205,14 @@ export class SupportController {
     async updateTicket(
         @Param('id') id: number,
         @Body() updateTicketDto: UpdateTicketDto,
+        @UploadedFiles() files: { attachments?: Express.Multer.File[] },
     ): Promise<TicketResponseDto> {
+        const attachmentBuffers = files.attachments?.map(file => ({
+            filename: file.originalname,
+            buffer: new Uint8Array(file.buffer),
+            contentType: file.mimetype,
+            size: file.size,
+        })) || [];
         const ticket = await this.commandBus.execute(
             new UpdateTicketCommand(
                 id,
@@ -148,6 +221,7 @@ export class SupportController {
                 updateTicketDto.email,
                 updateTicketDto.priority,
                 updateTicketDto.status,
+                attachmentBuffers
             ),
         );
         return ticket;
