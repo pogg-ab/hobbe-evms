@@ -3,6 +3,7 @@ import { ITicketRepository } from 'src/domain/repositories/support/ticket.reposi
 import { TicketResponseDto, CreateTicketDto, UpdateTicketDto } from 'src/presentation/dto/support/ticket/ticket.dto';
 import { Ticket } from 'src/domain/entities/support/ticket.entity';
 import { TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/support/ticket.repository.token';
+import { FileStream } from 'src/application/commands/support/update-ticket.command';
 
 @Injectable()
 export class TicketService {
@@ -13,15 +14,16 @@ export class TicketService {
     async createTicket(createTicketDto: CreateTicketDto): Promise<TicketResponseDto> {
         const validStatus = [2, 3, 4, 5, 6, 7];
         const validPriority = [1, 2, 3, 4];
-        const ticket: Ticket = {
+        const ticketData: Partial<Ticket> & { attachments?: FileStream[] } = {
             subject: createTicketDto.subject,
             description: createTicketDto.description,
             email: createTicketDto.email,
             status: validStatus.includes(createTicketDto.status) ? createTicketDto.status : 2,
             priority: validPriority.includes(createTicketDto.priority) ? createTicketDto.priority : 1,
-
+            attachments: createTicketDto.attachments,
         };
-        const createdTicket = await this.ticketRepository.create(ticket);
+        const createdTicket = await this.ticketRepository.create(ticketData);
+
         return this.mapToTicketResponseDto(createdTicket);
     }
 
@@ -64,6 +66,7 @@ export class TicketService {
 
     private mapToTicketResponseDto(ticket: Ticket): TicketResponseDto {
         return {
+            id: ticket.id,
             subject: ticket.subject,
             description: ticket.description,
             email: ticket.email,
