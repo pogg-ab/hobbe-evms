@@ -175,7 +175,6 @@ async requestVerificationMultipart(
     @Param('personalAccountId', ParseUUIDPipe) personalAccountId: string, 
     @CurrentUserId() userPayload: string
   ) {
-
      const adminId = this.getIdFromPayload(userPayload);
     if (!adminId) throw new BadRequestException('Unable to resolve admin id');
     return this.commandBus.execute(new UnverifyAccountCommand(await adminId, personalAccountId));

@@ -2,7 +2,7 @@
 import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SupportFaq } from '../../../domain/entities/support-faq.entity';
-import { ISupportFaqRepository } from '../../../domain/repositories/support-faq.repository';
+import { ISupportFaqRepository } from '../../../domain/repositories/faq/support-faq.repository';
 import { Repository } from 'typeorm';
 
 @Injectable()

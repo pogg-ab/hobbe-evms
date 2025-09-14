@@ -2,12 +2,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { SupportFaq } from '../../domain/entities/support-faq.entity';
-import { CreateFaqDto } from '../../presentation/dtos/create-faq.dto';
-import { UpdateFaqDto } from '../../presentation/dtos/update-faq.dto';
-import { FaqResponseDto } from '../../presentation/dtos/faq-response.dto';
-import { ISupportFaqRepository } from '../../domain/repositories/support-faq.repository';
-import { ISupportFaqRepository as ISupportFaqRepositoryToken } from '../../domain/repositories/i-support-faq.repository.token';
+import { SupportFaq } from '../../../domain/entities/support-faq.entity';
+import { CreateFaqDto } from '../../../presentation/dto/faq/create-faq.dto';
+import { UpdateFaqDto } from '../../../presentation/dto/faq/update-faq.dto';
+import { FaqResponseDto } from '../../../presentation/dto/faq/faq-response.dto';
+import { ISupportFaqRepository } from '../../../domain/repositories/faq/support-faq.repository';
+import { ISupportFaqRepository as ISupportFaqRepositoryToken } from '../../../domain/repositories/faq/i-support-faq.repository.token';
 
 @Injectable()
 export class FaqService {

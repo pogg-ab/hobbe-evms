@@ -5,7 +5,7 @@ import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
 import { Mapper, createMap, forMember, mapFrom } from '@automapper/core';
 import { SupportFaq } from '../../domain/entities/support-faq.entity';
-import { FaqResponseDto } from '../../presentation/dtos/faq-response.dto';
+import { FaqResponseDto } from '../../presentation/dto/faq/faq-response.dto';
 
 @Injectable()
 export class FaqProfile extends AutomapperProfile {

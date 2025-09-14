@@ -1,7 +1,7 @@
 // src/application/commands/handlers/create-faq.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateFaqCommand } from '../../commands/faq/create-faq.command';
-import { FaqService } from '../../services/faq.service';
+import { FaqService } from '../../services/faq/faq.service';
 
 @CommandHandler(CreateFaqCommand)
 export class CreateFaqHandler implements ICommandHandler<CreateFaqCommand> {
