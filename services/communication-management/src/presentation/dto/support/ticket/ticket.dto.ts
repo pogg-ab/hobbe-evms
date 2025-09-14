@@ -75,6 +75,14 @@ export class UpdateTicketDto {
 
 export class TicketResponseDto {
 
+    @ApiPropertyOptional({
+        description: 'Unique identifier of the ticket',
+        example: '1',
+        nullable: true,
+    })
+    @IsOptional()
+    @IsString()
+    id: string | null;
 
     @ApiProperty({ description: 'Subject of the ticket', example: 'Website not loading' })
     @IsString()
@@ -95,6 +103,4 @@ export class TicketResponseDto {
     @ApiProperty({ description: 'Status of the ticket', example: 2, enum: [2, 3, 4, 5, 6] })
     @IsNumber()
     status: number;
-
-
 }

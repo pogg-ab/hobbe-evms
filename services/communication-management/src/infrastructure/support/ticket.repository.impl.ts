@@ -58,7 +58,7 @@ export class TicketRepositoryImpl implements ITicketRepository {
         const params: any = {};
 
         if (skip !== undefined) {
-            params.page = Math.floor(skip / (take || 30)) + 1; // Calculate page number
+            params.page = Math.floor(skip / (take || 30)) + 1;
         }
 
         if (take !== undefined) {
@@ -66,14 +66,14 @@ export class TicketRepositoryImpl implements ITicketRepository {
         }
 
         const response = await axios.get(
-            `${this.configService.baseUrl}/tickets`,
+            `${this.configService.baseUrl}/tickets?include=description`,
             {
                 headers: this.configService.authHeader,
                 params
             }
         );
 
-        return response.data as Ticket[];
+        return response.data;
     }
 
     async findOneById(id: number): Promise<Ticket | null> {

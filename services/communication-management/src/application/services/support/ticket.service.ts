@@ -66,6 +66,7 @@ export class TicketService {
 
     private mapToTicketResponseDto(ticket: Ticket): TicketResponseDto {
         return {
+            id: ticket.id,
             subject: ticket.subject,
             description: ticket.description,
             email: ticket.email,
