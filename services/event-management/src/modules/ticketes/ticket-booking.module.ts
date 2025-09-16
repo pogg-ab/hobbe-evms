@@ -1,5 +1,5 @@
 import { AutomapperModule } from '@automapper/nestjs';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ClientsModule } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -52,7 +52,7 @@ import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositori
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { TicketBookingController } from 'src/presentation/controllers/ticket-booking/ticket-booking.controller';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
-
+import { EventsModule } from '../event/events.module';
 @Module({
   imports: [
     AutomapperModule,
@@ -139,5 +139,8 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
       useClass: BookingHasPaymentRepositoryImpl,
     },
   ],
+  exports: [
+    CREATE_TICKET_BOOKING_REPOSITORY_TOKEN
+  ]
 })
 export class TicketBookingModule { }

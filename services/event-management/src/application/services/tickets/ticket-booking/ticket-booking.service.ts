@@ -47,6 +47,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ClientKafka } from '@nestjs/microservices';
 import { Events } from 'src/domain/entities/events.entity';
 
+
 @Injectable()
 export class TicketBookingService {
   private readonly logger = new Logger(TicketBookingService.name);
@@ -80,6 +81,7 @@ export class TicketBookingService {
     private readonly kafkaClient: ClientKafka,
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
+     private readonly kafkaProducerService: KafkaProducerService,
   ) {}
 
   async create(
@@ -393,6 +395,34 @@ export class TicketBookingService {
       await this.notifyLiveTicketPurchaseCounter(allTicketsCounter, eventId);
 
       await queryRunner.commitTransaction();
+      try {
+        const eventPayload = {
+          // We use 'user' because that is the ID of the person who made the booking
+          userId: user, 
+          // We can get details from the objects we already have
+          transactionId: createdBooking.booking_id,
+          // We can create a more user-friendly message
+          message: `Your booking for "${event.title}" is confirmed!`,
+          metadata: {
+            eventId: event.id,
+            eventName: event.title,
+            bookingId: createdBooking.booking_id,
+            ticketsBooked: ticketCount,
+          }
+        };
+
+        // We need a KafkaProducerService. Let's assume it's injected.
+        // You'll need to add `private readonly kafkaProducerService: KafkaProducerService` to your constructor.
+        await this.kafkaProducerService.produce({
+          topic: 'ticket_purchased', // A new, specific topic for this event
+          messages: [{ value: JSON.stringify(eventPayload) }],
+        });
+
+        this.logger.log(`Emitted 'ticket_purchased' event for booking ${createdBooking.booking_id}`);
+      } catch (error) {
+        this.logger.error(`Failed to emit 'ticket_purchased' Kafka event for booking`, error.stack);
+        // We do not re-throw the error. The booking was successful.
+      }
       return {
         message: 'Ticket Booking created successfully',
         paymentLink: paymentLink,

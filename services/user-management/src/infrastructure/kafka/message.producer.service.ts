@@ -29,6 +29,19 @@ export class MessageProducerService
     }
   }
 
+    async sendMessage(topic: string, payload: any): Promise<void> {
+    try {
+      await this.producer.send({
+        topic,
+        messages: [{ value: JSON.stringify(payload) }],
+      });
+      this.logger.log(`Message successfully sent to Kafka topic: ${topic}`);
+    } catch (error) {
+      this.logger.error(`Error sending message to Kafka topic ${topic}:`, error);
+      throw error; // Re-throw the error to be handled by the calling service
+    }
+  }
+
   async sendEmailToKafka(
     createEmailDto: CreateEmailDto,
   ): Promise<{ success: boolean; message: string }> {

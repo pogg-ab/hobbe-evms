@@ -631,4 +631,19 @@ export class UserRepositoryImpl
       await queryRunner.release();
     }
   }
+  async findAllUserIds(): Promise<string[]> {
+    try {
+      // This is a highly efficient query that only fetches the user_id column
+      const users = await this.userRepository.find({
+        select: ['user_id'],
+        where: { is_active: true }, // We should only broadcast to active users
+      });
+      return users.map(user => user.user_id.toString());
+    } catch (error) {
+      throw new HttpException(
+        `Error finding all User IDs: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ClientsModule, Transport } from '@nestjs/microservices'; // <-- 1. IMPORT
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
 import { ChapaController } from 'src/presentation/controllers/payment-methods/chapa/chapa.controller';
 import { PaymentsModule } from '../payments/payments.module';
@@ -9,6 +9,7 @@ import { StripeService } from 'src/application/services/payment-methods/stripe/s
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
 import { PayoutsModule } from '../payments/payouts.module';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { PayoutsModule } from '../payments/payouts.module';
     AuditLogModule,
     ClientsModule.register([
       {
-        name: 'KAFKA_PRODUCER', // Must match the @Inject() token
+        name: 'KAFKA_PRODUCER',
         transport: Transport.KAFKA,
         options: {
           client: {
@@ -35,6 +36,7 @@ import { PayoutsModule } from '../payments/payouts.module';
     StripeService,
     KafkaPaymentRpcConsumerService,
     AuditLogInterceptor,
+    KafkaProducerService,
   ],
   exports: [ChapaSDKService],
 })
