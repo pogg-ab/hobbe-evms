@@ -9,8 +9,9 @@ import { PushNotificationModule } from './modules/push-notification/push-notific
 import { SmsModule } from './modules/sms/sms.module';
 import { StreamModule } from './modules/live-stream/stream.module';
 import { HobbeChatModule } from './modules/hobbe-chat/hobbe-chat.module';
+import { FaqModule } from './modules/faq/faq.module';
 import { SupportModule } from './modules/support/support.module';
-
+    
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,6 +32,7 @@ import { SupportModule } from './modules/support/support.module';
     PushNotificationModule,
     StreamModule,
     HobbeChatModule,
+    FaqModule,
     SupportModule
   ],
 })

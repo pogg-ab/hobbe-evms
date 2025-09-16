@@ -1,5 +1,5 @@
 // src/domain/repositories/support-faq.repository.interface.ts
-import { SupportFaq } from '../entities/support-faq.entity';
+import { SupportFaq } from '../../entities/support-faq.entity';
 
 export interface ISupportFaqRepository {
   create(faq: Partial<SupportFaq>): Promise<SupportFaq>;
