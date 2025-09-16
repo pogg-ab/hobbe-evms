@@ -54,6 +54,14 @@ import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard
 import { AdminGoogleStrategy } from './strategies/admin-google.strategy';
 import { AdminFacebookStrategy } from './strategies/admin-facebook.strategy';
 import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
+import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
+import { AdminAlertsController } from 'src/presentation/controllers/admin-alerts.controller'; 
+import { AdminAlertsService } from 'src/application/services/admin-alerts.service';      
+import { AdminAlert } from 'src/domain/entities/admin-alert.entity';
+import { AdminAlertLog } from 'src/domain/entities/admin-alert-log.entity';
+import { AdminAlertSubscription } from 'src/domain/entities/admin-alert-subscription.entity';
+import { KafkaProducerModule } from 'src/infrastructure/kafka/kafka-producer.module';
+import { UserAlertSubscription } from 'src/domain/entities/user-alert-subscription.entity';
 @Module({
   imports: [
     CqrsModule,
@@ -74,7 +82,11 @@ import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
       AdminUserSession,       
       GuestSession,
       ConfigModule, 
-      SystemSetting,       
+      SystemSetting,   
+      AdminAlert,
+      AdminAlertLog,   
+      AdminAlertSubscription,  
+      UserAlertSubscription,
     ]),
     PassportModule,
     JwtModule.register({
@@ -110,6 +122,9 @@ import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
     AdminGoogleStrategy,
     AdminFacebookStrategy,
     AdminGitHubStrategy,
+    AdminAuthGuard,
+    AdminAlertsService,
+    KafkaProducerModule,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,
@@ -132,13 +147,15 @@ import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
       },
     },
   ],
-  controllers: [AuthController,  MfaController,  SystemSettingsController],
+  controllers: [AuthController,  MfaController,  SystemSettingsController,AdminAlertsController,],
   exports: [
     AuthService,
     PermissionsGuard, 
     SessionGuard,
     MfaService,  
-    SystemSettingsService,   
+    SystemSettingsService,
+    AdminAuthGuard, 
+    UniversalAuthGuard,   
   ],
 })
 export class AuthModule {}

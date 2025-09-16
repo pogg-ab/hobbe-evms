@@ -1,6 +1,6 @@
 
 
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { promises } from "dns";
 import { Payments } from "src/domain/entities/payments.entity";
@@ -244,5 +244,17 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
         .setParameter('aggregationType', aggregatedTransactionVolumeDto.aggregationType)
         .getRawMany();
     }
+
+    async findByTxRef(txRef: string): Promise<Payments | null> {
+    try {
+      return await this.paymentRepository.findOne({
+        where: { tx_ref: txRef },
+      });
+    } catch (error) {
+      // It's good practice to log errors at the repository level
+      console.error(`Error finding payment by tx_ref ${txRef}:`, error);
+      throw new InternalServerErrorException('Database query for payment by tx_ref failed.');
+    }
+  }
     
 }

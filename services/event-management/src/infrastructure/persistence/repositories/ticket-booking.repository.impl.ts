@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BookingHasPayment } from 'src/domain/entities/booking-has-payment.entity';
 import { Events } from 'src/domain/entities/events.entity';
@@ -210,5 +210,30 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
     }
   }
 
+  // Replace the existing findUserIdsByEventId method
+
+async findUserIdsByEventId(eventId: string): Promise<string[]> {
+    try {
+        // --- THIS IS THE FIX ---
+        // We use the QueryBuilder for a more precise and robust query.
+        // This avoids any confusion with entity relations.
+        const bookings = await this.ticketBookingRepository.createQueryBuilder("booking")
+            .select("booking.user_id", "user_id") // Select only the user_id column
+            .where("booking.event_id = :eventId", { eventId })
+            .getRawMany(); // getRawMany is efficient as it returns simple objects
+
+        if (bookings.length === 0) {
+            return [];
+        }
+
+        // The result from getRawMany is like [{ user_id: '...' }, { user_id: '...' }]
+        // We use a Set to get the unique user IDs from this array.
+        const uniqueUserIds = new Set(bookings.map(booking => booking.user_id));
+
+        return Array.from(uniqueUserIds);
+    } catch (error) {
+        throw new InternalServerErrorException(`Error fetching user IDs for event ${eventId}: ${error.message}`);
+    }
+}
 
 }

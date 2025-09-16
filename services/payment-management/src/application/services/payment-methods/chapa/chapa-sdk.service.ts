@@ -12,6 +12,7 @@ import { UUID } from 'crypto';
 import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
 import { CREATE_PAYOUT_TOKEN } from 'src/domain/repositories/payments/payouts.repository.token';
 import { IPayoutsRepository } from 'src/domain/repositories/payments/payouts.repository';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 
 @Injectable()
 export class ChapaSDKService {
@@ -29,6 +30,7 @@ export class ChapaSDKService {
     @Inject(CREATE_PAYOUT_TOKEN)
     private readonly payoutRepository: IPayoutsRepository,
     @InjectConnection() private readonly connection: Connection,
+    private readonly kafkaProducerService: KafkaProducerService,
   ) {
     const secretKey = this.configService.get<string>('CHAPA_SECRET_KEY');
     if (!secretKey) {
@@ -79,7 +81,7 @@ export class ChapaSDKService {
   }
 
 
-  async verifyPayment(txRef: string): Promise<void> {
+  async verifyPayment(txRef: string): Promise<any> { 
     try {
       const response = await axios.get(`${this.CHAPA_BASE_URL}/transaction/verify/${txRef}`, {
         headers: { Authorization: `Bearer ${this.API_KEY}` },
@@ -87,31 +89,41 @@ export class ChapaSDKService {
 
       const paymentData = response.data.data;
 
-
+     
       const verifiedPayment = await this.paymentRepository.verifyChapaPayment("Chapa", txRef, response.data.data.charge);
       const paymentId = verifiedPayment.paymentStatus.id.toString();
       const userId = verifiedPayment.paymentStatus.user_id.toString();
 
-      if (!uuidValidate(paymentId)) {
-        throw new Error(`Invalid payment ID format: ${paymentId}`);
-      }
-
-      if (!uuidValidate(userId)) {
-        throw new Error(`Invalid user ID format: ${userId}`);
-      }
+      if (!uuidValidate(paymentId)) { throw new Error(`Invalid payment ID format: ${paymentId}`); }
+      if (!uuidValidate(userId)) { throw new Error(`Invalid user ID format: ${userId}`); }
 
       await this.insertTransactionFunction(
-        paymentId,
+        paymentId as UUID,
         paymentData.reference,
         paymentData.phone_number,
-        userId,
+        userId as UUID,
         verifiedPayment.paymentStatus.currency,
         verifiedPayment.paymentStatus.payment_method,
         'Regular'
       );
-      return verifiedPayment
+
+     
+      this.emitPaymentSuccessfulEvent(verifiedPayment.paymentStatus);
+      
+      return verifiedPayment; 
+
     } catch (error) {
-      console.error('Error verifying payment:', error.response?.data);
+      this.logger.error(`Error verifying payment for tx_ref: ${txRef}. Emitting failure event.`, error.stack);
+      
+      
+      const paymentRecord = await this.paymentRepository.findByTxRef(txRef);
+      if (paymentRecord) {
+          this.emitPaymentFailedEvent(paymentRecord, error.message);
+      } else {
+          this.logger.error(`Could not find original payment record for failed tx_ref: ${txRef}.`);
+      }
+      
+      
       throw new Error('Failed to verify payment');
     }
   }
@@ -311,6 +323,41 @@ export class ChapaSDKService {
     }
   }
 
+private async emitPaymentSuccessfulEvent(paymentDetails: any) {
+    try {
+      const eventPayload = {
+        userId: paymentDetails.user_id.toString(),
+        transactionId: paymentDetails.id.toString(),
+        amount: paymentDetails.amount,
+        currency: paymentDetails.currency,
+      };
+      await this.kafkaProducerService.produce({
+        topic: 'payment_successful',
+        messages: [{ value: JSON.stringify(eventPayload) }],
+      });
+      this.logger.log(`Emitted 'payment_successful' event for user ${eventPayload.userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to emit Kafka event for successful payment ${paymentDetails.id}`, error.stack);
+    }
+  }
 
+  private async emitPaymentFailedEvent(paymentDetails: any, reason: string) {
+    try {
+      const eventPayload = {
+        userId: paymentDetails.user_id.toString(),
+        transactionId: paymentDetails.id.toString(),
+        amount: paymentDetails.amount,
+        currency: paymentDetails.currency,
+        reason: reason,
+      };
+      await this.kafkaProducerService.produce({
+        topic: 'payment_failed',
+        messages: [{ value: JSON.stringify(eventPayload) }],
+      });
+      this.logger.log(`Emitted 'payment_failed' event for user ${eventPayload.userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to emit Kafka event for failed payment ${paymentDetails.id}`, error.stack);
+    }
+  }
 
 }

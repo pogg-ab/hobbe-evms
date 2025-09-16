@@ -35,4 +35,5 @@ export interface IUserRepository {
 
   suspendUser(userId: string): Promise<any>;
   reactivateUser(userId: string): Promise<any>;
+  findAllUserIds(): Promise<string[]>;
 }

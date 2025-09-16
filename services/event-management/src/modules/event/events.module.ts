@@ -1,5 +1,5 @@
 import { AutomapperModule } from '@automapper/nestjs';
-import { Inject, Module } from '@nestjs/common';
+import { forwardRef, Inject, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientKafka, ClientsModule, Transport } from '@nestjs/microservices';
@@ -64,6 +64,9 @@ import {
 } from 'src/application/handlers/events/event-status.command.handlers';
 import { set } from 'date-fns';
 import { AdminUpdateEventCommandHandler } from 'src/application/handlers/events/admin-update-event.command.handler';
+import { TicketBookingModule } from '../ticketes/ticket-booking.module';
+import { AdminJwtStrategy } from './admin-jwt.strategy';
+import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
 
 @Module({
   imports: [
@@ -74,6 +77,7 @@ import { AdminUpdateEventCommandHandler } from 'src/application/handlers/events/
     CategoriesModule,
     AutomapperModule,
     PassportModule,
+    forwardRef(() => TicketBookingModule),
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '60s' },
@@ -159,6 +163,8 @@ import { AdminUpdateEventCommandHandler } from 'src/application/handlers/events/
     JwtStrategy,
     SocketIo,
     AuditLogInterceptor,
+    AdminJwtStrategy,
+     AdminAuthGuard,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
       useClass: EventRepositoryEmpl,

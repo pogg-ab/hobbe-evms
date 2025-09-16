@@ -351,6 +351,10 @@ export class UserService {
     this.reindexAllUsers();
   }
 
+  async getAllUserIds(): Promise<string[]> {
+    return this.userRepository.findAllUserIds();
+  }
+
   private async createIndexWithEdgeNGram() {
     const indexName = 'users';
 

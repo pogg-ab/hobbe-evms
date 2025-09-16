@@ -38,4 +38,5 @@ export interface ITicketBookingRepository {
     booking_status: string,
     update_at: any,
   ): Promise<TicketBooking>;
+  findUserIdsByEventId(eventId: string): Promise<string[]>;
 }

@@ -8,9 +8,10 @@ import {
   InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
+  Logger,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { endOfDay, nextSaturday, nextSunday, startOfDay } from 'date-fns';
+import { addHours, endOfDay, nextSaturday, nextSunday, startOfDay } from 'date-fns';
 import { CreateTicketsCommand } from 'src/application/commands/ticket/create-tickets.command';
 import { CustomEventTicketMapper } from 'src/application/mappers/event-tickets.mapper';
 import { Events } from 'src/domain/entities/events.entity';
@@ -31,9 +32,14 @@ import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 import { TicketSalesOverviewResponseDto } from 'src/presentation/dtos/events/ticket-sales-overview-response.dto';
 import { AdminUpdateEventsDto } from 'src/presentation/dtos/events/admin-update-events.dto';
+import { ITicketBookingRepository } from 'src/domain/repositories/tickets/ticket-booking.repository';
+import { CREATE_TICKET_BOOKING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-booking.repository.token';
+import { Cron, CronExpression } from '@nestjs/schedule';
+
 
 @Injectable()
 export class EventsService {
+  private readonly logger = new Logger(EventsService.name);
   constructor(
     @Inject(CREATE_EVENT_REPOSITORY_TOKEN)
     private readonly createEventRepository: IEventRepository,
@@ -48,7 +54,49 @@ export class EventsService {
     private readonly userInfoService: UserInfoService,
     private readonly streamProducerService: StreamProducerService,
     private readonly connection: Connection,
+    @Inject(CREATE_TICKET_BOOKING_REPOSITORY_TOKEN)
+    private readonly ticketBookingRepository: ITicketBookingRepository,
   ) { }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async handleEventReminders() {
+    this.logger.log('Running scheduled job: Sending Event Reminders...');
+    const now = new Date();
+    const reminderWindowEnd = addHours(now, 24);
+
+    try {
+      const upcomingEvents = await this.createEventRepository.findUpcomingEvents(now, reminderWindowEnd);
+
+      if (upcomingEvents.length === 0) {
+        this.logger.log('No upcoming events found within the 24-hour window.');
+        return;
+      }
+
+      this.logger.log(`Found ${upcomingEvents.length} upcoming event(s) to process for reminders.`);
+
+      for (const event of upcomingEvents) {
+        const subscriberIds = await this.ticketBookingRepository.findUserIdsByEventId(event.id.toString());
+        
+        if (subscriberIds.length > 0) {
+          const eventPayload = {
+            userIds: subscriberIds,
+            eventId: event.id.toString(),
+            eventName: event.title,
+            updateMessage: `Reminder: Your event, "${event.title}", is starting in less than 24 hours!`,
+          };
+
+          await this.kafkaProducerService.produce({
+            topic: 'event_reminder',
+            messages: [{ value: JSON.stringify(eventPayload) }],
+          });
+          
+          this.logger.log(`Emitted 'event_reminder' for event ${event.id} to ${subscriberIds.length} subscribers.`);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error during handleEventReminders job:', error.stack);
+    }
+  }
 
   private createStream(user: string, event_id: IdValueObject): any {
     const stream = {
@@ -445,18 +493,43 @@ export class EventsService {
   async update(
     id: string,
     updateEventsDto: UpdateEventsDto,
-    user: any,
+    user: any, 
   ): Promise<Events> {
-    await this.findOne(id);
-    const updatedEvent = this.mapper.map(
-      updateEventsDto,
-      UpdateEventsDto,
-      Events,
-    );
-    console.log(updatedEvent);
-
-    await this.createEventRepository.update(id, updatedEvent, user);
-    return updatedEvent;
+      const eventToUpdate = await this.findOne(id);
+      if (!eventToUpdate) {
+          throw new NotFoundException(`Event with id ${id} not found.`);
+      }
+  
+      const mappedChanges = this.mapper.map(
+        updateEventsDto,
+        UpdateEventsDto,
+        Events,
+      );
+      
+      const updatedEvent = await this.createEventRepository.update(id, mappedChanges, user);
+      
+      try {
+        const userToNotify = eventToUpdate.user_id; 
+  
+        const eventPayload = {
+          userIds: [userToNotify], 
+          eventId: id,
+          eventName: updatedEvent.title,
+          updateMessage: `Your event details have been updated.`,
+        };
+  
+        await this.kafkaProducerService.produce({
+          topic: 'event_updated',
+          messages: [{ value: JSON.stringify(eventPayload) }],
+        });
+        
+        // Using logger instead of console.log
+        this.logger.log(`Successfully emitted 'event_updated' event for event ${id}`);
+      } catch (error) {
+        this.logger.error(`Failed to emit 'event_updated' Kafka event for event ${id}`, error.stack);
+      }
+     
+      return updatedEvent;
   }
 
   async findBySpecificDate(date: Date): Promise<Events[] | []> {

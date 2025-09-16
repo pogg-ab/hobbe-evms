@@ -66,4 +66,5 @@ export interface IEventRepository {
   getTicketSalesOverview(
     eventId: string,
   ): Promise<TicketSalesOverviewResponseDto>;
+  findUpcomingEvents(startTime: Date, endTime: Date): Promise<Events[]>;
 }
