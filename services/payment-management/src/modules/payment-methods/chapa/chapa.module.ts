@@ -8,10 +8,12 @@ import { KafkaPaymentRpcConsumerService } from 'src/infrastructure/kafka/kafka-p
 import { StripeService } from 'src/application/services/payment-methods/stripe/stripe.service';
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
+import { PayoutsModule } from '../payments/payouts.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    PayoutsModule,
     PaymentsModule,
     AuditLogModule,
     ClientsModule.register([

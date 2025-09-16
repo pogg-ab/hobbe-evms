@@ -1,8 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { TransactionsVolumeByDateRange } from 'src/application/queries/payments/transaction-volume-by-date-range.query';
 import { IPaymentsRepository } from 'src/domain/repositories/payments/payments.repository';
 import { CREATE_PAYMENT_TOKEN } from 'src/domain/repositories/payments/payments.repository.token';
-import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
 import { CreatePaymentDto } from 'src/presentation/dtos/payments/create-payments.dto';
 import { AggregatedTransactionVolumeDto } from 'src/presentation/dtos/reports/aggregated-transaction-volume.dto';
 import { TransactionsVolumeByDateRangeDto } from 'src/presentation/dtos/reports/trasaction-volume.dto';
