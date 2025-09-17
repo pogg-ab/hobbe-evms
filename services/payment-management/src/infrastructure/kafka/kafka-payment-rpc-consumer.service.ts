@@ -83,7 +83,7 @@ export class KafkaPaymentRpcConsumerService implements OnModuleInit {
               });
           
         } catch (err: any) {
-          // console.error('❌ Error processing message:', err?.message || err);
+          // console.error('Error processing message:', err?.message || err);
 
           // Optional: send an error response back to replyTopic
           if (replyTopic) {

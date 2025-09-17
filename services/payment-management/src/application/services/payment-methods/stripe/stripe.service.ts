@@ -87,7 +87,8 @@ export class StripeService {
         });
         const fee = charge.balance_transaction['fee_details'][0]['amount'];
         const chargeAmount = fee / 100; // convert to dollars
-        return await this.paymentRepository.verifyChapaPayment("Stripe",session.id, chargeAmount.toString())
+        const ex_ref = charge.balance_transaction['id'];
+        return await this.paymentRepository.verifyChapaPayment("Stripe",session.id, ex_ref, chargeAmount.toString())
       } else {
         return { status: 'failed', session };
       }

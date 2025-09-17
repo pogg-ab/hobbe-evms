@@ -143,7 +143,7 @@ export class ChapaController {
   async refund(@Body() dto: ChapaRefundDto) {
     
     return this.chapaSdkService.refundPayment(
-      dto.txRef,dto.amount,dto.reason
+      dto.txRef,dto.reason
     )
   }
 

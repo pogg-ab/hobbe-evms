@@ -11,14 +11,14 @@ export class ChapaRefundDto {
   @IsNotEmpty()
   txRef: string;
 
-   @ApiPropertyOptional({
-    description: 'Amount to refund. If not provided, a full refund will be processed',
-    example: 100,
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  amount?: number;
+  //  @ApiPropertyOptional({
+  //   description: 'Amount to refund. If not provided, a full refund will be processed',
+  //   example: 100,
+  // })
+  // @IsOptional()
+  // @IsNumber()
+  // @Min(1)
+  // amount?: number;
 
 
    @ApiPropertyOptional({

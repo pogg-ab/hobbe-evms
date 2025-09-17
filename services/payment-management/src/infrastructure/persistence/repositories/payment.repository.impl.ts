@@ -77,7 +77,7 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           }
         }
     
-    async verifyChapaPayment(payment_method:string,tx_ref:string,charge:string):Promise<any>{
+    async verifyChapaPayment(payment_method:string,tx_ref:string,ex_ref:string,charge:string):Promise<any>{
       let paymentToBeVerify = null;
       try {
         switch (payment_method) {
@@ -96,6 +96,7 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
   
        paymentToBeVerify.verified_at = new Date();
        paymentToBeVerify.payment_status = "success";
+       paymentToBeVerify.external_reference = ex_ref;
        paymentToBeVerify.charge = charge;
   
        const paymentStatus =  await this.paymentRepository.save(paymentToBeVerify);

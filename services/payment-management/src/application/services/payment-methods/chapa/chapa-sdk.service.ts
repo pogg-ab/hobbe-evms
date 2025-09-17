@@ -21,6 +21,7 @@ export class ChapaSDKService {
   private readonly CALLBACK_BASE_URL: string;
   private readonly CHAPA_BASE_URL = 'https://api.chapa.co/v1';
   private readonly TRANSFER_ENDPOINT = `${this.CHAPA_BASE_URL}/transfers`;
+  
 
   constructor(
     private readonly configService: ConfigService,
@@ -88,7 +89,7 @@ export class ChapaSDKService {
       const paymentData = response.data.data;
 
 
-      const verifiedPayment = await this.paymentRepository.verifyChapaPayment("Chapa", txRef, response.data.data.charge);
+      const verifiedPayment = await this.paymentRepository.verifyChapaPayment("Chapa", txRef,response.data.data.reference, response.data.data.charge);
       const paymentId = verifiedPayment.paymentStatus.id.toString();
       const userId = verifiedPayment.paymentStatus.user_id.toString();
 
@@ -278,12 +279,13 @@ export class ChapaSDKService {
   }
 
 
-  async refundPayment(txRef: string, amount?: number, reason?: string): Promise<any> {
+  async refundPayment(txRef: string, reason?: string): Promise<any> {
     try {
+
+      
       const res = await axios.post(
         `${this.CHAPA_BASE_URL}/refund/${txRef}`, 
         {
-          amount,
           reason, 
         },
         {
