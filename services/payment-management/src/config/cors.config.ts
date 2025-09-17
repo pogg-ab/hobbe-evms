@@ -3,7 +3,7 @@ import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.int
 const allowedOrigins = [
   'http://localhost:3000',
   'https://admin.portal.hobbeplatform.com',
-  'http://localhost:4000',
+  'http://localhost:4002',
   'http://89.117.37.84:4002',
 ];
 
