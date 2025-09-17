@@ -62,7 +62,7 @@ export class UserController {
 
   @Get('admin/user/:id')
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   @ApiOperation({ summary: 'Get user details by ID' })
   @ApiResponse({
     status: 200,
