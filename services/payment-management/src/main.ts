@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { corsConfig } from './config/cors.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors(corsConfig);
 
   const config = new DocumentBuilder()
     .setTitle('Payment Microservice API Docs')
@@ -19,8 +21,8 @@ async function bootstrap() {
         type: 'http',
         in: 'Header',
       },
-      'access-token', 
-    ) 
+      'access-token',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

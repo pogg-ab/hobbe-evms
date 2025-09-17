@@ -26,10 +26,17 @@ import { VerificationModule } from './modules/verification/verification.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'public'),
-      serveRoot: '/public',
-    }),
+    ServeStaticModule.forRoot(
+      {
+        rootPath: path.join(__dirname, '..', 'public'),
+        serveRoot: '/public',
+      },
+      {
+        rootPath: path.join(__dirname, '..', 'uploads'),
+        serveRoot: '/uploads',
+      },
+    ),
+
     AutomapperModule.forRoot([
       {
         name: 'default',
@@ -54,4 +61,4 @@ import { VerificationModule } from './modules/verification/verification.module';
     VerificationModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}
