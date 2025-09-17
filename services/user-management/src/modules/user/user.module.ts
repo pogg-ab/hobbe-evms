@@ -33,6 +33,7 @@ import { SearchUsersQueryHandler } from 'src/application/handlers/user/search-us
 import { SuspendUserCommandHandler } from 'src/application/handlers/user/suspend-user.command-handler';
 import { ReactivateUserCommand } from 'src/application/commands/user/reactivate-user.command';
 import { ReactivateUserCommandHandler } from 'src/application/handlers/user/reactivate-user.command-handler';
+import { SearchAllUsersQueryHandler } from 'src/application/handlers/user/search-all-users-query.handler';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { ReactivateUserCommandHandler } from 'src/application/handlers/user/reac
     SuspendUserCommandHandler,
     SearchUsersQueryHandler,
     ReactivateUserCommandHandler,
+    SearchAllUsersQueryHandler,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,

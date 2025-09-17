@@ -19,6 +19,7 @@ import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { Connection } from 'typeorm';
 import { AccountType } from 'src/domain/value-objects/account-type.value-object';
+import { SearchFilters } from 'src/presentation/dtos/search-filters.dto';
 
 @Injectable()
 export class UserRepositoryImpl
@@ -261,6 +262,119 @@ export class UserRepositoryImpl
     } catch (error) {
       throw new HttpException(
         `Error finding Users: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async searchUsersWithFilters(
+    searchTerm: string,
+    filters: SearchFilters,
+    page: number,
+    limit: number,
+  ): Promise<{
+    users: any[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    try {
+      const offset = (page - 1) * limit;
+      const queryBuilder = this.userRepository.createQueryBuilder('user');
+
+      queryBuilder.leftJoinAndSelect(
+        'user.personal_account',
+        'personal_account',
+      );
+      queryBuilder.leftJoinAndSelect(
+        'user.organizational_account',
+        'organizational_account',
+      );
+      queryBuilder.leftJoinAndSelect('organizational_account.owner', 'owner');
+      queryBuilder.leftJoinAndSelect('organizational_account.kyc', 'kyc');
+
+      if (searchTerm) {
+        queryBuilder.andWhere('user.user_name ILIKE :searchTerm', {
+          searchTerm: `%${searchTerm}%`,
+        });
+      }
+
+      if (filters.name) {
+        queryBuilder.andWhere('user.user_name ILIKE :name', {
+          name: `%${filters.name}%`,
+        });
+      }
+
+      if (filters.email) {
+        queryBuilder.andWhere('user.email ILIKE :email', {
+          email: `%${filters.email}%`,
+        });
+      }
+
+      if (filters.accountType) {
+        queryBuilder.andWhere('user.account_type = :accountType', {
+          accountType: filters.accountType,
+        });
+      }
+
+      queryBuilder.take(limit).skip(offset);
+
+      const users = await queryBuilder.getMany();
+
+      if (!users || users.length === 0) {
+        return {
+          users: null,
+          total: 0,
+          page,
+          limit,
+        };
+      }
+
+      const total = await queryBuilder.getCount();
+
+      const userAccountInfo = await Promise.all(
+        users.map(async (user) => {
+          const followersCount = await this.followerRepository
+            .createQueryBuilder('follower')
+            .where('follower.following_user_id = :userId', {
+              userId: user.user_id,
+            })
+            .getCount();
+
+          const followingCount = await this.followerRepository
+            .createQueryBuilder('follower')
+            .where('follower.follower_user_id = :userId', {
+              userId: user.user_id,
+            })
+            .getCount();
+
+          return {
+            user_id: user.user_id,
+            user_name: user.user_name,
+            email: user.user_name,
+            account_type: user.account_type,
+            profile_id: user.profile_id,
+            profile_name: user.profile_name,
+            is_active: user.is_active,
+            account_info:
+              user.account_type === 'personal'
+                ? user.personal_account
+                : user.organizational_account,
+            followers_count: followersCount,
+            following_count: followingCount,
+          };
+        }),
+      );
+
+      return {
+        users: userAccountInfo,
+        total,
+        page,
+        limit,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error searching users: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -638,7 +752,7 @@ export class UserRepositoryImpl
         select: ['user_id'],
         where: { is_active: true }, // We should only broadcast to active users
       });
-      return users.map(user => user.user_id.toString());
+      return users.map((user) => user.user_id.toString());
     } catch (error) {
       throw new HttpException(
         `Error finding all User IDs: ${error.message}`,

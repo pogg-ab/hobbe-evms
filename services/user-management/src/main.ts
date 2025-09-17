@@ -17,8 +17,12 @@ dotenv.config({
 // We are adding these console logs to see what the value of KAFKA_BROKER is
 // at the exact moment it should be loaded.
 console.log('--- STARTING DIAGNOSTIC LOG ---');
-console.log(`Attempting to load .env file from: ${path.resolve(__dirname, '..', `.env.${process.env.NODE_ENV || 'development'}`)}`);
-console.log(`Value of KAFKA_BROKER from process.env: ${process.env.KAFKA_BROKER}`);
+console.log(
+  `Attempting to load .env file from: ${path.resolve(__dirname, '..', `.env.${process.env.NODE_ENV || 'development'}`)}`,
+);
+console.log(
+  `Value of KAFKA_BROKER from process.env: ${process.env.KAFKA_BROKER}`,
+);
 console.log('--- ENDING DIAGNOSTIC LOG ---');
 // --- END OF TEST ---
 
@@ -28,10 +32,11 @@ import { kafkaConfig } from './infrastructure/kafka/kafka.config';
 import { kafkaProducerConfig } from './infrastructure/kafka/kafka.producer.config';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { corsConfig } from './config/cors.config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.enableCors({ credentials: true, origin: true });
+  app.enableCors(corsConfig);
   const config = new DocumentBuilder()
     .setTitle('User Management API')
     .setDescription('API for managing users')
