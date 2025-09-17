@@ -22,6 +22,7 @@ import { GetTransferDto } from 'src/presentation/dtos/chapa/get-transfers.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
+import { ChapaRefundDto } from 'src/presentation/dtos/chapa/chapa-refund.dto';
 
 @Controller('chapa')
 @ApiTags('Chapa')
@@ -132,6 +133,20 @@ export class ChapaController {
       getTransferDto.per_page,
     );
   }
+
+  // lets do refund
+
+  @Post()
+  @ApiOperation({ summary: 'Initiate a refund via Chapa API' })
+  @ApiResponse({ status: 200, description: 'Refund processed successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  async refund(@Body() dto: ChapaRefundDto) {
+    
+    return this.chapaSdkService.refundPayment(
+      dto.txRef,dto.amount,dto.reason
+    )
+  }
+
 
 
   @ApiOperation({ description: 'Get Supported Banks' })

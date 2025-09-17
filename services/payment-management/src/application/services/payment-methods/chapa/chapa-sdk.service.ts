@@ -278,6 +278,29 @@ export class ChapaSDKService {
   }
 
 
+  async refundPayment(txRef: string, amount?: number, reason?: string): Promise<any> {
+    try {
+      const res = await axios.post(
+        `${this.CHAPA_BASE_URL}/refund/${txRef}`, 
+        {
+          amount,
+          reason, 
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      return res.data;
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
 
 
 
