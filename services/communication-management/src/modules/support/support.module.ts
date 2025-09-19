@@ -20,7 +20,6 @@ import { ListTicketsQueryHandler } from 'src/application/handlers/support/list-t
 import { SearchTicketsQueryHandler } from 'src/application/handlers/support/search-tickets.query-handler';
 import { GetAgentQueryHandler } from 'src/application/handlers/support/get-agent.query-handler';
 import { ListAgentsQueryHandler } from 'src/application/handlers/support/list-agents.query-handler';
-import { GetAgentByEmailQueryHandler } from 'src/application/handlers/support/get-agent-by-email.query-handler';
 import { GetAgentTimeReportQueryHandler } from 'src/application/handlers/support/get-agent-time-report.query-handler';
 import { GetTimeEntryQueryHandler } from 'src/application/handlers/support/get-time-entry.query-handler';
 import { GetTimeEntriesQueryHandler } from 'src/application/handlers/support/get-time-entries.query-handler';
@@ -41,71 +40,62 @@ import { TimeEntryService } from 'src/application/services/support/time-entry.se
 import { SupportController } from 'src/presentation/controller/support/support.controller';
 
 const commandHandlers = [
-    CreateTicketCommandHandler,
-    UpdateTicketCommandHandler,
-    DeleteTicketCommandHandler,
-    CreateAgentCommandHandler,
-    UpdateAgentCommandHandler,
-    DeleteAgentCommandHandler,
-    UpdateAgentAvailabilityCommandHandler,
-    CreateTimeEntryCommandHandler,
-    DeleteTimeEntryCommandHandler,
-    CreateConversationCommandHandler,
-    UpdateConversationCommandHandler,
-    DeleteConversationCommandHandler,
+  CreateTicketCommandHandler,
+  UpdateTicketCommandHandler,
+  DeleteTicketCommandHandler,
+  CreateAgentCommandHandler,
+  UpdateAgentCommandHandler,
+  DeleteAgentCommandHandler,
+  UpdateAgentAvailabilityCommandHandler,
+  CreateTimeEntryCommandHandler,
+  DeleteTimeEntryCommandHandler,
+  CreateConversationCommandHandler,
+  UpdateConversationCommandHandler,
+  DeleteConversationCommandHandler,
 ];
 
 const queryHandlers = [
-    GetTicketQueryHandler,
-    ListTicketsQueryHandler,
-    SearchTicketsQueryHandler,
-    GetAgentQueryHandler,
-    ListAgentsQueryHandler,
-    GetAgentByEmailQueryHandler,
-    GetAgentTimeReportQueryHandler,
-    GetTimeEntryQueryHandler,
-    GetTimeEntriesQueryHandler,
-    GetAgentTimeEntriesQueryHandler,
-    GetConversationsQueryHandler,
-    GetConversationsQueryHandler,
+  GetTicketQueryHandler,
+  ListTicketsQueryHandler,
+  SearchTicketsQueryHandler,
+  GetAgentQueryHandler,
+  ListAgentsQueryHandler,
+  GetAgentTimeReportQueryHandler,
+  GetTimeEntryQueryHandler,
+  GetTimeEntriesQueryHandler,
+  GetAgentTimeEntriesQueryHandler,
+  GetConversationsQueryHandler,
+  GetConversationsQueryHandler,
 ];
 
 @Module({
-    imports: [
-        CqrsModule,
-        HttpModule,
-        AutomapperModule
-    ],
-    controllers: [SupportController],
-    providers: [
-        TicketService,
-        AgentService,
-        ConversationService,
-        TimeEntryService,
-        FreshdeskConfigService,
-        ...commandHandlers,
-        ...queryHandlers,
-        {
-            provide: TICKET_REPOSITORY_TOKEN,
-            useClass: TicketRepositoryImpl,
-        },
-        {
-            provide: AGENT_REPOSITORY_TOKEN,
-            useClass: AgentRepositoryImpl,
-        },
-        {
-            provide: TIME_ENTRY_REPOSITORY_TOKEN,
-            useClass: TimeEntryRepositoryImpl,
-        },
-        {
-            provide: CONVERSATION_REPOSITORY_TOKEN,
-            useClass: ConversationRepositoryImpl,
-        },
-    ],
-    exports: [
-        FreshdeskConfigService,
-        ...commandHandlers,
-        ...queryHandlers,
-    ],
+  imports: [CqrsModule, HttpModule, AutomapperModule],
+  controllers: [SupportController],
+  providers: [
+    TicketService,
+    AgentService,
+    ConversationService,
+    TimeEntryService,
+    FreshdeskConfigService,
+    ...commandHandlers,
+    ...queryHandlers,
+    {
+      provide: TICKET_REPOSITORY_TOKEN,
+      useClass: TicketRepositoryImpl,
+    },
+    {
+      provide: AGENT_REPOSITORY_TOKEN,
+      useClass: AgentRepositoryImpl,
+    },
+    {
+      provide: TIME_ENTRY_REPOSITORY_TOKEN,
+      useClass: TimeEntryRepositoryImpl,
+    },
+    {
+      provide: CONVERSATION_REPOSITORY_TOKEN,
+      useClass: ConversationRepositoryImpl,
+    },
+  ],
+  exports: [FreshdeskConfigService, ...commandHandlers, ...queryHandlers],
 })
-export class SupportModule { }
+export class SupportModule {}
