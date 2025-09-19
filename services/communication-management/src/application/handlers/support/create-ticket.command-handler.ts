@@ -5,12 +5,30 @@ import { TicketResponseDto } from 'src/presentation/dto/support/ticket/ticket.dt
 import { CreateTicketDto } from 'src/presentation/dto/support/ticket/ticket.dto';
 
 @CommandHandler(CreateTicketCommand)
-export class CreateTicketCommandHandler implements ICommandHandler<CreateTicketCommand> {
-    constructor(private readonly ticketService: TicketService) { }
+export class CreateTicketCommandHandler
+  implements ICommandHandler<CreateTicketCommand>
+{
+  constructor(private readonly ticketService: TicketService) {}
 
-    async execute(command: CreateTicketCommand): Promise<TicketResponseDto> {
-        const { subject, description, email, priority, status, attachments } = command;
-        const createTicketDto: CreateTicketDto = { subject, description, email, priority, status, attachments };
-        return this.ticketService.createTicket(createTicketDto);
-    }
+  async execute(command: CreateTicketCommand): Promise<TicketResponseDto> {
+    const {
+      subject,
+      description,
+      email,
+      priority,
+      status,
+      attachments,
+      user_id,
+    } = command;
+    const createTicketDto: CreateTicketDto = {
+      subject,
+      description,
+      email,
+      priority,
+      status,
+      attachments,
+      user_id,
+    };
+    return this.ticketService.createTicket(createTicketDto);
+  }
 }

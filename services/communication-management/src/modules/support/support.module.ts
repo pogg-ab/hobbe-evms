@@ -39,6 +39,8 @@ import { ConversationService } from 'src/application/services/support/conversati
 import { TimeEntryService } from 'src/application/services/support/time-entry.service';
 import { SupportController } from 'src/presentation/controller/support/support.controller';
 import { GetConversationQueryHandler } from 'src/application/handlers/support/get-conversation.query-handler';
+import { SupportTicket } from 'src/domain/entities/support-ticket.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 const commandHandlers = [
   CreateTicketCommandHandler,
@@ -70,7 +72,12 @@ const queryHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, HttpModule, AutomapperModule],
+  imports: [
+    CqrsModule,
+    HttpModule,
+    AutomapperModule,
+    TypeOrmModule.forFeature([SupportTicket]),
+  ],
   controllers: [SupportController],
   providers: [
     TicketService,
