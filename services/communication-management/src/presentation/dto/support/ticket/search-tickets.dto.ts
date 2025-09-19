@@ -1,12 +1,23 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, Min, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+  IsIn,
+  IsInt,
+} from 'class-validator';
 
 export class SearchTicketsDto {
   @ApiPropertyOptional({
     description: 'Ticket priority (1=Low, 2=Medium, 3=High, 4=Urgent)',
     example: 4,
+    enum: [1, 2, 3, 4],
   })
   @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Priority must be an integer' })
   @IsIn([1, 2, 3, 4], { message: 'Priority must be one of: 1, 2, 3, 4' })
   priority?: number;
 
@@ -14,9 +25,15 @@ export class SearchTicketsDto {
     description:
       'Ticket status (2=Open, 3=Pending, 4=Resolved, 5=Closed, 6=Waiting on Customer, 7=Waiting on Third Party)',
     example: 2,
+    enum: [2, 3, 4, 5, 6, 7],
   })
   @IsOptional()
-  @IsIn([2, 3, 4, 5, 6, 7])
+  @Type(() => Number)
+  @IsInt({ message: 'Status must be an integer' })
+  @IsIn([2, 3, 4, 5, 6, 7], {
+    message:
+      'Status must be one of: 2=Open, 3=Pending, 4=Resolved, 5=Closed, 6=Waiting on Customer, 7=Waiting on Third Party',
+  })
   status?: number;
 
   @ApiPropertyOptional({
