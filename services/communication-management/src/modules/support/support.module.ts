@@ -38,6 +38,7 @@ import { AgentService } from 'src/application/services/support/agent.service';
 import { ConversationService } from 'src/application/services/support/conversation.service';
 import { TimeEntryService } from 'src/application/services/support/time-entry.service';
 import { SupportController } from 'src/presentation/controller/support/support.controller';
+import { GetConversationQueryHandler } from 'src/application/handlers/support/get-conversation.query-handler';
 
 const commandHandlers = [
   CreateTicketCommandHandler,
@@ -65,7 +66,7 @@ const queryHandlers = [
   GetTimeEntriesQueryHandler,
   GetAgentTimeEntriesQueryHandler,
   GetConversationsQueryHandler,
-  GetConversationsQueryHandler,
+  GetConversationQueryHandler,
 ];
 
 @Module({
