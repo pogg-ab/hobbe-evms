@@ -29,6 +29,7 @@ export class TicketService {
       status: validStatus.includes(createTicketDto.status)
         ? createTicketDto.status
         : 2,
+      user_id: createTicketDto.user_id,
       priority: validPriority.includes(createTicketDto.priority)
         ? createTicketDto.priority
         : 1,
@@ -133,6 +134,7 @@ export class TicketService {
       email: ticket.email,
       priority: ticket.priority,
       status: ticket.status,
+      user_id: ticket.user_id,
     };
   }
 }

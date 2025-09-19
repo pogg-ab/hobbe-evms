@@ -4,6 +4,9 @@ import { ITicketRepository } from 'src/domain/repositories/support/ticket.reposi
 import { FreshdeskConfigService } from 'src/infrastructure/support/freshdesk.config';
 import axios from 'axios';
 import * as FormData from 'form-data';
+import { InjectRepository } from '@nestjs/typeorm';
+import { SupportTicket } from 'src/domain/entities/support-ticket.entity';
+import { Repository } from 'typeorm';
 export interface FileStream {
   filename: string;
   buffer: Uint8Array;
@@ -13,7 +16,11 @@ export interface FileStream {
 
 @Injectable()
 export class TicketRepositoryImpl implements ITicketRepository {
-  constructor(private readonly configService: FreshdeskConfigService) {}
+  constructor(
+    private readonly configService: FreshdeskConfigService,
+    @InjectRepository(SupportTicket)
+    private readonly supportTicketRepository: Repository<SupportTicket>,
+  ) {}
 
   async create(
     ticket: Partial<Ticket> & { attachments?: FileStream[] },
@@ -49,6 +56,16 @@ export class TicketRepositoryImpl implements ITicketRepository {
         },
       );
 
+      const freshdeskTicket = response.data as Ticket;
+
+      const supportTicket = this.supportTicketRepository.create({
+        user_id: ticket.user_id,
+        freshdesk_ticket_id: freshdeskTicket.id,
+        created_by: ticket.user_id ?? null,
+      });
+
+      await this.supportTicketRepository.save(supportTicket);
+
       return response.data as Ticket;
     } catch (error) {
       console.error(
@@ -57,6 +74,17 @@ export class TicketRepositoryImpl implements ITicketRepository {
       );
       throw error;
     }
+  }
+
+  private async enrichWithSupportTicket(ticket: any): Promise<any> {
+    const supportTicket = await this.supportTicketRepository.findOne({
+      where: { freshdesk_ticket_id: ticket.id },
+    });
+
+    return {
+      ...ticket,
+      support_ticket: supportTicket ?? null,
+    };
   }
 
   async findAll(skip?: number, take?: number): Promise<Ticket[]> {
@@ -78,7 +106,11 @@ export class TicketRepositoryImpl implements ITicketRepository {
       },
     );
 
-    return response.data;
+    const tickets = response.data;
+
+    return Promise.all(
+      tickets.map((ticket: any) => this.enrichWithSupportTicket(ticket)),
+    );
   }
 
   async findOneById(id: number): Promise<any> {
@@ -87,7 +119,9 @@ export class TicketRepositoryImpl implements ITicketRepository {
         `${this.configService.baseUrl}/tickets/${id}`,
         { headers: this.configService.authHeader },
       );
-      return response.data;
+      const tickets = response.data;
+
+      return this.enrichWithSupportTicket(tickets);
     } catch (error) {
       if (error.response?.status === 404) {
         return null;
@@ -142,7 +176,11 @@ export class TicketRepositoryImpl implements ITicketRepository {
       },
     );
 
-    return response.data;
+    const tickets = response.data?.results ?? [];
+
+    return Promise.all(
+      tickets.map((ticket: any) => this.enrichWithSupportTicket(ticket)),
+    );
   }
 
   async findByStatus(status: number): Promise<Ticket[]> {
@@ -154,7 +192,11 @@ export class TicketRepositoryImpl implements ITicketRepository {
         params: { query: `"${query}"` },
       },
     );
-    return response.data as Ticket[];
+    const tickets = response.data;
+
+    return Promise.all(
+      tickets.map((ticket: any) => this.enrichWithSupportTicket(ticket)),
+    );
   }
 
   async findByPriority(priority: number): Promise<Ticket[]> {
@@ -162,6 +204,10 @@ export class TicketRepositoryImpl implements ITicketRepository {
       `${this.configService.baseUrl}/tickets?priority=${priority}`,
       { headers: this.configService.authHeader },
     );
-    return response.data as Ticket[];
+    const tickets = response.data;
+
+    return Promise.all(
+      tickets.map((ticket: any) => this.enrichWithSupportTicket(ticket)),
+    );
   }
 }

@@ -30,27 +30,16 @@ import {
 import {
   AgentResponseDto,
   AgentTimeReportResponseDto,
-  CreateAgentDto,
   UpdateAgentAvailabilityDto,
-  UpdateAgentDto,
 } from 'src/presentation/dto/support/agent/agent.dto';
-import { UpdateAgentCommand } from 'src/application/commands/support/update-agent.command';
 import { DeleteAgentCommand } from 'src/application/commands/support/delete-agent.command';
-import { CreateAgentCommand } from 'src/application/commands/support/create-agent.command';
 import {
   CreateTicketDto,
   TicketResponseDto,
   UpdateTicketDto,
 } from 'src/presentation/dto/support/ticket/ticket.dto';
-import {
-  CreateTimeEntryDto,
-  TimeEntryResponseDto,
-} from 'src/presentation/dto/support/time-entry/time-entry.dto';
-import {
-  ConversationResponseDto,
-  CreateConversationDto,
-  UpdateConversationDto,
-} from 'src/presentation/dto/support/conversation/conversation.dto';
+import { TimeEntryResponseDto } from 'src/presentation/dto/support/time-entry/time-entry.dto';
+import { ConversationResponseDto } from 'src/presentation/dto/support/conversation/conversation.dto';
 import { ListTicketsQuery } from 'src/application/queries/support/list-tickets.query';
 import { GetTicketQuery } from 'src/application/queries/support/get-ticket.query';
 import { CreateTicketCommand } from 'src/application/commands/support/create-ticket.command';
@@ -60,24 +49,14 @@ import { SearchTicketsQuery } from 'src/application/queries/support/search-ticke
 import { ListAgentsQuery } from 'src/application/queries/support/list-agents.query';
 import { GetAgentQuery } from 'src/application/queries/support/get-agent.query';
 import { UpdateAgentAvailabilityCommand } from 'src/application/commands/support/update-agent-availability.command';
-import { GetAgentTimeReportQuery } from 'src/application/queries/support/get-agent-time-report.query';
 import { GetTimeEntriesQuery } from 'src/application/queries/support/get-time-entries.query';
 import { GetAgentTimeEntriesQuery } from 'src/application/queries/support/get-agent-time-entries.query';
 import { GetTimeEntryQuery } from 'src/application/queries/support/get-time-entry.query';
-import { CreateTimeEntryCommand } from 'src/application/commands/support/create-time-entry.command';
 import { DeleteTimeEntryCommand } from 'src/application/commands/support/delete-time-entry.command';
 import { GetConversationsQuery } from 'src/application/queries/support/get-conversations.query';
-import { CreateConversationCommand } from 'src/application/commands/support/create-conversation.command';
-import { UpdateConversationCommand } from 'src/application/commands/support/update-conversation.command';
 import { DeleteConversationCommand } from 'src/application/commands/support/delete-conversation.command';
-import { TicketProfile } from 'src/application/mappers/support/ticket.profile';
-import {
-  FileFieldsInterceptor,
-  FilesInterceptor,
-} from '@nestjs/platform-express';
-import { extname } from 'path';
-import { diskStorage, memoryStorage } from 'multer';
-import { Readable } from 'stream';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { AgentFilterDto } from 'src/presentation/dto/support/agent/agent-filter.dto';
 import { SearchTicketsDto } from 'src/presentation/dto/support/ticket/search-tickets.dto';
 import { GetConversationQuery } from 'src/application/queries/support/get-conversation.query';
@@ -198,6 +177,7 @@ export class SupportController {
         createTicketDto.email,
         createTicketDto.priority,
         createTicketDto.status,
+        createTicketDto.user_id,
         attachmentBuffers,
       ),
     );
@@ -348,90 +328,6 @@ export class SupportController {
     return agent;
   }
 
-  @Get('agents/:id/time-report')
-  @ApiOperation({ summary: 'Get time report for a specific agent' })
-  @ApiParam({ name: 'id', description: 'Agent ID', example: 5678 })
-  @ApiQuery({
-    name: 'startDate',
-    required: true,
-    description: 'Start date of the report period (ISO string)',
-    example: '2023-01-01T00:00:00.000Z',
-  })
-  @ApiQuery({
-    name: 'endDate',
-    required: true,
-    description: 'End date of the report period (ISO string)',
-    example: '2023-01-31T23:59:59.999Z',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Time report retrieved successfully',
-    type: AgentTimeReportResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Agent not found' })
-  async getAgentTimeReport(
-    @Param('id') id: number,
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-  ): Promise<AgentTimeReportResponseDto> {
-    const report = await this.queryBus.execute(
-      new GetAgentTimeReportQuery(id, new Date(startDate), new Date(endDate)),
-    );
-    return report;
-  }
-
-  @Post('agents')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new agent' })
-  @ApiBody({ type: CreateAgentDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Agent created successfully',
-    type: AgentResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 409, description: 'Agent with email already exists' })
-  async createAgent(
-    @Body() createAgentDto: CreateAgentDto,
-  ): Promise<AgentResponseDto> {
-    const agent = await this.commandBus.execute(
-      new CreateAgentCommand(
-        createAgentDto.name,
-        createAgentDto.email,
-        createAgentDto.role,
-        createAgentDto.available,
-      ),
-    );
-    return agent;
-  }
-
-  @Put('agents/:id')
-  @ApiOperation({ summary: 'Update an existing agent' })
-  @ApiParam({ name: 'id', description: 'Agent ID', example: 5678 })
-  @ApiBody({ type: UpdateAgentDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Agent updated successfully',
-    type: AgentResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Agent not found' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async updateAgent(
-    @Param('id') id: number,
-    @Body() updateAgentDto: UpdateAgentDto,
-  ): Promise<AgentResponseDto> {
-    const agent = await this.commandBus.execute(
-      new UpdateAgentCommand(
-        id,
-        updateAgentDto.name,
-        updateAgentDto.email,
-        updateAgentDto.role,
-        updateAgentDto.available,
-      ),
-    );
-    return agent;
-  }
-
   @Delete('agents/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an agent' })
@@ -516,36 +412,6 @@ export class SupportController {
     return timeEntry;
   }
 
-  @Post('tickets/:ticketId/time-entries')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Add a time entry to a ticket' })
-  @ApiParam({ name: 'ticketId', description: 'Ticket ID', example: 12345 })
-  @ApiBody({ type: CreateTimeEntryDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Time entry added successfully',
-    type: TimeEntryResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Ticket or agent not found' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async createTimeEntry(
-    @Param('ticketId') ticketId: number,
-    @Body() createTimeEntryDto: CreateTimeEntryDto,
-  ): Promise<TimeEntryResponseDto> {
-    const timeEntry = await this.commandBus.execute(
-      new CreateTimeEntryCommand(
-        ticketId,
-        createTimeEntryDto.agentId,
-        createTimeEntryDto.note,
-        createTimeEntryDto.timeSpent,
-        createTimeEntryDto.executedAt
-          ? new Date(createTimeEntryDto.executedAt)
-          : new Date(),
-      ),
-    );
-    return timeEntry;
-  }
-
   @Delete('time-entries/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a time entry' })
@@ -591,59 +457,6 @@ export class SupportController {
   ): Promise<ConversationResponseDto> {
     const conversation = await this.queryBus.execute(
       new GetConversationQuery(id),
-    );
-    return conversation;
-  }
-
-  @Post('tickets/:ticketId/conversations')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Add a conversation to a ticket' })
-  @ApiParam({ name: 'ticketId', description: 'Ticket ID', example: 12345 })
-  @ApiBody({ type: CreateConversationDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Conversation added successfully',
-    type: ConversationResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Ticket not found' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async createConversation(
-    @Param('ticketId') ticketId: number,
-    @Body() createConversationDto: CreateConversationDto,
-  ): Promise<ConversationResponseDto> {
-    const conversation = await this.commandBus.execute(
-      new CreateConversationCommand(
-        ticketId,
-        createConversationDto.body,
-        createConversationDto.fromEmail,
-        createConversationDto.userId,
-        createConversationDto.isPrivate,
-      ),
-    );
-    return conversation;
-  }
-
-  @Put('conversations/:id')
-  @ApiOperation({ summary: 'Update a conversation' })
-  @ApiParam({ name: 'id', description: 'Conversation ID', example: 112233 })
-  @ApiBody({ type: UpdateConversationDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Conversation updated successfully',
-    type: ConversationResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Conversation not found' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async updateConversation(
-    @Param('id') id: number,
-    @Body() updateConversationDto: UpdateConversationDto,
-  ): Promise<ConversationResponseDto> {
-    const conversation = await this.commandBus.execute(
-      new UpdateConversationCommand(
-        id,
-        updateConversationDto.body,
-        updateConversationDto.isPrivate,
-      ),
     );
     return conversation;
   }
