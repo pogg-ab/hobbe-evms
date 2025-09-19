@@ -33,19 +33,13 @@ export class SeedService implements OnModuleInit {
   }
 
   async seed() {
-    const superAdminRoleExists = await this.roleRepo.findOne({ where: { name: 'Super Admin' } });
-    if (!superAdminRoleExists) {
-      await this.seedSuperAdminAndSystem();
-    } else {
-      this.logger.log('Core system already seeded. Skipping.');
-    }
-
-    const eventManagerExists = await this.roleRepo.findOne({ where: { name: 'Event Manager' } });
-    if (!eventManagerExists) {
-      await this.seedBusinessRoles();
-    } else {
-      this.logger.log('Business roles already seeded. Skipping.');
-    }
+    // This new structure is fully idempotent. It's safe to run every time.
+    await this.seedPermissions();
+    await this.seedRoles();
+    await this.assignPermissionsToRoles();
+    await this.seedSystemSettings();
+    await this.seedSuperAdminUser();
+    this.logger.log('Seeding verification and creation process complete.');
   }
 
   // --- HELPER 1: Safely find or create a Permission ---
@@ -68,17 +62,16 @@ export class SeedService implements OnModuleInit {
         permission: { permission_id: permission.permission_id },
       },
     });
-
     if (!linkExists) {
       const newLink = this.rolePermissionRepo.create({ role, permission });
       await this.rolePermissionRepo.save(newLink);
     }
   }
 
-  private async seedSuperAdminAndSystem() {
-    this.logger.log('Running Super Admin and System seeder...');
-
-    const systemPermissionsData = [
+  private async seedPermissions() {
+    this.logger.log('Verifying all permissions exist...');
+    const permissionsData = [
+      // System & RBAC Permissions
       { action: 'create:role', resource: 'RBAC' }, { action: 'view:roles', resource: 'RBAC' },
       { action: 'update:role', resource: 'RBAC' }, { action: 'delete:role', resource: 'RBAC' },
       { action: 'create:permission', resource: 'RBAC' }, { action: 'view:permissions', resource: 'RBAC' },
@@ -87,30 +80,82 @@ export class SeedService implements OnModuleInit {
       { action: 'view:admin_users', resource: 'AdminUsers' }, { action: 'update:admin_user', resource: 'AdminUsers' },
       { action: 'delete:admin_user', resource: 'AdminUsers' }, { action: 'view:audit_log', resource: 'System' },
       { action: 'update:system_settings', resource: 'System' },
+      // Admin Alert Permissions
+      { action: 'create:admin_alert', resource: 'System' }, { action: 'view:admin_alerts', resource: 'System' },
+      { action: 'update:admin_alert', resource: 'System' }, { action: 'delete:admin_alert', resource: 'System' },
+      // Business Permissions
+      { action: 'update', resource: 'Event' }, { action: 'change:status', resource: 'Event' },
+      { action: 'delete', resource: 'Event' }, { action: 'process', resource: 'Refund' },
+      { action: 'view', resource: 'Report' }, { action: 'update', resource: 'OrganizerProfile' },
+      { action: 'manage', resource: 'User' },
     ];
-    const systemPermissions = await Promise.all(
-      systemPermissionsData.map(p => this.findOrCreatePermission(p.action, p.resource)),
+    await Promise.all(permissionsData.map(p => this.findOrCreatePermission(p.action, p.resource)));
+  }
+
+  private async seedRoles() {
+    this.logger.log('Verifying all core roles exist...');
+    await this.roleRepo.upsert(
+      [
+        { name: 'Super Admin', description: 'Has full control over the entire system.' },
+        { name: 'Event Manager', description: 'Can update events, change status, view reports, and manage organizers.' },
+        { name: 'Finance Officer', description: 'Can process refunds and view payment reports.' },
+        { name: 'Viewer/Analyst', description: 'Has read-only access to reports and event details.' },
+        { name: 'User', description: 'Default role for all registered users.' },
+      ],
+      ['name'] // Conflict target: if a role with this name exists, do nothing.
     );
-    this.logger.log('Verified foundational system permissions.');
+  }
 
-    const superAdminRole = await this.roleRepo.save({ name: 'Super Admin', description: 'Has full control over the entire system.' });
-    this.logger.log(`Created 'Super Admin' role.`);
+  private async assignPermissionsToRoles() {
+    this.logger.log('Verifying role-permission assignments...');
+    const allPermissions = await this.permissionRepo.find();
+    const allRoles = await this.roleRepo.find();
 
-    for (const permission of systemPermissions) {
-      await this.linkPermissionToRole(superAdminRole, permission);
+    const findPerm = (action: string, resource: string) => allPermissions.find(p => p.action === action && p.resource === resource);
+    const findRole = (name: string) => allRoles.find(r => r.name === name);
+
+    const superAdminRole = findRole('Super Admin');
+    const eventManagerRole = findRole('Event Manager');
+    const financeOfficerRole = findRole('Finance Officer');
+    const viewerRole = findRole('Viewer/Analyst');
+
+    // Assign ALL permissions to Super Admin
+    if (superAdminRole) {
+      for (const permission of allPermissions) {
+        await this.linkPermissionToRole(superAdminRole, permission);
+      }
     }
-    this.logger.log('Assigned all system permissions to Super Admin role.');
-
-    await this.roleRepo.save({ name: 'User', description: 'Default role for all registered users.' });
-    this.logger.log(`Created default 'User' role for new user registration.`);
     
-    this.logger.log('Seeding initial system settings...');
-    const mfaSettingExists = await this.systemSettingRepo.findOne({ where: { key: 'MFA_REQUIRED' } });
-    if (!mfaSettingExists) {
+    // Assign specific permissions to other business roles
+    await this.linkPermissionToRole(eventManagerRole, findPerm('update', 'Event'));
+    await this.linkPermissionToRole(eventManagerRole, findPerm('change:status', 'Event'));
+    await this.linkPermissionToRole(eventManagerRole, findPerm('view', 'Report'));
+    await this.linkPermissionToRole(eventManagerRole, findPerm('update', 'OrganizerProfile'));
+    
+    await this.linkPermissionToRole(financeOfficerRole, findPerm('process', 'Refund'));
+    await this.linkPermissionToRole(financeOfficerRole, findPerm('view', 'Report'));
+    
+    await this.linkPermissionToRole(viewerRole, findPerm('view', 'Report'));
+  }
+
+  private async seedSystemSettings() {
+    this.logger.log('Verifying initial system settings...');
+    const mfaSetting = await this.systemSettingRepo.findOne({ where: { key: 'MFA_REQUIRED' } });
+    if (!mfaSetting) {
       await this.systemSettingRepo.save({ key: 'MFA_REQUIRED', value: 'false' });
       this.logger.log('Set default system setting for MFA_REQUIRED to false.');
-    } else {
-      this.logger.log('MFA_REQUIRED setting already exists. Skipping.');
+    }
+  }
+  
+  private async seedSuperAdminUser() {
+    this.logger.log('Verifying Super Admin user exists...');
+    const adminExists = await this.adminUserRepo.findOne({ where: { user_name: 'superadmin@gmail.com' } });
+    if (adminExists) return;
+
+    const superAdminRole = await this.roleRepo.findOne({ where: { name: 'Super Admin' } });
+    if (!superAdminRole) {
+      this.logger.error('Cannot seed Super Admin user because Super Admin role does not exist!');
+      return;
     }
 
     const superAdminAccount = await this.adminAccountRepo.save({
@@ -119,71 +164,19 @@ export class SeedService implements OnModuleInit {
         email_address: 'superadmin@gmail.com',
         phone_number: '+10000000000',
     });
-    this.logger.log('Created Super Admin account profile with specified credentials.');
     
-    const fixedPassword = 'password!';
-    const hashedPassword = await bcrypt.hash(fixedPassword, 10);
+    const hashedPassword = await bcrypt.hash('password!', 10);
 
     const superAdminUser = await this.adminUserRepo.save({
         user_name: 'superadmin@gmail.com',
         password: hashedPassword,
         admin_user_account: superAdminAccount.admin_user_account_id as any,
     });
-    this.logger.log('Created Super Admin login.');
 
     await this.adminUserRoleRepo.save({
         admin_user_id: superAdminUser.admin_user_id as any,
         role: superAdminRole,
     });
-    this.logger.log('Assigned "Super Admin" role to the first user.');
-  }
-
-  private async seedBusinessRoles() {
-    this.logger.log('Seeding business-level roles and permissions...');
-
-    const businessPermissionsData = [
-      { action: 'update', resource: 'Event' }, { action: 'change:status', resource: 'Event' },
-      { action: 'delete', resource: 'Event' }, { action: 'process', resource: 'Refund' },
-      { action: 'view', resource: 'Report' }, { action: 'update', resource: 'OrganizerProfile' },
-      { action: 'manage', resource: 'User' },
-    ];
-    const businessPermissions = await Promise.all(
-      businessPermissionsData.map(p => this.findOrCreatePermission(p.action, p.resource)),
-    );
-    this.logger.log('Verified business-level permissions.');
-
-    const createdRoles = await this.roleRepo.save([
-      { name: 'Event Manager', description: 'Can update events, change status, view reports, and manage organizers.' },
-      { name: 'Finance Officer', description: 'Can process refunds and view payment reports.' },
-      { name: 'Viewer/Analyst', description: 'Has read-only access to reports and event details.' },
-    ]);
-    this.logger.log('Created business-level roles.');
-
-    const eventManagerRole = createdRoles.find(r => r.name === 'Event Manager');
-    const financeOfficerRole = createdRoles.find(r => r.name === 'Finance Officer');
-    const viewerRole = createdRoles.find(r => r.name === 'Viewer/Analyst');
-
-    // Link permissions to roles using the safe helper function
-    await this.linkPermissionToRole(eventManagerRole, businessPermissions.find(p => p.action === 'update' && p.resource === 'Event'));
-    await this.linkPermissionToRole(eventManagerRole, businessPermissions.find(p => p.action === 'change:status' && p.resource === 'Event'));
-    await this.linkPermissionToRole(eventManagerRole, businessPermissions.find(p => p.action === 'view' && p.resource === 'Report'));
-    await this.linkPermissionToRole(eventManagerRole, businessPermissions.find(p => p.action === 'update' && p.resource === 'OrganizerProfile'));
-    
-    await this.linkPermissionToRole(financeOfficerRole, businessPermissions.find(p => p.action === 'process' && p.resource === 'Refund'));
-    await this.linkPermissionToRole(financeOfficerRole, businessPermissions.find(p => p.action === 'view' && p.resource === 'Report'));
-    
-    await this.linkPermissionToRole(viewerRole, businessPermissions.find(p => p.action === 'view' && p.resource === 'Report'));
-
-    this.logger.log('Successfully assigned permissions to business roles.');
-
-    const superAdminRole = await this.roleRepo.findOne({ where: { name: 'Super Admin' } });
-    if (superAdminRole) {
-      for (const permission of businessPermissions) {
-        await this.linkPermissionToRole(superAdminRole, permission);
-      }
-      this.logger.log('Successfully assigned all new business permissions to the Super Admin role.');
-    }
-
-    this.logger.log('Full database seeding is complete!');
+    this.logger.log('Successfully created Super Admin user and assigned role.');
   }
 }

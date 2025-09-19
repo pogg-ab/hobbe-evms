@@ -20,16 +20,23 @@ import { SeedModule } from './modules/seed/seed.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { GroupAccountModule } from './modules/group-account/group-account.module';
 import { VerificationModule } from './modules/verification/verification.module';
-import { FaqModule } from './modules/faq/faq.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'public'),
-      serveRoot: '/public',
-    }),
+    ServeStaticModule.forRoot(
+      {
+        rootPath: path.join(__dirname, '..', 'public'),
+        serveRoot: '/public',
+      },
+      {
+        rootPath: path.join(__dirname, '..', 'uploads'),
+        serveRoot: '/uploads',
+      },
+    ),
+
     AutomapperModule.forRoot([
       {
         name: 'default',
@@ -52,7 +59,6 @@ import { FaqModule } from './modules/faq/faq.module';
     SeedModule,
     GroupAccountModule,
     VerificationModule,
-    FaqModule
   ],
 })
-export class AppModule { }
+export class AppModule {}

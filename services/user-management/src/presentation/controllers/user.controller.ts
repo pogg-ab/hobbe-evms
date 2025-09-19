@@ -36,6 +36,7 @@ import { UserService } from 'src/application/services/user.service';
 import { SuspendUserCommand } from 'src/application/commands/user/suspend-user.command';
 import { ReactivateUserCommand } from 'src/application/commands/user/reactivate-user.command';
 import { AdminAuthGuard } from '../guards/admin-auth.guard';
+import { SearchAllUsersQuery } from 'src/application/queries/user/search-all-users.query';
 
 @ApiTags('Users')
 @Controller('users')
@@ -56,6 +57,19 @@ export class UserController {
     type: [Any || null],
   })
   async findUserById(@Param('id') id: string): Promise<User> {
+    return this.queryBus.execute(new FindUserByIdQuery(id));
+  }
+
+  @Get('admin/user/:id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({ summary: 'Get user details by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'User found',
+    type: [Any || null],
+  })
+  async adminFindUserById(@Param('id') id: string): Promise<User> {
     return this.queryBus.execute(new FindUserByIdQuery(id));
   }
 
@@ -170,6 +184,26 @@ export class UserController {
     );
   }
 
+  @Get('admin/search-all-organizers')
+  @ApiBearerAuth('access-token')
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({ summary: 'Search users by name or email' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of users matching search criteria',
+    type: [UserResponseDto],
+  })
+  async adminSearchAllUsers(
+    @Query('query') query: string,
+    @Query() filters: SearchFilters,
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ): Promise<User[]> {
+    return this.queryBus.execute(
+      new SearchAllUsersQuery(query, filters, page, limit),
+    );
+  }
+
   @MessagePattern('get-user-info')
   async handleGetUserInfo(@Payload() payload: any) {
     try {
@@ -216,5 +250,20 @@ export class UserController {
   })
   async reactivateUser(@Param('id') userId: string): Promise<User> {
     return this.commandBus.execute(new ReactivateUserCommand(userId));
+  }
+  @Get('internal/all-ids')
+  @ApiOperation({
+    summary: 'FOR INTERNAL USE ONLY: Get a list of all user IDs',
+  })
+  @ApiResponse({ status: 200, description: 'An array of all user UUIDs.' })
+  // We will omit guards for now, assuming your internal network is trusted.
+  // In production, you would add an API key or internal JWT guard here.
+  async getAllUserIds(): Promise<string[]> {
+    return this.userService.getAllUserIds();
+  }
+  @MessagePattern('get_all_user_ids')
+  async handleGetAllUserIdsForRPC(): Promise<string[]> {
+    // This simply calls the same service method as our HTTP endpoint
+    return this.userService.getAllUserIds();
   }
 }

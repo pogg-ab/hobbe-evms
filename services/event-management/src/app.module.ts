@@ -15,6 +15,7 @@ import { FavoriteModule } from './modules/favorite/favorite.module';
 import { EventShareModule } from './modules/event-share/event-share.module';
 import { GuestsModule } from './modules/guest/guest.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AuthModule } from './modules/auth/auth.module';
     EventShareModule,
     GuestsModule,
     AuthModule,
+    ScheduleModule.forRoot(),
   ],
 })
 export class AppModule {}

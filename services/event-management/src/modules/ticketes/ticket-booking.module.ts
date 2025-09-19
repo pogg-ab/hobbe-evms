@@ -1,5 +1,5 @@
 import { AutomapperModule } from '@automapper/nestjs';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ClientsModule } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -145,5 +145,8 @@ import { TicketsModule } from './tickets.module';
       useClass: BookingHasPaymentRepositoryImpl,
     },
   ],
+  exports: [
+    CREATE_TICKET_BOOKING_REPOSITORY_TOKEN
+  ]
 })
 export class TicketBookingModule { }

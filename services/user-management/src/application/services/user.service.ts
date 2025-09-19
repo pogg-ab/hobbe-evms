@@ -72,6 +72,33 @@ export class UserService {
     return user;
   }
 
+  async searchAllUsers(
+    query: string,
+    filters: SearchFilters,
+    page: number,
+    limit: number,
+  ): Promise<{
+    users: any[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const result = await this.userRepository.searchUsersWithFilters(
+      query,
+      filters,
+      page,
+      limit,
+    );
+
+    if (!result.users || result.users.length === 0) {
+      throw new NotFoundException(
+        'No users found matching the search criteria',
+      );
+    }
+
+    return result;
+  }
+
   async getUserInfo(userIds: string[]): Promise<Record<string, any>> {
     if (!userIds || userIds.length === 0) {
       return {};
@@ -349,6 +376,10 @@ export class UserService {
   async onModuleInit() {
     this.createIndexWithEdgeNGram();
     this.reindexAllUsers();
+  }
+
+  async getAllUserIds(): Promise<string[]> {
+    return this.userRepository.findAllUserIds();
   }
 
   private async createIndexWithEdgeNGram() {

@@ -15,6 +15,17 @@ export interface IUserRepository {
     page: number;
     limit: number;
   }>;
+  searchUsersWithFilters(
+    searchTerm: string,
+    filters: SearchFilters,
+    page: number,
+    limit: number,
+  ): Promise<{
+    users: any[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }>;
   update(user: User): Promise<User>;
   findAllUsersOnly(): Promise<any>;
   search(
@@ -35,4 +46,5 @@ export interface IUserRepository {
 
   suspendUser(userId: string): Promise<any>;
   reactivateUser(userId: string): Promise<any>;
+  findAllUserIds(): Promise<string[]>;
 }

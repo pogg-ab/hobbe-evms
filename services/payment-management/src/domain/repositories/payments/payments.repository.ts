@@ -22,4 +22,5 @@ export interface IPaymentsRepository{
 
     getTransactionVolumeByDateRange(query: TransactionsVolumeByDateRangeDto): Promise<any>;
     getAggregatedTransactionVolume(aggregatedTransactionVolumeDto: any): Promise<any>;
+    findByTxRef(txRef: string): Promise<Payments | null>;
 }

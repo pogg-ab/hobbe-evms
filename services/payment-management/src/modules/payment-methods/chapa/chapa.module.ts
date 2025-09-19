@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ClientsModule, Transport } from '@nestjs/microservices'; // <-- 1. IMPORT
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
 import { ChapaController } from 'src/presentation/controllers/payment-methods/chapa/chapa.controller';
 import { PaymentsModule } from '../payments/payments.module';
@@ -19,7 +19,7 @@ import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc
     AuditLogModule,
     ClientsModule.register([
       {
-        name: 'KAFKA_PRODUCER', // Must match the @Inject() token
+        name: 'KAFKA_PRODUCER',
         transport: Transport.KAFKA,
         options: {
           client: {
@@ -37,6 +37,7 @@ import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc
     KafkaPaymentRpcConsumerService,
     KafkaRefundRpcService,
     AuditLogInterceptor,
+    KafkaProducerService,
   ],
   exports: [ChapaSDKService],
 })

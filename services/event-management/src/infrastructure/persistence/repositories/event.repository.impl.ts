@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { start } from 'repl';
@@ -575,6 +575,20 @@ export class EventRepositoryEmpl implements IEventRepository {
     const eventToDelete = await this.findOne(id);
     await this.eventRepository.delete(id);
   }
+
+  async findUpcomingEvents(startTime: Date, endTime: Date): Promise<Events[]> {
+    try {
+        return this.eventRepository.find({
+            where: {
+                status: 'active', // Only remind for active events
+                event_start_date: Between(startTime, endTime),
+            },
+        });
+    } catch (error) {
+        // It's good practice to wrap repository calls in a try/catch
+        throw new InternalServerErrorException(`Error fetching upcoming events: ${error.message}`);
+    }
+}
 
   // Analitics
   // async countMyEvents(user:string):Promise<any>{
