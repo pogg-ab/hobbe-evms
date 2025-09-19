@@ -24,6 +24,9 @@ export class Payments {
     @Column()
     tx_ref: string;
 
+    @Column({nullable: true})
+    external_reference: string;
+
     @Column()
     payment_method: string;
 

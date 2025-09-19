@@ -66,8 +66,13 @@ export class Transaction {
     @Column({ nullable: true })
     updated_date: Date;
 
-    @Column({ type: 'int', nullable: true })
-    reverses: number;
+    // @Column({ type: 'int', nullable: true })
+    // reverses: number;
+
+     @Column({ nullable: true })
+    reverses: string;
+
+
 
     @Column({ nullable: true })
     reversed_by: string;

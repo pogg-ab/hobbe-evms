@@ -229,6 +229,19 @@ export class TicketsService {
     return aggregatedLogs;
   }
 
+  async findTicketsByBookingId(bookingId: string): Promise<Tickets[]> {
+    const tickets = await this.createTicketsRepository.findTicketsByBookingId(bookingId);
+    if (!tickets || tickets.length === 0) {
+      throw new NotFoundException(`No tickets found for booking ID ${bookingId}.`);
+    }
+    return tickets;
+  }
+
+
+  async ticketRefundProcess(ticketId: string): Promise<void> {
+    await this.createTicketsRepository.ticketRefundProcess(ticketId);
+  }
+
 
   //        async findByCategory(category:string):Promise<Events[]>{
   //         const event  = await this.createEventRepository.findByCategory(category);

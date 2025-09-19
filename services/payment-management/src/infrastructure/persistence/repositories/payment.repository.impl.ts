@@ -33,6 +33,24 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           }
     }
 
+   async findByExRef(ex_ref: string): Promise<Payments | null> {
+       try {
+        const payment = await this.paymentRepository.findOne({ where: { external_reference: ex_ref } });
+          if (!payment) {
+            throw new HttpException(
+              `Payment with external reference ${ex_ref} not found`,
+              HttpStatus.NOT_FOUND,
+            );
+          }
+        return payment;
+       } catch (error) {
+        throw new HttpException(
+            `Error finding payment by external reference: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+       }      
+    }
+
 
 
      async findOneChapaPayment(tx_ref:string):Promise<Payments | null>{
@@ -77,7 +95,7 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           }
         }
     
-    async verifyChapaPayment(payment_method:string,tx_ref:string,charge:string):Promise<any>{
+    async verifyChapaPayment(payment_method:string,tx_ref:string,ex_ref:string,charge:string):Promise<any>{
       let paymentToBeVerify = null;
       try {
         switch (payment_method) {
@@ -96,6 +114,7 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
   
        paymentToBeVerify.verified_at = new Date();
        paymentToBeVerify.payment_status = "success";
+       paymentToBeVerify.external_reference = ex_ref;
        paymentToBeVerify.charge = charge;
   
        const paymentStatus =  await this.paymentRepository.save(paymentToBeVerify);
@@ -111,6 +130,28 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           `Error updating bank account: ${error.message}`,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
+      }
+    }
+
+
+    async changePaymentStatus(id:string,status:string):Promise<Payments | null>{
+      try {
+        const payment = await this.paymentRepository.findOne({ where: { id: id} });
+        if (!payment) {
+          throw new HttpException(
+            `Payment with ID ${id} not found`,
+            HttpStatus.NOT_FOUND,
+          );
+        }
+
+        payment.payment_status = status;
+        const updatedPayment = await this.paymentRepository.save(payment);
+        return updatedPayment;
+      } catch (error) {
+        throw new HttpException(
+          `Error updating payment status: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );  
       }
     }
 

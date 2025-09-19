@@ -174,6 +174,8 @@ import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
       useClass: TicketsRepositoryEmpl,
     },
   ],
+
+  exports: [EventsService],
 })
 export class EventsModule {
   constructor(

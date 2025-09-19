@@ -38,6 +38,7 @@ import { KafkaPaymentRpcService } from 'src/infrastructure/kafka/kafka-payment-r
 import { kafkaCheckinPrivilegeConfig } from 'src/infrastructure/kafka/kafka.checkin-privilege.config';
 import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { KafkaRefundRpcConsumerService } from 'src/infrastructure/kafka/kafka.rfund.rpc.consumer..service';
 import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
 import { BookingHasPaymentRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-payment.repository.impl';
 import { BookingHasPromocodeRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-promocode.repository.impl';
@@ -53,6 +54,8 @@ import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { TicketBookingController } from 'src/presentation/controllers/ticket-booking/ticket-booking.controller';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { EventsModule } from '../event/events.module';
+import { TicketsModule } from './tickets.module';
+
 @Module({
   imports: [
     AutomapperModule,
@@ -78,6 +81,8 @@ import { EventsModule } from '../event/events.module';
       },
     ]),
     CqrsModule,
+    EventsModule,
+    TicketsModule,
   ],
 
   controllers: [TicketBookingController],
@@ -98,6 +103,7 @@ import { EventsModule } from '../event/events.module';
     KafkaProducerService,
     KafkaConsumerService,
     KafkaPaymentRpcService,
+    KafkaRefundRpcConsumerService,
     {
       provide: CREATE_TICKET_BOOKING_REPOSITORY_TOKEN,
       useClass: TicketBookingRepositoryImpl,

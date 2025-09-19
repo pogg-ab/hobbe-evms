@@ -71,6 +71,9 @@ import { QrAfterScannedActionsAggregateQueryHandler } from 'src/application/hand
       useClass: ParticipantHasTicketRepositoryImpl,
     },
   ],
-  exports: [TICKETS_LIST_REPOSITORY_TOKEN],
+  exports: [
+    TicketsService,
+    TICKETS_LIST_REPOSITORY_TOKEN
+  ],
 })
 export class TicketsModule {}
