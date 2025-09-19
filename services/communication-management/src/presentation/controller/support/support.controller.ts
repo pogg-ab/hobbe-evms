@@ -80,6 +80,7 @@ import { diskStorage, memoryStorage } from 'multer';
 import { Readable } from 'stream';
 import { AgentFilterDto } from 'src/presentation/dto/support/agent/agent-filter.dto';
 import { SearchTicketsDto } from 'src/presentation/dto/support/ticket/search-tickets.dto';
+import { GetConversationQuery } from 'src/application/queries/support/get-conversation.query';
 
 @ApiTags('support')
 @Controller('support')
@@ -589,7 +590,7 @@ export class SupportController {
     @Param('id') id: number,
   ): Promise<ConversationResponseDto> {
     const conversation = await this.queryBus.execute(
-      new GetConversationsQuery(id),
+      new GetConversationQuery(id),
     );
     return conversation;
   }
