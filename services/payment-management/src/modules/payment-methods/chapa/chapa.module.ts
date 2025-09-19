@@ -10,6 +10,7 @@ import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.int
 import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
 import { PayoutsModule } from '../payments/payouts.module';
 import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc.service';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 
 @Module({
   imports: [

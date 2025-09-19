@@ -21,6 +21,7 @@ import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
 import { CREATE_PAYOUT_TOKEN } from 'src/domain/repositories/payments/payouts.repository.token';
 import { IPayoutsRepository } from 'src/domain/repositories/payments/payouts.repository';
 import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc.service';
+import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 
 @Injectable()
 export class ChapaSDKService {
