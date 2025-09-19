@@ -1,14 +1,15 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { SearchTicketsQuery } from 'src/application/queries/support/search-tickets.query';
 import { TicketService } from 'src/application/services/support/ticket.service';
-import { TicketResponseDto } from 'src/presentation/dto/support/ticket/ticket.dto';
 
 @QueryHandler(SearchTicketsQuery)
-export class SearchTicketsQueryHandler implements IQueryHandler<SearchTicketsQuery> {
-    constructor(private readonly ticketService: TicketService) { }
+export class SearchTicketsQueryHandler
+  implements IQueryHandler<SearchTicketsQuery>
+{
+  constructor(private readonly ticketService: TicketService) {}
 
-    async execute(query: SearchTicketsQuery): Promise<TicketResponseDto[]> {
-        const { query: searchQuery } = query;
-        return this.ticketService.searchTickets(searchQuery);
-    }
+  async execute(query: SearchTicketsQuery): Promise<any[]> {
+    const tickets = await this.ticketService.searchTickets(query.dto);
+    return tickets;
+  }
 }

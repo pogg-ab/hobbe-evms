@@ -79,6 +79,7 @@ import { extname } from 'path';
 import { diskStorage, memoryStorage } from 'multer';
 import { Readable } from 'stream';
 import { AgentFilterDto } from 'src/presentation/dto/support/agent/agent-filter.dto';
+import { SearchTicketsDto } from 'src/presentation/dto/support/ticket/search-tickets.dto';
 
 @ApiTags('support')
 @Controller('support')
@@ -273,25 +274,22 @@ export class SupportController {
     await this.commandBus.execute(new DeleteTicketCommand(id));
   }
 
-  @Get('tickets/search/:query')
-  @ApiOperation({ summary: 'Search tickets by query' })
-  @ApiParam({
-    name: 'query',
-    description: 'Search query',
-    example: 'website error',
+  @Get('search/tickets')
+  @ApiOperation({
+    summary: 'Search Freshdesk tickets using advanced query language',
   })
   @ApiResponse({
     status: 200,
-    description: 'Search results',
+    description: 'List of tickets matching the query',
     schema: {
       type: 'array',
       items: { $ref: getSchemaPath(TicketResponseDto) },
     },
   })
   async searchTickets(
-    @Param('query') query: string,
+    @Query() dto: SearchTicketsDto,
   ): Promise<TicketResponseDto[]> {
-    const tickets = await this.queryBus.execute(new SearchTicketsQuery(query));
+    const tickets = await this.queryBus.execute(new SearchTicketsQuery(dto));
     return tickets;
   }
 
