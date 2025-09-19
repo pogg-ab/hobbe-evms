@@ -7,7 +7,7 @@ export interface ITicketRepository {
     ticket: Partial<Ticket> & { attachments?: FileStream[] },
   ): Promise<TicketResponseDto>;
   findAll(skip?: number, take?: number): Promise<Ticket[]>;
-  findOneById(id: number): Promise<Ticket | null>;
+  findOneById(id: number): Promise<any>;
   update(id: number, ticket: Partial<Ticket>): Promise<Ticket>;
   delete(id: number): Promise<void>;
   search(query: string, page?: number): Promise<any[]>;

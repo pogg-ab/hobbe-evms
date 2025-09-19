@@ -47,12 +47,12 @@ export class TicketService {
     return tickets.map(this.mapToTicketResponseDto);
   }
 
-  async findTicketById(id: number): Promise<TicketResponseDto> {
+  async findTicketById(id: number): Promise<any> {
     const ticket = await this.ticketRepository.findOneById(id);
     if (!ticket) {
       throw new NotFoundException(`Ticket with ID ${id} not found`);
     }
-    return this.mapToTicketResponseDto(ticket);
+    return ticket;
   }
 
   async updateTicket(

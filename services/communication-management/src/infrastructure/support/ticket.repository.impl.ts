@@ -81,13 +81,13 @@ export class TicketRepositoryImpl implements ITicketRepository {
     return response.data;
   }
 
-  async findOneById(id: number): Promise<Ticket | null> {
+  async findOneById(id: number): Promise<any> {
     try {
       const response = await axios.get(
         `${this.configService.baseUrl}/tickets/${id}`,
         { headers: this.configService.authHeader },
       );
-      return response.data as Ticket;
+      return response.data;
     } catch (error) {
       if (error.response?.status === 404) {
         return null;
