@@ -136,14 +136,20 @@ export class ChapaController {
 
   // lets do refund
 
-  @Post()
+  @Post('refund')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Initiate a refund via Chapa API' })
   @ApiResponse({ status: 200, description: 'Refund processed successfully' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async refund(@Body() dto: ChapaRefundDto) {
-    
+  async refund(
+    @Body() dto: ChapaRefundDto,
+    @CurrentUserId() user: any,
+  ) {    
     return this.chapaSdkService.refundPayment(
-      dto.txRef,dto.reason
+      dto.txRef,
+      user.username,
+      dto.reason,
     )
   }
 

@@ -58,6 +58,11 @@ export interface ITicketsRepository {
   ): Promise<void>;
 
 
+  ticketRefundProcess(
+    ticketId: string,
+  ): Promise<void>;
+
+
   findUpcomingTickets(
     userId: string,
     page: number,
@@ -82,6 +87,8 @@ export interface ITicketsRepository {
     manager: EntityManager,
     eventId: string,
   ): Promise<number>;
+
+  findTicketsByBookingId(bookingId: string): Promise<Tickets[]>;
 
   qrCodeScannedLog(
     ticket_id: string,

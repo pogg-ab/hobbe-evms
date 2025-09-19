@@ -33,6 +33,24 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           }
     }
 
+   async findByExRef(ex_ref: string): Promise<Payments | null> {
+       try {
+        const payment = await this.paymentRepository.findOne({ where: { external_reference: ex_ref } });
+          if (!payment) {
+            throw new HttpException(
+              `Payment with external reference ${ex_ref} not found`,
+              HttpStatus.NOT_FOUND,
+            );
+          }
+        return payment;
+       } catch (error) {
+        throw new HttpException(
+            `Error finding payment by external reference: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+       }      
+    }
+
 
 
      async findOneChapaPayment(tx_ref:string):Promise<Payments | null>{
@@ -112,6 +130,28 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           `Error updating bank account: ${error.message}`,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
+      }
+    }
+
+
+    async changePaymentStatus(id:string,status:string):Promise<Payments | null>{
+      try {
+        const payment = await this.paymentRepository.findOne({ where: { id: id} });
+        if (!payment) {
+          throw new HttpException(
+            `Payment with ID ${id} not found`,
+            HttpStatus.NOT_FOUND,
+          );
+        }
+
+        payment.payment_status = status;
+        const updatedPayment = await this.paymentRepository.save(payment);
+        return updatedPayment;
+      } catch (error) {
+        throw new HttpException(
+          `Error updating payment status: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );  
       }
     }
 

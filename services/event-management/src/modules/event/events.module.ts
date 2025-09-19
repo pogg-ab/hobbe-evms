@@ -168,6 +168,8 @@ import { AdminUpdateEventCommandHandler } from 'src/application/handlers/events/
       useClass: TicketsRepositoryEmpl,
     },
   ],
+
+  exports: [EventsService],
 })
 export class EventsModule {
   constructor(

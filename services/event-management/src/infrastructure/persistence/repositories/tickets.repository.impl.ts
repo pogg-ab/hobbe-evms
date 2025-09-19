@@ -10,6 +10,10 @@ import { QrCodeActionAfterScannedDto } from 'src/presentation/dtos/qr-code/qr-co
 import { QrAfterScannedActionsAggregateDto } from 'src/presentation/dtos/qr-code/qr-scaned-after-scanned-action-aggregate.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { DataSource, EntityManager, Equal, Not, Repository } from 'typeorm';
+import * as qrcode from 'qrcode';
+import { v4 as uuidv4 } from 'uuid';
+
+
 
 @Injectable()
 export class TicketsRepositoryEmpl implements ITicketsRepository {
@@ -148,6 +152,49 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async findTicketsByBookingId(bookingId: string): Promise<Tickets[]> {
+    try {
+      const tickets = await this.ticketsListRepository.find({
+        where: { booking_id: Equal(bookingId) },
+      });
+      return tickets;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Tickets with booking ID ${bookingId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async ticketRefundProcess(id: string): Promise<void> {
+    //  lets remove this ticket and create a new ticket with status refunded
+    try {
+      const ticket = await this.ticketsListRepository.findOne({
+        where: { id: Equal(id) }, });
+      if (!ticket) {
+        throw new NotFoundException(`Ticket with ID ${id} not found`);
+      }
+     const ticketNumber = uuidv4();
+
+      const qrCode = await qrcode.toDataURL(`http://89.117.37.84/:4001/tickets/get/ticket-info/${ticketNumber}`);
+      
+      ticket.status = 'New';
+      ticket.booking_id = null;
+      ticket.ticket_no = ticketNumber;
+      ticket.qr_code = qrCode;
+      ticket.updated_by = 'system-refund';
+      ticket.updated_at = new Date();
+      await this.ticketsListRepository.save(ticket);
+    } catch (error) {
+      throw new HttpException(
+        `Error processing refund for Ticket with ID ${id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    
   }
   async findTicketsByStatusTypeAndPromocode(
     eventId: IdValueObject,

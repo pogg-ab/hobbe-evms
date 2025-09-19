@@ -4,8 +4,8 @@ import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from "class-validator
 
 export class ChapaRefundDto {
   @ApiProperty({
-    description: 'The transaction reference returned by Chapa after payment',
-    example: 'TX-20250917-12345',
+    description: 'The external transaction reference like returned by Chapa after payment',
+    example: 'APfvxVY2PnCoH',
   })
   @IsString()
   @IsNotEmpty()

@@ -1,4 +1,12 @@
-import { BadRequestException, HttpException, HttpStatus, Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { Chapa } from 'chapa-nodejs';
 import { ConfigService } from '@nestjs/config';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
@@ -12,6 +20,7 @@ import { UUID } from 'crypto';
 import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
 import { CREATE_PAYOUT_TOKEN } from 'src/domain/repositories/payments/payouts.repository.token';
 import { IPayoutsRepository } from 'src/domain/repositories/payments/payouts.repository';
+import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc.service';
 
 @Injectable()
 export class ChapaSDKService {
@@ -21,7 +30,6 @@ export class ChapaSDKService {
   private readonly CALLBACK_BASE_URL: string;
   private readonly CHAPA_BASE_URL = 'https://api.chapa.co/v1';
   private readonly TRANSFER_ENDPOINT = `${this.CHAPA_BASE_URL}/transfers`;
-  
 
   constructor(
     private readonly configService: ConfigService,
@@ -29,16 +37,22 @@ export class ChapaSDKService {
     private readonly paymentRepository: IPaymentsRepository,
     @Inject(CREATE_PAYOUT_TOKEN)
     private readonly payoutRepository: IPayoutsRepository,
+    private readonly kafkaRefundRpcService: KafkaRefundRpcService,
     @InjectConnection() private readonly connection: Connection,
   ) {
     const secretKey = this.configService.get<string>('CHAPA_SECRET_KEY');
     if (!secretKey) {
-      throw new Error('CHAPA_SECRET_KEY is not defined in the environment variables');
+      throw new Error(
+        'CHAPA_SECRET_KEY is not defined in the environment variables',
+      );
     }
 
-    const callback_baseurl = this.configService.get<string>('CALLBACK_BASE_URL');
+    const callback_baseurl =
+      this.configService.get<string>('CALLBACK_BASE_URL');
     if (!callback_baseurl) {
-      throw new Error('CALLBACK_BASE_URL is not defined in the environment variables');
+      throw new Error(
+        'CALLBACK_BASE_URL is not defined in the environment variables',
+      );
     }
     // Initialize Chapa SDK
     this.chapa = new Chapa({ secretKey });
@@ -47,9 +61,13 @@ export class ChapaSDKService {
 
     // Log mode based on API key
     const isTestMode = secretKey.startsWith('CHAPUBK_TEST-');
-    this.logger.log(`Chapa SDK initialized in ${isTestMode ? 'TEST' : 'LIVE'} MODE`);
+    this.logger.log(
+      `Chapa SDK initialized in ${isTestMode ? 'TEST' : 'LIVE'} MODE`,
+    );
     if (!isTestMode) {
-      this.logger.warn('Using a LIVE Chapa API key. For testing, use a key that starts with CHAPUBK_TEST-');
+      this.logger.warn(
+        'Using a LIVE Chapa API key. For testing, use a key that starts with CHAPUBK_TEST-',
+      );
     }
   }
 
@@ -68,28 +86,37 @@ export class ChapaSDKService {
         ...chapaPayDto,
         // user_id:"849b4dda-fc2b-452d-bc12-e8dd0bc8b6f3",
         tx_ref: tx_ref,
-        payment_method: "Chapa",
-      }
+        payment_method: 'Chapa',
+      };
       await this.paymentRepository.create(paymentDto);
 
       return response;
     } catch (error) {
-      console.error('Payment Init Error:', error.response?.data || error.message);
+      console.error(
+        'Payment Init Error:',
+        error.response?.data || error.message,
+      );
       throw new BadRequestException('Payment initialization failed', error);
     }
   }
 
-
   async verifyPayment(txRef: string): Promise<void> {
     try {
-      const response = await axios.get(`${this.CHAPA_BASE_URL}/transaction/verify/${txRef}`, {
-        headers: { Authorization: `Bearer ${this.API_KEY}` },
-      });
+      const response = await axios.get(
+        `${this.CHAPA_BASE_URL}/transaction/verify/${txRef}`,
+        {
+          headers: { Authorization: `Bearer ${this.API_KEY}` },
+        },
+      );
 
       const paymentData = response.data.data;
 
-
-      const verifiedPayment = await this.paymentRepository.verifyChapaPayment("Chapa", txRef,response.data.data.reference, response.data.data.charge);
+      const verifiedPayment = await this.paymentRepository.verifyChapaPayment(
+        'Chapa',
+        txRef,
+        response.data.data.reference,
+        response.data.data.charge,
+      );
       const paymentId = verifiedPayment.paymentStatus.id.toString();
       const userId = verifiedPayment.paymentStatus.user_id.toString();
 
@@ -108,9 +135,9 @@ export class ChapaSDKService {
         userId,
         verifiedPayment.paymentStatus.currency,
         verifiedPayment.paymentStatus.payment_method,
-        'Regular'
+        'Regular',
       );
-      return verifiedPayment
+      return verifiedPayment;
     } catch (error) {
       console.error('Error verifying payment:', error.response?.data);
       throw new Error('Failed to verify payment');
@@ -124,12 +151,20 @@ export class ChapaSDKService {
     userId: UUID,
     currencyId: string,
     providerName: string,
-    appliesToEventType: string = 'Regular'
+    appliesToEventType: string = 'Regular',
   ): Promise<void> {
     try {
       await this.connection.query(
         `SELECT fn_insert_transaction($1::uuid, $2, $3, $4::uuid, $5, $6, $7)`,
-        [paymentId, externalRefNo, username, userId, currencyId, providerName, appliesToEventType]
+        [
+          paymentId,
+          externalRefNo,
+          username,
+          userId,
+          currencyId,
+          providerName,
+          appliesToEventType,
+        ],
       );
       console.log(`✅ Transaction function executed for payment: ${paymentId}`);
     } catch (error) {
@@ -138,9 +173,8 @@ export class ChapaSDKService {
     }
   }
 
-  
-  async payoutInit(chapaPayDto: ChapaPayoutDto,userId:string) {
-    const tx_ref =  `HOBBE-PO-${Date.now()}`;
+  async payoutInit(chapaPayDto: ChapaPayoutDto, userId: string) {
+    const tx_ref = `HOBBE-PO-${Date.now()}`;
     try {
       const res = await axios.post(
         `${this.CHAPA_BASE_URL}/transfers`,
@@ -163,10 +197,10 @@ export class ChapaSDKService {
 
       const payoutDto = {
         ...chapaPayDto,
-        user_id:userId,
+        user_id: userId,
         tx_ref: tx_ref,
-        payment_method: "Chapa",
-      }
+        payment_method: 'Chapa',
+      };
       await this.payoutRepository.create(payoutDto);
 
       return res.data;
@@ -189,21 +223,23 @@ export class ChapaSDKService {
         },
       );
 
-      
-       console.log('Payout verification status:', res);
-       
-       if (res.data.data.status !== 'success') {
-         throw new HttpException(
-           `Payout with reference ${reference} waiting for HoBBE Admin Approval or is not successful`,
-           HttpStatus.BAD_REQUEST,
-         );
-       }
+      console.log('Payout verification status:', res);
 
-    
-       const paid = await this.payoutRepository.verifyChapaPayout("Chapa", reference, res.data.data.charge);
-       const data = paid.paymentStatus;
+      if (res.data.data.status !== 'success') {
+        throw new HttpException(
+          `Payout with reference ${reference} waiting for HoBBE Admin Approval or is not successful`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
-       const payoutTransaction = await this.insertPayoutTransaction(
+      const paid = await this.payoutRepository.verifyChapaPayout(
+        'Chapa',
+        reference,
+        res.data.data.charge,
+      );
+      const data = paid.paymentStatus;
+
+      const payoutTransaction = await this.insertPayoutTransaction(
         data.tx_ref,
         data.account_number,
         data.event_id,
@@ -211,9 +247,7 @@ export class ChapaSDKService {
         data.currency,
       );
 
-
-
-      return res.data; 
+      return res.data;
     } catch (error: any) {
       throw new HttpException(
         error.response?.data || { message: error.message },
@@ -225,22 +259,23 @@ export class ChapaSDKService {
   private async insertPayoutTransaction(
     externalRefNo: string,
     username: string,
-    eventId:UUID,
+    eventId: UUID,
     userId: UUID,
     currencyId: string,
-  ){
+  ) {
     try {
       await this.connection.query(
         `SELECT fn_insert_payout_transaction($1::text, $2::text, $3::uuid, $4::uuid, $5::text)`,
-        [externalRefNo, username, eventId, userId, currencyId]
+        [externalRefNo, username, eventId, userId, currencyId],
       );
-      console.log(`✅ Transaction function executed for payout: ${externalRefNo}`);
+      console.log(
+        `✅ Transaction function executed for payout: ${externalRefNo}`,
+      );
     } catch (error) {
       console.error('Error calling transaction function:', error);
       throw new Error(`Failed to insert transaction: ${error.message}`);
     }
   }
-
 
   async getTransactions(from?: string, to?: string, page = 1, per_page = 20) {
     try {
@@ -259,9 +294,13 @@ export class ChapaSDKService {
     }
   }
 
-
-
-  async getTransfers(from?: string, to?: string, page = 1, per_page = 20, status?: string) {
+  async getTransfers(
+    from?: string,
+    to?: string,
+    page = 1,
+    per_page = 20,
+    status?: string,
+  ) {
     try {
       const res = await axios.get(`${this.CHAPA_BASE_URL}/transfers`, {
         headers: {
@@ -278,15 +317,26 @@ export class ChapaSDKService {
     }
   }
 
-
-  async refundPayment(txRef: string, reason?: string): Promise<any> {
+  async refundPayment(exRef: string, username:string,reason?: string,): Promise<any> {
     try {
+      //  check if txRef exists
+      const payment = await this.paymentRepository.findByExRef(exRef);
 
-      
+      const refundCheck = await this.kafkaRefundRpcService.sendRequest(
+        'refund-request-topic',
+        { bookingId: payment.booking_id, eventId: payment.event_id },
+      );
+
+      if(refundCheck.eligibleToRefund === false){
+        throw new HttpException(
+          `Payment with reference ${exRef} is not eligible for refund. Reason: ${JSON.stringify(refundCheck)}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       const res = await axios.post(
-        `${this.CHAPA_BASE_URL}/refund/${txRef}`, 
+        `${this.CHAPA_BASE_URL}/refund/${exRef}`,
         {
-          reason, 
+          reason,
         },
         {
           headers: {
@@ -295,7 +345,14 @@ export class ChapaSDKService {
           },
         },
       );
-      return res.data;
+
+      await this.paymentRepository.changePaymentStatus(payment.id.toString(),'Refund In Progress');
+      return await this.insertRefundTransaction(
+        payment.id.toString() as `${string}-${string}-${string}-${string}-${string}`,
+        username,
+        exRef,
+        payment.user_id.toString() as `${string}-${string}-${string}-${string}-${string}`,
+      );
     } catch (error: any) {
       throw new HttpException(
         error.response?.data || { message: error.message },
@@ -305,7 +362,19 @@ export class ChapaSDKService {
   }
 
 
+  async insertRefundTransaction(
+    paymentId: UUID, 
+    username: string, 
+    externalRefNo: string, 
+    userId: UUID) {
 
+   const result = await this.connection.query(
+       `SELECT fn_auto_refund($1::uuid, $2::varchar, $3::varchar, $4::uuid) as message`,
+        [paymentId, username, externalRefNo, userId.toString()]
+      );
+
+    return result[0].message;
+  }
   async generateReference(): Promise<string> {
     try {
       const ref = await this.chapa.genTxRef({
@@ -315,10 +384,11 @@ export class ChapaSDKService {
       });
       return ref;
     } catch (error) {
-      throw new InternalServerErrorException('Failed to generate transaction reference');
+      throw new InternalServerErrorException(
+        'Failed to generate transaction reference',
+      );
     }
   }
-
 
   async getSupportedBanks() {
     try {
@@ -335,7 +405,4 @@ export class ChapaSDKService {
       );
     }
   }
-
-
-
 }

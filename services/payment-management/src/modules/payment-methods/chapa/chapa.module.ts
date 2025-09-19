@@ -9,6 +9,7 @@ import { StripeService } from 'src/application/services/payment-methods/stripe/s
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
 import { PayoutsModule } from '../payments/payouts.module';
+import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc.service';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PayoutsModule } from '../payments/payouts.module';
     ChapaSDKService,
     StripeService,
     KafkaPaymentRpcConsumerService,
+    KafkaRefundRpcService,
     AuditLogInterceptor,
   ],
   exports: [ChapaSDKService],
