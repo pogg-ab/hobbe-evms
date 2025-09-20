@@ -8,7 +8,7 @@ import { IPaymentsRepository } from "src/domain/repositories/payments/payments.r
 import { KafkaProducerService } from "src/infrastructure/kafka/kafka.producer.servicce";
 import { CreatePaymentDto } from "src/presentation/dtos/payments/create-payments.dto";
 import { TransactionsVolumeByDateRangeDto } from "src/presentation/dtos/reports/trasaction-volume.dto";
-import { Repository } from "typeorm";
+import { IsNull, Not, Repository } from "typeorm";
 
 
 
@@ -153,6 +153,33 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
           HttpStatus.INTERNAL_SERVER_ERROR,
         );  
       }
+    }
+
+    async findByEventIdToCancelEvent(event_id: string): Promise<Payments[] | []> {
+      try {
+        const payments = await this.paymentRepository.find(
+          {
+             where: {
+              event_id: event_id,
+              payment_method:"Chapa",
+              payment_status:"success",
+              verified_at: Not(IsNull())
+            } 
+          });
+      
+        if (payments.length === 0) {
+          throw new HttpException(
+            `No successful payments on eligibale to refund payments found for event ID ${event_id}`,
+            HttpStatus.NOT_FOUND,
+          );
+        }
+        return payments;
+      } catch (error) {
+        throw new HttpException(
+          `Error finding payment by event ID: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } 
     }
 
 

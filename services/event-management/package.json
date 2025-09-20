@@ -33,7 +33,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/platform-socket.io": "^10.4.15",
-    "@nestjs/schedule": "^6.0.0",
+    "@nestjs/schedule": "^6.0.1",
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^10.4.15",
@@ -42,7 +42,7 @@
     "date-fns": "^4.1.0",
     "event-management": "file:",
     "kafkajs": "^2.2.4",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.0.2",
     "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -56,7 +56,7 @@
     "typeorm": "^0.3.20"
   },
   "devDependencies": {
-    "@nestjs/cli": "^10.0.0",
+    "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/express": "^4.17.17",
