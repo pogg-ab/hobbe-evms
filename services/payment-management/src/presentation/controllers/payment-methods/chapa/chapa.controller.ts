@@ -23,6 +23,7 @@ import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { ChapaRefundDto } from 'src/presentation/dtos/chapa/chapa-refund.dto';
+import { ChapaCancelEventRefundDto } from 'src/presentation/dtos/chapa/chapa-cancel-event.refund.dto';
 
 @Controller('chapa')
 @ApiTags('Chapa')
@@ -150,6 +151,24 @@ export class ChapaController {
       dto.txRef,
       user.username,
       dto.reason,
+    )
+  }
+
+
+  @Post('refund/cancel-event')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Initiate a refund via Chapa API' })
+  @ApiResponse({ status: 200, description: 'Refund processed successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  async refundCancelEvent(
+    @Body() dto: ChapaCancelEventRefundDto,
+    @CurrentUserId() user: any,
+  ) {    
+    return this.chapaSdkService.refundCanceledEventPayments(
+      dto,
+      user.username,
+      
     )
   }
 

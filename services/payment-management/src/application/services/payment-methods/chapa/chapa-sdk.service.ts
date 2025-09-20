@@ -13,8 +13,8 @@ import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.
 import axios from 'axios';
 import { CREATE_PAYMENT_TOKEN } from 'src/domain/repositories/payments/payments.repository.token';
 import { IPaymentsRepository } from 'src/domain/repositories/payments/payments.repository';
-import { Connection } from 'typeorm';
-import { InjectConnection } from '@nestjs/typeorm';
+import { Connection, Repository } from 'typeorm';
+import { InjectConnection, InjectRepository } from '@nestjs/typeorm';
 import { validate as uuidValidate } from 'uuid';
 import { UUID } from 'crypto';
 import { ChapaPayoutDto } from 'src/presentation/dtos/chapa/chapa-payout.dto';
@@ -22,6 +22,8 @@ import { CREATE_PAYOUT_TOKEN } from 'src/domain/repositories/payments/payouts.re
 import { IPayoutsRepository } from 'src/domain/repositories/payments/payouts.repository';
 import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc.service';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { Refund } from 'src/domain/entities/refund.entity';
+import { ChapaCancelEventRefundDto } from 'src/presentation/dtos/chapa/chapa-cancel-event.refund.dto';
 
 @Injectable()
 export class ChapaSDKService {
@@ -40,6 +42,9 @@ export class ChapaSDKService {
     private readonly payoutRepository: IPayoutsRepository,
     private readonly kafkaRefundRpcService: KafkaRefundRpcService,
     @InjectConnection() private readonly connection: Connection,
+
+    @InjectRepository(Refund)
+    private refundRepository: Repository<Refund>,
     private readonly kafkaProducerService: KafkaProducerService,
   ) {
     const secretKey = this.configService.get<string>('CHAPA_SECRET_KEY');
@@ -360,6 +365,12 @@ export class ChapaSDKService {
       );
 
       await this.paymentRepository.changePaymentStatus(payment.id.toString(),'Refund In Progress');
+      await this.refundRepository.save({
+        payment_id: payment.id.toString(),
+        event_id: payment.event_id.toString(),
+        reason: reason,
+      });
+      
       return await this.insertRefundTransaction(
         payment.id.toString() as `${string}-${string}-${string}-${string}-${string}`,
         username,
@@ -373,6 +384,29 @@ export class ChapaSDKService {
       );
     }
   }
+
+  async refundCanceledEventPayments(
+    dto:ChapaCancelEventRefundDto,
+    user:string,
+  ){
+    try {
+      const payments = await this.paymentRepository.findByEventIdToCancelEvent(dto.event_id);
+
+      // loop through payments and call refundPayment for each
+      for(const payment of payments){
+        await this.refundPayment(payment.external_reference,user,'Event Canceled: '+ (dto.reason ?? 'No reason provided'));
+      }
+
+      return {message: `Refund initiated for ${payments.length} payments associated with event ${dto.event_id}`};
+    }
+    catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    } 
+  }
+
 
 
   async insertRefundTransaction(

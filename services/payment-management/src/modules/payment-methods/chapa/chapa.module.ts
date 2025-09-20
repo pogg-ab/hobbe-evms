@@ -11,10 +11,13 @@ import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
 import { PayoutsModule } from '../payments/payouts.module';
 import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc.service';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Refund } from 'src/domain/entities/refund.entity';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    TypeOrmModule.forFeature([Refund]),
     PayoutsModule,
     PaymentsModule,
     AuditLogModule,

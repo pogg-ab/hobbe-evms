@@ -81,7 +81,7 @@ import { TicketsModule } from './tickets.module';
       },
     ]),
     CqrsModule,
-    EventsModule,
+    forwardRef(() => EventsModule),
     TicketsModule,
   ],
 
