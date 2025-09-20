@@ -33,6 +33,7 @@ import CurrencySeeder from './infrastructure/persistence/seeder/currency.seeder'
 import { Currency } from './domain/entities/currency.entity';
 import { TransactionType } from './domain/entities/transaction-type.entity';
 import TransactionTypeSeeder from './infrastructure/persistence/seeder/transaction-type.seeder';
+import { FinancialReportModule } from './modules/financial-report/financial-report.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -57,6 +58,7 @@ import TransactionTypeSeeder from './infrastructure/persistence/seeder/transacti
     TaxModule,
     CommissionFeeModule,
     PaymentGatewayFeeModule,
+    FinancialReportModule
   ],
   providers: [
     AppService,
