@@ -77,19 +77,8 @@ export class FinancialReportRepositoryImpl implements IFinancialReportRepository
         const startIndex = (page - 1) * limit;
         const paginatedData = data.slice(startIndex, startIndex + limit);
 
-        const mappedData = paginatedData.map(item => ({
-            eventId: item.event_name,
-            organizerId: item.organizer_name,
-            gatewayFee: item.gateway_fee,
-            commissionFee: item.commission_fee,
-            payoutAmount: item.payout_amount,
-            currency: item.currency,
-            paymentMethod: item.payment_method,
-            transactionDate: item.transaction_date,
-        }));
-
         return {
-            data: mappedData.length ? mappedData : null,
+            data: paginatedData.length ? paginatedData : null,
             total,
             page,
             limit,
@@ -106,12 +95,12 @@ export class FinancialReportRepositoryImpl implements IFinancialReportRepository
         page: number;
         limit: number;
     }> {
-        const { timeRange, currency } = filters;
+        const { timeRange, currency, groupBy } = filters;
         const startDate = timeRange?.start ? new Date(timeRange.start).toISOString().split('T')[0] : undefined;
         const endDate = timeRange?.end ? new Date(timeRange.end).toISOString().split('T')[0] : undefined;
-        const groupBy = 'day';
+        const groupByValue = groupBy || 'day';
 
-        let data = await this.netRevenueReportFunction(startDate, endDate, groupBy);
+        let data = await this.netRevenueReportFunction(startDate, endDate, groupByValue);
 
         if (currency) {
             data = data.filter(item => item.currency === currency);
@@ -121,16 +110,8 @@ export class FinancialReportRepositoryImpl implements IFinancialReportRepository
         const startIndex = (page - 1) * limit;
         const paginatedData = data.slice(startIndex, startIndex + limit);
 
-        const mappedData = paginatedData.map(item => ({
-            eventId: null,
-            organizerId: null,
-            netRevenue: item.net_revenue,
-            currency: item.currency,
-            transactionDate: item.period,
-        }));
-
         return {
-            data: mappedData.length ? mappedData : null,
+            data: paginatedData.length ? paginatedData : null,
             total,
             page,
             limit,
