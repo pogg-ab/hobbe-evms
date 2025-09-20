@@ -6,6 +6,7 @@ import {
     IsNumber,
     ValidateNested,
     IsDateString,
+    IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -51,6 +52,17 @@ export class CustomReportFilterDto {
     @ValidateNested()
     @Type(() => DateRangeDto)
     timeRange?: DateRangeDto;
+
+    @ApiProperty({
+        description: 'Group by option',
+        example: 'day',
+        required: false,
+        enum: ['day', 'month', 'year'],
+    })
+    @IsOptional()
+    @IsString()
+    @IsIn(['day', 'month', 'year'])
+    groupBy?: 'day' | 'month' | 'year';
 
     @ApiProperty({
         description: 'Array of event IDs (UUIDs) to filter the report',
