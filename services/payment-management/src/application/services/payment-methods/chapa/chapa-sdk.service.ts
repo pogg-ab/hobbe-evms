@@ -391,7 +391,7 @@ export class ChapaSDKService {
   ){
     try {
       const payments = await this.paymentRepository.findByEventIdToCancelEvent(dto.event_id);
-
+      // return payments;
       // loop through payments and call refundPayment for each
       for(const payment of payments){
         await this.refundPayment(payment.external_reference,user,'Event Canceled: '+ (dto.reason ?? 'No reason provided'));
