@@ -59,7 +59,6 @@ export class FinancialReportRepositoryImpl implements IFinancialReportRepository
         const { timeRange, eventIds, organizerIds, currency, paymentMethod, gatewayFeeRange, commissionFeeRange } = filters;
         const startDate = timeRange?.start ? new Date(timeRange.start).toISOString().split('T')[0] : undefined;
         const endDate = timeRange?.end ? new Date(timeRange.end).toISOString().split('T')[0] : undefined;
-        console.log("filters", filters)
 
         let data = await this.feesPayoutReportFunction(startDate, endDate);
 
