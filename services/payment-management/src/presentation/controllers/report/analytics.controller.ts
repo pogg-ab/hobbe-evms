@@ -19,42 +19,36 @@ export class AnalyticsController {
   @ApiOperation({ description: 'Collect Download Data' })
   @ApiBody({ type: CreateDownloadDto })
   @ApiAcceptedResponse({
-    description: 'Download data collected successfully',})
-    @HttpCode(202)
+    description: 'Download data collected successfully',
+  })
+  @HttpCode(202)
   @Post('store')
   async collectData(@Body() dto: CreateDownloadDto) {
     return await this.commandBus.execute(new CollectDownloadCommand(dto));
   }
 
-
-    @ApiOperation({ description: 'Get Summary of Download Data' })
-    @ApiAcceptedResponse({
-      description: 'Summary of download data',
-    })
-    @HttpCode(200)
-    @Get('summary')
-    async getAnalyticsSummary() {
-      return await this.queryBus.execute(new AnalyticsSummary());
-    }
-
+  @ApiOperation({ description: 'Get Summary of Download Data' })
+  @ApiAcceptedResponse({
+    description: 'Summary of download data',
+  })
+  @HttpCode(200)
+  @Get('summary')
+  async getAnalyticsSummary() {
+    return await this.queryBus.execute(new AnalyticsSummary());
+  }
 
   @ApiOperation({ description: 'Get Download Data by Country' })
   @ApiAcceptedResponse({
     description: 'Download data by country',
   })
-
-
   @ApiOperation({ description: 'Get Download Data by Date' })
   @ApiAcceptedResponse({
     description: 'Download data by date',
   })
   @HttpCode(200)
-  @ApiBody({ type : GetDownloadsByDateRangeDto })
+  @ApiBody({ type: GetDownloadsByDateRangeDto })
   @Post('daterange')
-  async getDownloadsByDate(
-    @Body() dto: GetDownloadsByDateRangeDto
-  ) {
-
+  async getDownloadsByDate(@Body() dto: GetDownloadsByDateRangeDto) {
     // Use the query bus to execute the query
     if (!dto.startDate || !dto.endDate) {
       throw new Error('Start date and end date are required');
@@ -63,7 +57,6 @@ export class AnalyticsController {
       throw new Error('Start date cannot be after end date');
     }
 
-    
     return await this.queryBus.execute(new AppDownloadsByDateQuery(dto));
   }
 
@@ -79,10 +72,11 @@ export class AnalyticsController {
   })
   @HttpCode(200)
   @Get('platform/:platform')
-  async getDownloadsByPlatform(@Param('platform') platform: 'android' | 'ios' | 'web' | 'desktop') {
-    return await this.queryBus.execute(new AppDownloadsByPlatformQuery(platform));
+  async getDownloadsByPlatform(
+    @Param('platform') platform: 'android' | 'ios' | 'web' | 'desktop',
+  ) {
+    return await this.queryBus.execute(
+      new AppDownloadsByPlatformQuery(platform),
+    );
   }
-
-
-
 }
