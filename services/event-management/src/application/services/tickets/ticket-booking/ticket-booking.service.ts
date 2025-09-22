@@ -617,6 +617,7 @@ export class TicketBookingService {
       { topics: ['payment_status'] },
       {
         eachMessage: async ({ message }) => {
+          try {
           const paymentStatus = JSON.parse(message.value.toString());
           await this.ticketBookingRepository.updateStatus(
             paymentStatus.booking_id,
@@ -635,6 +636,9 @@ export class TicketBookingService {
           );
 
           console.log('Done updating ticket status after payment');
+          } catch (error) {
+            this.logger.error('Error processing payment status message:', error);
+          }
         },
       },
     );
