@@ -34,6 +34,7 @@ import { Currency } from './domain/entities/currency.entity';
 import { TransactionType } from './domain/entities/transaction-type.entity';
 import TransactionTypeSeeder from './infrastructure/persistence/seeder/transaction-type.seeder';
 import { FinancialReportModule } from './modules/financial-report/financial-report.module';
+import { DashboardAnalyticsModule } from './modules/dashboard-analytics/dashboard-analytics.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -58,25 +59,25 @@ import { FinancialReportModule } from './modules/financial-report/financial-repo
     TaxModule,
     CommissionFeeModule,
     PaymentGatewayFeeModule,
-    FinancialReportModule
+    FinancialReportModule,
+    DashboardAnalyticsModule,
   ],
-  providers: [
-    AppService,
-    KafkaConsumerService,
-    KafkaProducerService,
-  ],
+  providers: [AppService, KafkaConsumerService, KafkaProducerService],
 })
 export class AppModule implements OnModuleInit {
-  constructor(private readonly dataSource: DataSource) { }
+  constructor(private readonly dataSource: DataSource) {}
 
   async onModuleInit() {
     const accountCodeRepository = this.dataSource.getRepository(AccountCode);
-    const financialAccountTypeRepository = this.dataSource.getRepository(FinancialAccountType);
+    const financialAccountTypeRepository =
+      this.dataSource.getRepository(FinancialAccountType);
     const currencyRepository = this.dataSource.getRepository(Currency);
-    const transactionTypeRepository = this.dataSource.getRepository(TransactionType);
+    const transactionTypeRepository =
+      this.dataSource.getRepository(TransactionType);
 
     const accountCodeCount = await accountCodeRepository.count();
-    const financialAccountTypeCount = await financialAccountTypeRepository.count();
+    const financialAccountTypeCount =
+      await financialAccountTypeRepository.count();
     const currencyCount = await currencyRepository.count();
     const transactionTypeCount = await transactionTypeRepository.count();
 

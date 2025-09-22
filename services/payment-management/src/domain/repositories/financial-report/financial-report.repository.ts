@@ -1,25 +1,26 @@
-import { CustomReportFilterDto } from 'src/presentation/dtos/financial-report/custom-report-filter.dto';
+import { FeePayoutReportDto } from 'src/presentation/dtos/reports/financial-report/fee-payout-report.dto';
+import { NetRevenueReportDto } from 'src/presentation/dtos/reports/financial-report/net-revenue-report.dto';
 
 export interface IFinancialReportRepository {
-    findFeesPayout(
-        filters: CustomReportFilterDto,
-        page: number,
-        limit: number,
-    ): Promise<{
-        data: any[] | null;
-        total: number;
-        page: number;
-        limit: number;
-    }>;
+  findFeesPayout(
+    filters: FeePayoutReportDto,
+    page: number,
+    limit: number,
+  ): Promise<{
+    data: any[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }>;
 
-    findNetRevenue(
-        filters: CustomReportFilterDto,
-        page: number,
-        limit: number,
-    ): Promise<{
-        data: any[] | null;
-        total: number;
-        page: number;
-        limit: number;
-    }>;
+  findNetRevenue(
+    filters: NetRevenueReportDto,
+    page: number,
+    limit: number,
+  ): Promise<{
+    data: any[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }>;
 }
