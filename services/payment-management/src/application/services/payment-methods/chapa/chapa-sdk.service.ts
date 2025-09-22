@@ -335,7 +335,7 @@ export class ChapaSDKService {
     }
   }
 
-  async refundPayment(exRef: string, username:string,reason?: string,): Promise<any> {
+  async refundPayment(exRef: string, userId:string,reason?: string,): Promise<any> {
     try {
       //  check if txRef exists
       const payment = await this.paymentRepository.findByExRef(exRef);
@@ -364,6 +364,7 @@ export class ChapaSDKService {
         },
       );
 
+
       await this.paymentRepository.changePaymentStatus(payment.id.toString(),'Refund In Progress');
       await this.refundRepository.save({
         payment_id: payment.id.toString(),
@@ -373,8 +374,8 @@ export class ChapaSDKService {
       
       return await this.insertRefundTransaction(
         payment.id.toString() as `${string}-${string}-${string}-${string}-${string}`,
-        username,
         exRef,
+        userId,
         payment.user_id.toString() as `${string}-${string}-${string}-${string}-${string}`,
       );
     } catch (error: any) {
@@ -411,13 +412,13 @@ export class ChapaSDKService {
 
   async insertRefundTransaction(
     paymentId: UUID, 
-    username: string, 
     externalRefNo: string, 
+    username: string, 
     userId: UUID) {
 
    const result = await this.connection.query(
        `SELECT fn_auto_refund($1::uuid, $2::varchar, $3::varchar, $4::uuid) as message`,
-        [paymentId, username, externalRefNo, userId.toString()]
+        [paymentId, externalRefNo,username, userId.toString()]
       );
 
     return result[0].message;

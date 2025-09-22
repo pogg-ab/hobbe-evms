@@ -149,7 +149,7 @@ export class ChapaController {
   ) {    
     return this.chapaSdkService.refundPayment(
       dto.txRef,
-      user.username,
+      user.userId,
       dto.reason,
     )
   }
