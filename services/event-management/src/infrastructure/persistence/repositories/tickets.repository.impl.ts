@@ -30,7 +30,11 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   async create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void> {
     try {
       const newTicket = this.ticketsListRepository.create(createTicketsDto);
+      newTicket.created_by = 'auto_system';
+      newTicket.created_at = new Date();
+      newTicket.updated_at = new Date();
       const manager = entityManager || this.ticketsListRepository.manager;
+        
       await manager.save(newTicket);
     } catch (error) {
       throw new HttpException(
