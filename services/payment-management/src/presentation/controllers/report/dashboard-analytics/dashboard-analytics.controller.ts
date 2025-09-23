@@ -5,15 +5,17 @@ import {
   ApiBody,
   ApiOkResponse,
   ApiOperation,
+  ApiTags,
 } from '@nestjs/swagger';
 import { DashboardAnalyticsQuery } from 'src/application/queries/reports/dashboard-analytics/dashboard-analytics.query';
 import { DashboardAnalyticsDto } from 'src/presentation/dtos/reports/dashboard-analytics.dto';
 import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
 import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard';
 
+@ApiTags('Dashboard Analytics')
 @Controller('dashboard-analytics')
 export class DashboardAnalyticsController {
-  constructor(private readonly queryBus: QueryBus) {}
+  constructor(private readonly queryBus: QueryBus) { }
 
   @ApiOperation({
     description:
