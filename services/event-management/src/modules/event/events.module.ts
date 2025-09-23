@@ -60,6 +60,8 @@ import { GetTicketSalesOverviewQueryHandler } from 'src/application/handlers/eve
 import {
   ApproveEventCommandHandler,
   CancelEventCommandHandler,
+  RejectEventCommandHandler,
+  RequestEventChangesCommandHandler,
   SetEventPendingCommandHandler,
 } from 'src/application/handlers/events/event-status.command.handlers';
 import { set } from 'date-fns';
@@ -157,6 +159,8 @@ import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
     SetEventPendingCommandHandler,
     CancelEventCommandHandler,
     AdminUpdateEventCommandHandler,
+    RejectEventCommandHandler,
+    RequestEventChangesCommandHandler,
     EventsProfile,
     UserValidationService,
     PermissionCheckingService,
@@ -164,7 +168,7 @@ import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
     SocketIo,
     AuditLogInterceptor,
     AdminJwtStrategy,
-     AdminAuthGuard,
+    AdminAuthGuard,
     {
       provide: CREATE_EVENT_REPOSITORY_TOKEN,
       useClass: EventRepositoryEmpl,
@@ -180,7 +184,7 @@ import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
 export class EventsModule {
   constructor(
     @Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');
