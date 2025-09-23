@@ -24,6 +24,7 @@ import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { Refund } from 'src/domain/entities/refund.entity';
 import { ChapaCancelEventRefundDto } from 'src/presentation/dtos/chapa/chapa-cancel-event.refund.dto';
+import { RefundRequest } from 'src/domain/entities/refund-request.entity';
 
 @Injectable()
 export class ChapaSDKService {
@@ -46,6 +47,9 @@ export class ChapaSDKService {
     @InjectRepository(Refund)
     private refundRepository: Repository<Refund>,
     private readonly kafkaProducerService: KafkaProducerService,
+
+    @InjectRepository(RefundRequest)
+    private refundRequestRepository: Repository<RefundRequest>,
   ) {
     const secretKey = this.configService.get<string>('CHAPA_SECRET_KEY');
     if (!secretKey) {
@@ -346,10 +350,29 @@ export class ChapaSDKService {
       );
 
       if(refundCheck.eligibleToRefund === false){
-        throw new HttpException(
-          `Payment with reference ${exRef} is not eligible for refund. Reason: ${JSON.stringify(refundCheck)}`,
-          HttpStatus.BAD_REQUEST,
-        );
+        //  find a refund request by paymentid and eventid and insert if not found else skip
+        const existingRequest = await this.refundRequestRepository.findOne({
+          where: { paymentid: payment.id.toString(), eventid: payment.event_id.toString() },
+        });
+
+        if(payment.payment_status === 'Refund In Progress' || payment.payment_status === 'Refunded'){
+          return {message: `A refund is already in progress or has been completed for payment ${exRef}. Please wait for HoBBE admin to process it.`};
+        }
+
+        if(!existingRequest){
+          await this.refundRequestRepository.save({
+          paymentid: payment.id.toString(),
+          userid: userId,
+          eventid: payment.event_id.toString(),
+          amount: payment.amount,
+          currency: payment.currency,
+          reason: reason,
+          approval_level: 0,
+          requested_at: new Date(),
+          payment_gateway_ref: exRef,
+          });
+        }       
+        return {message: `A refund request has been logged for payment ${exRef}. It is pending HoBBE admin approval.`};
       }
       const res = await axios.post(
         `${this.CHAPA_BASE_URL}/refund/${exRef}`,
@@ -372,12 +395,15 @@ export class ChapaSDKService {
         reason: reason,
       });
       
-      return await this.insertRefundTransaction(
+     await this.insertRefundTransaction(
         payment.id.toString() as `${string}-${string}-${string}-${string}-${string}`,
         exRef,
         userId,
         payment.user_id.toString() as `${string}-${string}-${string}-${string}-${string}`,
       );
+
+      // return res.data with success message;
+      return {details: res.data};
     } catch (error: any) {
       throw new HttpException(
         error.response?.data || { message: error.message },

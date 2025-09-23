@@ -236,4 +236,45 @@ async findUserIdsByEventId(eventId: string): Promise<string[]> {
     }
 }
 
+  async processRefund(bookingId: string): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      // Find the booking
+      const booking = await queryRunner.manager.findOne(TicketBooking, {
+        where: { booking_id: bookingId },
+      });
+
+      if (!booking) {
+        throw new HttpException(
+          `Booking with ID ${bookingId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if(booking.booking_status === 'refunded'){
+        throw new HttpException(
+            `Booking with ID ${bookingId} is already refunded`,
+            HttpStatus.BAD_REQUEST,
+          );
+      }
+      // Update booking status to 'refunded'
+      booking.booking_status = 'refunded';
+      booking.updated_at = new Date();
+      await queryRunner.manager.save(booking);
+           
+      await queryRunner.commitTransaction();
+    } catch (error) { 
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(
+        `Error processing refund for booking ID ${bookingId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+
 }

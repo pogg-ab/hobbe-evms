@@ -16,6 +16,7 @@ export class KafkaRefundRpcConsumerService implements OnModuleInit {
 
   constructor(
     private readonly eventService: EventsService,
+    private readonly ticketBookingService:TicketBookingService,
     private readonly ticketService:TicketsService,
   ) {}
 
@@ -41,8 +42,12 @@ export class KafkaRefundRpcConsumerService implements OnModuleInit {
             // chek event exists and before have 24 hours before event start time
              const event =  await this.eventService.findOne(data.eventId);             
              if(event.event_start_date.getTime() - new Date().getTime() < 24 * 60 * 60 * 1000){
+                
                 throw new BadRequestException('Event start time should have to greater than 24 hours',event);
              }
+
+             await this.ticketBookingService.processRefund(data.bookingId);
+
 
             //  check tickets  exists and belongs to bookingId
             const tickets = await this.ticketService.findTicketsByBookingId(data.bookingId);
@@ -50,10 +55,12 @@ export class KafkaRefundRpcConsumerService implements OnModuleInit {
             for(const ticket of tickets){
                 await this.ticketService.ticketRefundProcess(ticket.id.toString());
             }
-    
+
               const response = {
                 eligibleToRefund: true,
                 data: message.value ? JSON.parse(message.value.toString()) : null,
+                event,
+                
               };
 
               await this.producer.send({
@@ -68,7 +75,7 @@ export class KafkaRefundRpcConsumerService implements OnModuleInit {
           
         } catch (err: any) {
         //   console.error('Error processing message:', err?.message || err);
-
+               
           // Optional: send an error response back to replyTopic
           if (replyTopic) {
             const errorResponse = {
