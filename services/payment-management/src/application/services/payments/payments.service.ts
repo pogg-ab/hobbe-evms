@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Payments } from 'src/domain/entities/payments.entity';
 import { IPaymentsRepository } from 'src/domain/repositories/payments/payments.repository';
 import { CREATE_PAYMENT_TOKEN } from 'src/domain/repositories/payments/payments.repository.token';
 import { CreatePaymentDto } from 'src/presentation/dtos/payments/create-payments.dto';
+import { GetPaymentsDto } from 'src/presentation/dtos/payments/get-payments.dto';
 import { AggregatedTransactionVolumeDto } from 'src/presentation/dtos/reports/aggregated-transaction-volume.dto';
 import { TransactionsVolumeByDateRangeDto } from 'src/presentation/dtos/reports/trasaction-volume.dto';
 
@@ -15,6 +17,11 @@ export class PaymentsService {
         return this.paymentRepository.create(createPaymentDto);
     }
 
+
+    async getPayments(dto?:GetPaymentsDto): Promise<Payments[]> {
+        return await this.paymentRepository.getPayments(dto);
+    }
+    
 
     async getMonthlyAndTodaySummary() {
         const [monthly, lastMonth] = await Promise.all([
@@ -67,5 +74,10 @@ export class PaymentsService {
             throw new Error('Start date and end date are required');
         }
         return this.paymentRepository.getAggregatedTransactionVolume(aggregatedTransactionVolumeDto);
+    }
+
+
+    async getAmountsOwedToOrganizersQuery(userId: string): Promise<any> {
+        return this.paymentRepository.getAmountsOwedToOrganizers(userId);
     }
 }

@@ -471,6 +471,46 @@ export class ChapaSDKService {
   }
 
 
+  async getRefundRequests(){
+    try {
+      const requests = await this.refundRequestRepository.find({where:{status:RefundStatus.PENDING}});
+      return requests;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to fetch refund requests');
+    }
+  }
+
+  async getRefundRequestById(refundId:string){
+    try {
+      const refund = await this.refundRequestRepository.findOne({where:{id:refundId}});
+      if(!refund){
+        throw new NotFoundException(`Refund with ID ${refundId} not found`);
+      }
+      return refund;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to fetch refund by ID');
+    }
+  }
+
+  async getRefundRequestsByDate(
+    from: string,
+    to: string,
+  ) {
+    try {
+      const res = await this.refundRequestRepository.createQueryBuilder('refund_request')
+        .where('refund_request.requested_at BETWEEN :from AND :to', { from, to })
+        // .andWhere('refund_request.status = :status', { status: RefundStatus.PENDING })
+        .getMany();
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to fetch refund requests by date');
+    }
+  }
+
+
   async refundCanceledEventPayments(
     dto:ChapaCancelEventRefundDto,
     user:string,

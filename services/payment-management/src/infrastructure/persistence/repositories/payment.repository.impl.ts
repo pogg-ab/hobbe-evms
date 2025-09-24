@@ -3,10 +3,12 @@
 import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { promises } from "dns";
+import { FinancialAccount } from "src/domain/entities/financial-account.entity";
 import { Payments } from "src/domain/entities/payments.entity";
 import { IPaymentsRepository } from "src/domain/repositories/payments/payments.repository";
 import { KafkaProducerService } from "src/infrastructure/kafka/kafka.producer.servicce";
 import { CreatePaymentDto } from "src/presentation/dtos/payments/create-payments.dto";
+import { GetPaymentsDto } from "src/presentation/dtos/payments/get-payments.dto";
 import { TransactionsVolumeByDateRangeDto } from "src/presentation/dtos/reports/trasaction-volume.dto";
 import { IsNull, Not, Repository } from "typeorm";
 
@@ -17,6 +19,8 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
     constructor(
         @InjectRepository(Payments)
         private paymentRepository: Repository<Payments>,
+        @InjectRepository(FinancialAccount)
+        private financialAccountRepository: Repository<FinancialAccount>,
         private readonly kafkaProducerService: KafkaProducerService,
         
     ){}
@@ -31,6 +35,77 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
               HttpStatus.INTERNAL_SERVER_ERROR,
             );
           }
+    }
+
+    async getPayments(dto:GetPaymentsDto): Promise<Payments[]> {
+      try {
+        
+        const query = this.paymentRepository.createQueryBuilder('payments');
+        const { eventId, userId, status } = dto;
+        if (eventId) {
+          query.andWhere('payments.event_id = :eventId', { eventId });
+        }
+        if (userId) {
+          query.andWhere('payments.user_id = :userId', { userId });
+        }
+        if (status) {
+          query.andWhere('payments.payment_status = :status', { status });
+        }
+        return await query.getMany();
+      } catch (error) {
+        throw new HttpException(
+          `Error fetching payments: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+    async getAmountsOwedToOrganizers(userId: string): Promise<any> {
+      try {
+        // return financial accounts where userId is the owner and eventId matches
+        const accounts = await this.financialAccountRepository.find({
+          where: {
+            user_id: userId,
+            total_balance: Not(0),
+          }
+            ,relations: ['financial_account_type']
+        });
+        if (accounts.length === 0) {
+          throw new HttpException(
+            `No financial accounts found for user ID ${userId}`,
+            HttpStatus.NOT_FOUND,
+          );
+        }
+
+
+        return accounts;
+        // for each account get the total amount owed to the organizer from payments table
+        const amountsOwed = await Promise.all(accounts.map(async (account) => {
+          const totalOwed = await this.paymentRepository
+            .createQueryBuilder('p')
+            .select('SUM(p.amount)', 'total_amount')
+            .where('p.total_amount > 0')
+            .andWhere('p.event_id = :eventId', { eventId: account.event_id })
+            .andWhere('p.verified_at IS NOT NULL')
+            .andWhere('p.payment_status = :status', { status: 'success' })
+            .andWhere('p.payment_method != :method', { method: 'Payout' })
+            .getRawOne();
+          return {
+            financial_account_id: account.financial_account_id,
+            account_type: totalOwed.account_type,
+            event_id: account.event_id,
+            total_amount_owed: totalOwed.total_amount || 0,
+            currency: account.currency,
+            last_updated: account.updated_date,
+          };
+        }));
+        return amountsOwed;
+      } catch (error) {
+        throw new HttpException(
+          `Error fetching amounts owed to organizers: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
 
    async findByExRef(ex_ref: string): Promise<Payments | null> {
