@@ -24,6 +24,7 @@ import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
 import { ChapaRefundDto } from 'src/presentation/dtos/chapa/chapa-refund.dto';
 import { ChapaCancelEventRefundDto } from 'src/presentation/dtos/chapa/chapa-cancel-event.refund.dto';
+import { ChapaGetRefundByDateRangeDto } from 'src/presentation/dtos/chapa/chapa-get-refund-by-date-range.dto';
 
 @Controller('chapa')
 @ApiTags('Chapa')
@@ -188,6 +189,50 @@ export class ChapaController {
       refundRequestId,
       user.userId,
     );
+  }
+
+  // get refund by id
+  @ApiOperation({ description: 'Get Refund by ID' })
+  @HttpCode(200)
+  @ApiResponse({
+    description: 'Returns a refund details by ID',
+    type: Object,
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+
+  @Get('refund/:refundId')
+  async getRefundRequestById(@Param('refundId') refundId: string) {
+    return await this.chapaSdkService.getRefundRequestById(refundId);
+  }
+
+
+  // get refund requests 
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ description: 'Get Refund Requests' })
+  @HttpCode(200)
+  @ApiResponse({
+    description: 'Returns an array of refund requests',
+    type: Array,
+  })
+  @Get('refund-requests')
+  async getRefundRequests() {
+    return await this.chapaSdkService.getRefundRequests();
+  }
+
+  // get refund requests by date range
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @HttpCode(200)
+  @Post('refund-requests-by-date')
+  @ApiOperation({ description: 'Get Refund Requests by Date Range' })
+  @ApiResponse({
+    description: 'Returns an array of refund requests within the specified date range',
+    type: Array,
+  })
+  async getRefundRequestsByDate(@Body() dto: ChapaGetRefundByDateRangeDto) {
+    return await this.chapaSdkService.getRefundRequestsByDate(dto.from, dto.to);
   }
 
 
