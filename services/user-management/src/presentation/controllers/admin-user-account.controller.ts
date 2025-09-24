@@ -27,7 +27,6 @@ import { UpdateAdminUserAccountCommand } from 'src/application/commands/admin-us
 import { FindAdminUserAccountByIdQuery } from 'src/application/queries/admin-user-account/find-admin-user-account-by-id.query';
 import { FindAllAdminUserAccountsQuery } from 'src/application/queries/admin-user-account/find-all-admin-user-accounts.query';
 import { AdminUserAccount } from 'src/domain/entities/admin-user-account.entity';
-import { AdminUserAccountID } from 'src/domain/value-objects/admin-user-account-id.value-object';
 import { AssignRoleDto } from '../dtos/assign-role.dto';
 import { CreateAdminUserAccountDto } from '../dtos/create-admin-user-account.dto';
 import { UpdateAdminUserAccountDto } from '../dtos/update-admin-user-account.dto';
@@ -35,6 +34,8 @@ import { Permissions } from '../decorators/permissions.decorator';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { AdminAuthGuard } from '../guards/admin-auth.guard';
 import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
+import { FindAllAdminUsersQuery } from 'src/application/queries/admin-user-account/find-all-admin-users.query';
 
 @ApiTags('Admin User Account')
 @Controller('admin-user-account')
@@ -98,6 +99,18 @@ export class AdminUserAccountController {
   })
   async findAll(): Promise<AdminUserAccount[]> {
     return this.queryBus.execute(new FindAllAdminUserAccountsQuery());
+  }
+
+  @Get('admin-user')
+  @Permissions('view:admin_users:AdminUsers')
+  @ApiOperation({ summary: 'Get all admin users' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of admin users',
+    type: [AdminUser],
+  })
+  async findAllAdminUsers(): Promise<AdminUserAccount[]> {
+    return this.queryBus.execute(new FindAllAdminUsersQuery());
   }
 
   @Get(':id')

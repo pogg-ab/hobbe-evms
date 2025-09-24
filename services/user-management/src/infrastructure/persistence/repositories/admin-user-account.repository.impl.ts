@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AdminUserAccount } from 'src/domain/entities/admin-user-account.entity';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { IAdminUserAccountRepository } from 'src/domain/repositories/admin-user-account.repository';
-import { AdminUserAccountID } from 'src/domain/value-objects/admin-user-account-id.value-object';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -12,6 +12,8 @@ export class AdminUserAccountRepositoryImpl
   constructor(
     @InjectRepository(AdminUserAccount)
     private readonly adminUserAccountRepository: Repository<AdminUserAccount>,
+    @InjectRepository(AdminUser)
+    private readonly adminUserRepository: Repository<AdminUser>,
   ) {}
 
   async create(adminUserAccount: AdminUserAccount): Promise<AdminUserAccount> {
@@ -21,10 +23,27 @@ export class AdminUserAccountRepositoryImpl
   async findAll(): Promise<AdminUserAccount[]> {
     return this.adminUserAccountRepository.find();
   }
+  async findAllAdminUsers(): Promise<AdminUser[]> {
+    return this.adminUserRepository
+      .createQueryBuilder('adminUser')
+      .select([
+        'adminUser.admin_user_id',
+        'adminUser.user_name',
+        'adminUser.ssoProvider',
+        'adminUser.ssoProviderId',
+        'adminUser.is_active',
+        'adminUser.created_by',
+        'adminUser.created_at',
+        'adminUser.updated_by',
+        'adminUser.updated_at',
+      ])
+      .leftJoinAndSelect('adminUser.admin_user_account', 'adminUserAccount')
+      .getMany();
+  }
 
   async findOneById(id: string): Promise<AdminUserAccount | null> {
     return this.adminUserAccountRepository.findOne({
-      where: { admin_user_account_id: id.toString() },
+      where: { admin_user_account_id: id },
     });
   }
 

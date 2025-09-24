@@ -189,6 +189,10 @@ export class AdminUserAccountService {
     return this.adminUserAccountRepository.findAll();
   }
 
+  async findAllAdminUsers(): Promise<AdminUser[]> {
+    return this.adminUserAccountRepository.findAllAdminUsers();
+  }
+
   async findOne(id: string): Promise<AdminUserAccount> {
     const account = await this.adminUserAccountRepository.findOneById(id);
     if (!account) {
