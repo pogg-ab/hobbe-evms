@@ -2,6 +2,7 @@
 import { CreatePaymentDto } from "src/presentation/dtos/payments/create-payments.dto";
 import { Payments } from "src/domain/entities/payments.entity";
 import { TransactionsVolumeByDateRangeDto } from "src/presentation/dtos/reports/trasaction-volume.dto";
+import { GetPaymentsDto } from "src/presentation/dtos/payments/get-payments.dto";
 
 
 
@@ -16,6 +17,10 @@ export interface IPaymentsRepository{
     // findByEvent(event:any):Promise<BankAccounts[] | null>
     // update(id:string,bank_account: BankAccounts): Promise<BankAccounts>
     // delete(id:string): Promise<void>
+
+    getPayments(
+       dto?:GetPaymentsDto
+    ): Promise<Payments[]>;
 
     getCurrentMonthTransactions(): Promise<any>;
     getLastMonthTransactions(): Promise<any>;

@@ -35,6 +35,7 @@ import { TransactionType } from './domain/entities/transaction-type.entity';
 import TransactionTypeSeeder from './infrastructure/persistence/seeder/transaction-type.seeder';
 import { FinancialReportModule } from './modules/financial-report/financial-report.module';
 import { DashboardAnalyticsModule } from './modules/dashboard-analytics/dashboard-analytics.module';
+import { PaymentsModule } from './modules/payment-methods/payments/payments.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -48,6 +49,7 @@ import { DashboardAnalyticsModule } from './modules/dashboard-analytics/dashboar
     ]),
     DatabaseModule,
     CqrsModule,
+    PaymentsModule,
     BankAccountsModule,
     WiseModule,
     ChapaModule,

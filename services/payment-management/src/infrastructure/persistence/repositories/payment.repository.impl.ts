@@ -7,6 +7,7 @@ import { Payments } from "src/domain/entities/payments.entity";
 import { IPaymentsRepository } from "src/domain/repositories/payments/payments.repository";
 import { KafkaProducerService } from "src/infrastructure/kafka/kafka.producer.servicce";
 import { CreatePaymentDto } from "src/presentation/dtos/payments/create-payments.dto";
+import { GetPaymentsDto } from "src/presentation/dtos/payments/get-payments.dto";
 import { TransactionsVolumeByDateRangeDto } from "src/presentation/dtos/reports/trasaction-volume.dto";
 import { IsNull, Not, Repository } from "typeorm";
 
@@ -31,6 +32,29 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
               HttpStatus.INTERNAL_SERVER_ERROR,
             );
           }
+    }
+
+    async getPayments(dto:GetPaymentsDto): Promise<Payments[]> {
+      try {
+        
+        const query = this.paymentRepository.createQueryBuilder('payments');
+        const { eventId, userId, status } = dto;
+        if (eventId) {
+          query.andWhere('payments.event_id = :eventId', { eventId });
+        }
+        if (userId) {
+          query.andWhere('payments.user_id = :userId', { userId });
+        }
+        if (status) {
+          query.andWhere('payments.payment_status = :status', { status });
+        }
+        return await query.getMany();
+      } catch (error) {
+        throw new HttpException(
+          `Error fetching payments: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
 
    async findByExRef(ex_ref: string): Promise<Payments | null> {
