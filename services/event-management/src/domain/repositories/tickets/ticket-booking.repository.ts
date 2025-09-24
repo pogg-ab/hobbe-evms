@@ -18,6 +18,10 @@ export interface ITicketBookingRepository {
     limit: number;
   }>;
   findOne(id: string): Promise<TicketBooking | null>;
+
+  getMyTicketBooking(userId: string): Promise<TicketBooking[] | null>;
+
+  
   update(
     id: string,
     updatedTicketBooking: TicketBooking,

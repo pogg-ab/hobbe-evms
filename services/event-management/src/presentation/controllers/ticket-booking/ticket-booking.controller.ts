@@ -21,6 +21,7 @@ import { FindTicketBookingsByEventOrganizerQuery } from 'src/application/queries
 import { FindTicketBookingByEventQuery } from 'src/application/queries/tickets/find-ticket-booking-by-event.query';
 import { FindTicketBookingsByTicketBuyerQuery } from 'src/application/queries/tickets/find-ticket-booking-by-ticket-buyer.query';
 import { GetAllTicketBookingsQuery } from 'src/application/queries/tickets/get-all-ticket-bookings.query';
+import { GetMyTicketBookingQuery } from 'src/application/queries/tickets/get-my-ticket-booking.query';
 import { GetTicketBookingByIdQuery } from 'src/application/queries/tickets/get-ticket-booking-by-id.query';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
@@ -54,6 +55,27 @@ export class TicketBookingController {
     limit: number;
   }> {
     return this.queryBus.execute(new GetAllTicketBookingsQuery(page, limit));
+  }
+
+  // get loogeed in users ticket bookings
+
+  @ApiOperation({ description: 'Get My Ticket Bookings' })
+  @HttpCode(200)
+  @Get('my-bookings')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  async findMyBookings(
+    @CurrentUserId() user: any,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ): Promise<{
+    ticketBookings: TicketBooking[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const user_id = user.user.user_id.toString()
+    return this.queryBus.execute(new GetMyTicketBookingQuery(user_id));
   }
 
   @ApiBody({ type: CreateTicketBookingDto })
