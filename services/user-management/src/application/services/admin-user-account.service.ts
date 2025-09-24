@@ -1,6 +1,12 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { AdminUserAccount } from 'src/domain/entities/admin-user-account.entity';
@@ -38,7 +44,8 @@ export class AdminUserAccountService {
 
   generateRandomPassword(): string {
     const length = 6;
-    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charset =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let password = '';
     for (let i = 0; i < length; i++) {
       const randomIndex = crypto.randomInt(0, charset.length);
@@ -47,14 +54,25 @@ export class AdminUserAccountService {
     return password;
   }
 
-// Inside the AdminUserAccountService class...
+  // Inside the AdminUserAccountService class...
 
-async create(createAdminUserAccountDto: CreateAdminUserAccountDto): Promise<AdminUserAccount | { success: boolean; message: string }> {
+  async create(
+    createAdminUserAccountDto: CreateAdminUserAccountDto,
+  ): Promise<AdminUserAccount | { success: boolean; message: string }> {
     // This part of your code remains the same
-    const newAccount = this.mapper.map(createAdminUserAccountDto, CreateAdminUserAccountDto, AdminUserAccount);
-    const savedAccount = await this.adminUserAccountRepository.create(newAccount);
-    
-    const adminUser = this.mapper.map(createAdminUserAccountDto, CreateAdminUserAccountDto, AdminUser);
+    const newAccount = this.mapper.map(
+      createAdminUserAccountDto,
+      CreateAdminUserAccountDto,
+      AdminUserAccount,
+    );
+    const savedAccount =
+      await this.adminUserAccountRepository.create(newAccount);
+
+    const adminUser = this.mapper.map(
+      createAdminUserAccountDto,
+      CreateAdminUserAccountDto,
+      AdminUser,
+    );
     const generatedPassword = this.generateRandomPassword();
     adminUser.password = await this.hashPassword(generatedPassword);
     adminUser.admin_user_account = savedAccount.admin_user_account_id;
@@ -75,7 +93,10 @@ async create(createAdminUserAccountDto: CreateAdminUserAccountDto): Promise<Admi
     // --- END OF CORRECTED LOGIC ---
 
     // This part of your code remains the same
-    const emailPayload = this.createPasswordEmail(createAdminUserAccountDto.emailAddress, generatedPassword);
+    const emailPayload = this.createPasswordEmail(
+      createAdminUserAccountDto.emailAddress,
+      generatedPassword,
+    );
     try {
       await this.messageProducerService.sendEmailToKafka(emailPayload);
     } catch (emailError) {
@@ -84,10 +105,13 @@ async create(createAdminUserAccountDto: CreateAdminUserAccountDto): Promise<Admi
     }
 
     return savedAccount;
-}
+  }
 
   // --- THIS IS THE NEW, CORRECTED METHOD ---
-  async assignRoleToUser(userId: string, assignRoleDto: AssignRoleDto): Promise<AdminUserRole> {
+  async assignRoleToUser(
+    userId: string,
+    assignRoleDto: AssignRoleDto,
+  ): Promise<AdminUserRole> {
     const { roleId, membershipRole } = assignRoleDto;
 
     const adminUser = await this.adminUserRepository.findOneById(userId as any);
@@ -99,16 +123,23 @@ async create(createAdminUserAccountDto: CreateAdminUserAccountDto): Promise<Admi
     if (!role) {
       throw new NotFoundException(`Role with ID "${roleId}" not found`);
     }
-    
-    const existingLink = await this.adminUserRoleRepository.findOneByUserIdAndRoleId(userId, roleId);
+
+    const existingLink =
+      await this.adminUserRoleRepository.findOneByUserIdAndRoleId(
+        userId,
+        roleId,
+      );
     if (existingLink) {
-      throw new HttpException('User already has this role.', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'User already has this role.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const adminUserRole = new AdminUserRole();
     adminUserRole.admin_user_id = adminUser.admin_user_id;
     adminUserRole.role = role;
-    
+
     if (membershipRole) {
       adminUserRole.membershipRole = membershipRole;
     }
@@ -121,7 +152,10 @@ async create(createAdminUserAccountDto: CreateAdminUserAccountDto): Promise<Admi
     return await bcrypt.hash(password, salt);
   }
 
-  private createPasswordEmail(recipient: string, generatedPassword: string): any {
+  private createPasswordEmail(
+    recipient: string,
+    generatedPassword: string,
+  ): any {
     const email = {
       recipient: recipient,
       subject: 'Your Generated User Account Password from Hobbe EVMS',
@@ -137,11 +171,17 @@ async create(createAdminUserAccountDto: CreateAdminUserAccountDto): Promise<Admi
     try {
       const role = await this.roleRepository.findOneBy({ name: roleName });
       if (!role) {
-        throw new HttpException(`Role ${roleName} not found`, HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          `Role ${roleName} not found`,
+          HttpStatus.NOT_FOUND,
+        );
       }
       return role;
     } catch (error) {
-      throw new HttpException(`Error fetching role: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        `Error fetching role: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -149,7 +189,7 @@ async create(createAdminUserAccountDto: CreateAdminUserAccountDto): Promise<Admi
     return this.adminUserAccountRepository.findAll();
   }
 
-  async findOne(id: AdminUserAccountID): Promise<AdminUserAccount> {
+  async findOne(id: string): Promise<AdminUserAccount> {
     const account = await this.adminUserAccountRepository.findOneById(id);
     if (!account) {
       throw new NotFoundException(`Admin user account with ID ${id} not found`);
@@ -157,30 +197,33 @@ async create(createAdminUserAccountDto: CreateAdminUserAccountDto): Promise<Admi
     return account;
   }
 
-  async update(id: AdminUserAccountID, updateAdminUserAccountDto: UpdateAdminUserAccountDto): Promise<AdminUserAccount> {
-    const account = await this.findOne(id);
-    const updatedAccount = this.mapper.map(updateAdminUserAccountDto, UpdateAdminUserAccountDto, AdminUserAccount);
+  async update(
+    id: string,
+    updateAdminUserAccountDto: UpdateAdminUserAccountDto,
+  ): Promise<AdminUserAccount> {
+    const existingAccount = await this.findOne(id);
+    const updatedAccount = {
+      ...existingAccount,
+      ...Object.fromEntries(
+        Object.entries(
+          this.mapper.map(
+            updateAdminUserAccountDto,
+            UpdateAdminUserAccountDto,
+            AdminUserAccount,
+          ),
+        ).filter(([_, v]) => v !== undefined),
+      ),
+      updated_date: new Date(),
+    };
     await this.adminUserAccountRepository.update(id, updatedAccount);
     return updatedAccount;
   }
 
-  // Inside AdminUserAccountService
-
-// Inside AdminUserAccountService
-
-async deleteAdminUserAccount(id: AdminUserAccountID): Promise<void> {
-    // 1. Find the AdminUser login record linked to this account ID.
-    // We must use the custom repository method we built.
+  async deleteAdminUserAccount(id: string): Promise<void> {
     const adminUser = await this.adminUserRepository.findOneByAccountId(id);
-
-    // 2. If a login record exists, it MUST be deleted first.
     if (adminUser) {
       await this.adminUserRepository.delete(adminUser.admin_user_id);
     }
-
-    // 3. Now it is safe to delete the main account record.
-    // The handler's `remove` command already calls `findOne` to check if the account exists,
-    // so we can proceed directly to delete.
     await this.adminUserAccountRepository.delete(id);
   }
 }
