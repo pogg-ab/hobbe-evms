@@ -39,4 +39,7 @@ export interface ITicketBookingRepository {
     update_at: any,
   ): Promise<TicketBooking>;
   findUserIdsByEventId(eventId: string): Promise<string[]>;
+
+
+  processRefund(bookingId: string): Promise<void>;
 }

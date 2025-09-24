@@ -604,6 +604,22 @@ export class TicketBookingService {
     }
   }
 
+
+  async processRefund(bookingId: string): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.startTransaction();
+    try {
+        await this.getTicketBookingById(bookingId);
+        await this.ticketBookingRepository.processRefund(bookingId);
+        await queryRunner.commitTransaction();
+    } catch (error) {
+        await queryRunner.rollbackTransaction();
+        throw error;
+    }
+    finally {
+        await queryRunner.release();
+    }
+  }
   async onModuleInit() {
     this.kafkaClient.subscribeToResponseOf('check-checkin-privilege');
 

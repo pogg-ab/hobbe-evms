@@ -6,6 +6,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { Chapa } from 'chapa-nodejs';
 import { ConfigService } from '@nestjs/config';
@@ -24,6 +25,7 @@ import { KafkaRefundRpcService } from 'src/infrastructure/kafka/kafka.refund.rpc
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { Refund } from 'src/domain/entities/refund.entity';
 import { ChapaCancelEventRefundDto } from 'src/presentation/dtos/chapa/chapa-cancel-event.refund.dto';
+import { RefundRequest, RefundStatus } from 'src/domain/entities/refund-request.entity';
 
 @Injectable()
 export class ChapaSDKService {
@@ -46,6 +48,9 @@ export class ChapaSDKService {
     @InjectRepository(Refund)
     private refundRepository: Repository<Refund>,
     private readonly kafkaProducerService: KafkaProducerService,
+
+    @InjectRepository(RefundRequest)
+    private refundRequestRepository: Repository<RefundRequest>,
   ) {
     const secretKey = this.configService.get<string>('CHAPA_SECRET_KEY');
     if (!secretKey) {
@@ -342,14 +347,37 @@ export class ChapaSDKService {
 
       const refundCheck = await this.kafkaRefundRpcService.sendRequest(
         'refund-request-topic',
-        { bookingId: payment.booking_id, eventId: payment.event_id },
+        { 
+          bookingId: payment.booking_id, 
+          eventId: payment.event_id,
+          refundType:'auto'
+         },
       );
 
       if(refundCheck.eligibleToRefund === false){
-        throw new HttpException(
-          `Payment with reference ${exRef} is not eligible for refund. Reason: ${JSON.stringify(refundCheck)}`,
-          HttpStatus.BAD_REQUEST,
-        );
+        //  find a refund request by paymentid and eventid and insert if not found else skip
+        const existingRequest = await this.refundRequestRepository.findOne({
+          where: { paymentid: payment.id.toString(), eventid: payment.event_id.toString() },
+        });
+
+        if(payment.payment_status === 'Refund In Progress' || payment.payment_status === 'Refunded'){
+          return {message: `A refund is already in progress or has been completed for payment ${exRef}. Please wait for HoBBE admin to process it.`};
+        }
+
+        if(!existingRequest){
+          await this.refundRequestRepository.save({
+          paymentid: payment.id.toString(),
+          userid: userId,
+          eventid: payment.event_id.toString(),
+          amount: payment.amount,
+          currency: payment.currency,
+          reason: reason,
+          approval_level: 0,
+          requested_at: new Date(),
+          payment_gateway_ref: exRef,
+          });
+        }       
+        return {message: `A refund request has been logged for payment ${exRef}. It is pending HoBBE admin approval.`};
       }
       const res = await axios.post(
         `${this.CHAPA_BASE_URL}/refund/${exRef}`,
@@ -372,12 +400,15 @@ export class ChapaSDKService {
         reason: reason,
       });
       
-      return await this.insertRefundTransaction(
+     await this.insertRefundTransaction(
         payment.id.toString() as `${string}-${string}-${string}-${string}-${string}`,
         exRef,
         userId,
         payment.user_id.toString() as `${string}-${string}-${string}-${string}-${string}`,
       );
+
+      // return res.data with success message;
+      return {details: res.data};
     } catch (error: any) {
       throw new HttpException(
         error.response?.data || { message: error.message },
@@ -385,6 +416,60 @@ export class ChapaSDKService {
       );
     }
   }
+
+  async manualRefundPayment(exRef: string, userId:string,reason?: string,): Promise<any> {
+    try {
+      //  check if txRef exists
+      const payment = await this.paymentRepository.findByExRef(exRef);
+
+      const refundCheck = await this.kafkaRefundRpcService.sendRequest(
+        'refund-request-topic',
+        { 
+          bookingId: payment.booking_id, 
+          eventId: payment.event_id,
+          refundType:'manual'
+         },
+      );
+
+  
+      const res = await axios.post(
+        `${this.CHAPA_BASE_URL}/refund/${exRef}`,
+        {
+          reason,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+
+      await this.paymentRepository.changePaymentStatus(payment.id.toString(),'Refund In Progress');
+      await this.refundRepository.save({
+        payment_id: payment.id.toString(),
+        event_id: payment.event_id.toString(),
+        reason: reason,
+      });
+      
+     await this.insertRefundTransaction(
+        payment.id.toString() as `${string}-${string}-${string}-${string}-${string}`,
+        exRef,
+        userId,
+        payment.user_id.toString() as `${string}-${string}-${string}-${string}-${string}`,
+      );
+
+      // return res.data with success message;
+      return {details: res.data};
+    } catch (error: any) {
+      throw new HttpException(
+        error.response?.data || { message: error.message },
+        error.response?.status || 500,
+      );
+    }
+  }
+
 
   async refundCanceledEventPayments(
     dto:ChapaCancelEventRefundDto,
@@ -435,6 +520,44 @@ export class ChapaSDKService {
       throw new InternalServerErrorException(
         'Failed to generate transaction reference',
       );
+    }
+  }
+
+
+  async approveRefundRequest(refundRequestId: string, approverId: string): Promise<any> {
+    try {
+      const refundRequest = await this.refundRequestRepository.findOne({ where: { id: refundRequestId } });
+      if (!refundRequest) {
+        throw new NotFoundException(`Refund request with ID ${refundRequestId} not found`); 
+      }
+
+      if (refundRequest.status !== RefundStatus.PENDING) {
+        throw new BadRequestException(`Refund request with ID ${refundRequestId} is not in a pending state`);
+      }
+
+    
+
+      // refund the payment via Chapa
+      const refundResponse = await this.manualRefundPayment(
+        refundRequest.payment_gateway_ref,
+        refundRequest.userid,
+        refundRequest.reason,
+      );
+
+      console.log(refundResponse);
+            
+      refundRequest.status = RefundStatus.APPROVED;
+      refundRequest.approval_level = 1;
+      refundRequest.approved_by = approverId;
+      refundRequest.approved_at = new Date();
+
+      await this.refundRequestRepository.save(refundRequest);
+      return { message: `Refund request ${refundRequestId} approved successfully` };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to approve refund request');
     }
   }
 

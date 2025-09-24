@@ -173,6 +173,24 @@ export class ChapaController {
   }
 
 
+  //  approve refund request
+  @Post('refund/approve/:refundRequestId')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Approve a refund request' })
+  @ApiResponse({ status: 200, description: 'Refund request approved successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  async approveRefundRequest( 
+    @Param('refundRequestId') refundRequestId: string,
+    @CurrentUserId() user: any,
+  ) {
+    return this.chapaSdkService.approveRefundRequest(
+      refundRequestId,
+      user.userId,
+    );
+  }
+
+
 
   @ApiOperation({ description: 'Get Supported Banks' })
   @HttpCode(200)
