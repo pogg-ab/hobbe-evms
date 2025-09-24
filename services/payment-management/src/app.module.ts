@@ -37,6 +37,7 @@ import { FinancialReportModule } from './modules/financial-report/financial-repo
 import { DashboardAnalyticsModule } from './modules/dashboard-analytics/dashboard-analytics.module';
 import { RealTimeAnalyticsModule } from './modules/reports/real-time-analytics.module';
 import { HistoricalReportingModule } from './modules/reports/historical-reporting.module';
+import { PaymentsModule } from './modules/payment-methods/payments/payments.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
