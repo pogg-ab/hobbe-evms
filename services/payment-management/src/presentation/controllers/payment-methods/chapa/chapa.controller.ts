@@ -166,7 +166,7 @@ export class ChapaController {
     @Body() dto: ChapaCancelEventRefundDto,
     @CurrentUserId() user: any,
   ) {    
-    return this.chapaSdkService.refundCanceledEventPayments(
+    return await this.chapaSdkService.refundCanceledEventPayments(
       dto,
       user.username,
       

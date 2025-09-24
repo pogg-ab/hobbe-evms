@@ -22,6 +22,10 @@ export interface IPaymentsRepository{
        dto?:GetPaymentsDto
     ): Promise<Payments[]>;
 
+    getAmountsOwedToOrganizers(
+        userId: string,
+    ): Promise<any>;
+
     getCurrentMonthTransactions(): Promise<any>;
     getLastMonthTransactions(): Promise<any>;
     getTodayTransactions(): Promise<any>;

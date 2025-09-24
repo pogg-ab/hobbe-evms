@@ -12,7 +12,7 @@ export class GetPaymentsQueryHandler
 {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  async execute(query: GetPaymentsQuery): Promise<Payments[]> {
+  async execute(query?: GetPaymentsQuery): Promise<Payments[]> {
     const {dto} = query;
     return this.paymentsService.getPayments(dto);
   }

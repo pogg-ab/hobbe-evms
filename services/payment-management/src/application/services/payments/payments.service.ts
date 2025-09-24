@@ -21,7 +21,7 @@ export class PaymentsService {
     async getPayments(dto?:GetPaymentsDto): Promise<Payments[]> {
         return await this.paymentRepository.getPayments(dto);
     }
-
+    
 
     async getMonthlyAndTodaySummary() {
         const [monthly, lastMonth] = await Promise.all([
@@ -74,5 +74,10 @@ export class PaymentsService {
             throw new Error('Start date and end date are required');
         }
         return this.paymentRepository.getAggregatedTransactionVolume(aggregatedTransactionVolumeDto);
+    }
+
+
+    async getAmountsOwedToOrganizersQuery(userId: string): Promise<any> {
+        return this.paymentRepository.getAmountsOwedToOrganizers(userId);
     }
 }
