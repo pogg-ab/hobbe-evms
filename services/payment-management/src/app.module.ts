@@ -35,7 +35,8 @@ import { TransactionType } from './domain/entities/transaction-type.entity';
 import TransactionTypeSeeder from './infrastructure/persistence/seeder/transaction-type.seeder';
 import { FinancialReportModule } from './modules/financial-report/financial-report.module';
 import { DashboardAnalyticsModule } from './modules/dashboard-analytics/dashboard-analytics.module';
-import { PaymentsModule } from './modules/payment-methods/payments/payments.module';
+import { RealTimeAnalyticsModule } from './modules/reports/real-time-analytics.module';
+import { HistoricalReportingModule } from './modules/reports/historical-reporting.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -63,11 +64,13 @@ import { PaymentsModule } from './modules/payment-methods/payments/payments.modu
     PaymentGatewayFeeModule,
     FinancialReportModule,
     DashboardAnalyticsModule,
+    RealTimeAnalyticsModule,
+    HistoricalReportingModule
   ],
   providers: [AppService, KafkaConsumerService, KafkaProducerService],
 })
 export class AppModule implements OnModuleInit {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly dataSource: DataSource) { }
 
   async onModuleInit() {
     const accountCodeRepository = this.dataSource.getRepository(AccountCode);

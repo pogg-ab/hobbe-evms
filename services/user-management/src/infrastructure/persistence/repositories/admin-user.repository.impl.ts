@@ -15,12 +15,13 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
     private readonly adminUserRepository: Repository<AdminUser>,
   ) {}
 
-  // --- THIS IS THE FINAL CORRECTED METHOD USING QUERY BUILDER ---
-  async findOneByAccountId(accountId: AdminUserAccountID): Promise<AdminUser | null> {
+  async findOneByAccountId(accountId: string): Promise<AdminUser | null> {
     try {
       return await this.adminUserRepository
         .createQueryBuilder('adminUser')
-        .where('adminUser.admin_user_account_id = :accountId', { accountId: accountId.toString() })
+        .where('adminUser.admin_user_account_id = :accountId', {
+          accountId: accountId.toString(),
+        })
         .getOne();
     } catch (error) {
       throw new HttpException(
@@ -29,14 +30,16 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
       );
     }
   }
-  // --- END OF NEW METHOD ---
 
   async create(adminUser: AdminUser): Promise<AdminUser> {
     try {
       const newUser = this.adminUserRepository.create(adminUser);
       return await this.adminUserRepository.save(newUser);
     } catch (error) {
-      throw new HttpException(`Error creating AdminUser: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        `Error creating AdminUser: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -44,7 +47,10 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
     try {
       return await this.adminUserRepository.find();
     } catch (error) {
-      throw new HttpException(`Error fetching AdminUsers: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        `Error fetching AdminUsers: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -55,7 +61,10 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
       });
       return user || null;
     } catch (error) {
-      throw new HttpException(`Error fetching AdminUser with ID ${id}: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        `Error fetching AdminUser with ID ${id}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -63,12 +72,18 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
     try {
       const existingUser = await this.findOneById(id);
       if (!existingUser) {
-        throw new HttpException(`AdminUser with ID ${id} not found`, HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          `AdminUser with ID ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
       }
       const updatedUser = Object.assign(existingUser, adminUser);
       return await this.adminUserRepository.save(updatedUser);
     } catch (error) {
-      throw new HttpException(`Error updating AdminUser: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        `Error updating AdminUser: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -76,11 +91,17 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
     try {
       const userToDelete = await this.findOneById(id);
       if (!userToDelete) {
-        throw new HttpException(`AdminUser with ID ${id} not found`, HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          `AdminUser with ID ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
       }
       await this.adminUserRepository.remove(userToDelete);
     } catch (error) {
-      throw new HttpException(`Error deleting AdminUser: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        `Error deleting AdminUser: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
