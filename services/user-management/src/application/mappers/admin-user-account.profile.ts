@@ -6,6 +6,7 @@ import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { Role } from 'src/domain/entities/role.entity';
 import { CreateRoleDto } from 'src/presentation/dtos/create-role.dto';
 import { CreateAdminUserAccountDto } from '../../presentation/dtos/create-admin-user-account.dto';
+import { UpdateAdminUserAccountDto } from 'src/presentation/dtos/update-admin-user-account.dto';
 
 @Injectable()
 export class AdminUserAccountProfile extends AutomapperProfile {
@@ -81,6 +82,36 @@ export class AdminUserAccountProfile extends AutomapperProfile {
         forMember(
           (destination) => destination.description,
           mapFrom((src: CreateRoleDto) => src.description),
+        ),
+      );
+
+      createMap(
+        mapper,
+        UpdateAdminUserAccountDto,
+        AdminUserAccount,
+        forMember(
+          (dest) => dest.first_name,
+          mapFrom((src) => src.firstName),
+        ),
+        forMember(
+          (dest) => dest.last_name,
+          mapFrom((src) => src.lastName),
+        ),
+        forMember(
+          (dest) => dest.email_address,
+          mapFrom((src) => src.emailAddress),
+        ),
+        forMember(
+          (dest) => dest.phone_number,
+          mapFrom((src) => src.phoneNumber),
+        ),
+        forMember(
+          (dest) => dest.profile_image,
+          mapFrom((src) => src.profile_image),
+        ),
+        forMember(
+          (dest) => dest.updated_date,
+          mapFrom(() => new Date()),
         ),
       );
     };

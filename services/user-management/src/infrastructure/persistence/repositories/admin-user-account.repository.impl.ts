@@ -22,16 +22,14 @@ export class AdminUserAccountRepositoryImpl
     return this.adminUserAccountRepository.find();
   }
 
-  async findOneById(id: AdminUserAccountID): Promise<AdminUserAccount | null> {
+  async findOneById(id: string): Promise<AdminUserAccount | null> {
     return this.adminUserAccountRepository.findOne({
       where: { admin_user_account_id: id.toString() },
     });
   }
 
-  // 
-
   async update(
-    id: AdminUserAccountID,
+    id: string,
     adminUserAccount: AdminUserAccount,
   ): Promise<AdminUserAccount> {
     const existingAccount = await this.findOneById(id);
@@ -44,7 +42,7 @@ export class AdminUserAccountRepositoryImpl
     return this.adminUserAccountRepository.save(existingAccount);
   }
 
-  async delete(id: AdminUserAccountID): Promise<void> {
+  async delete(id: string): Promise<void> {
     const existingAccount = await this.findOneById(id);
     if (!existingAccount) {
       throw new Error(`AdminUserAccount with ID ${id.toString()} not found`);
