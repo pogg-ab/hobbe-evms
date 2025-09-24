@@ -31,6 +31,7 @@ import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
 import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
 import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { FindAllAdminUsersQueryHandler } from 'src/application/handlers/admin-user-account/find-all-admin-users.query-handler';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
     CreateAdminUserAccountCommandHandler,
     FindAllAdminUserAccountsQueryHandler,
     FindAdminUserAccountByIdQueryHandler,
+    FindAllAdminUsersQueryHandler,
     UpdateAdminUserAccountCommandHandler,
     RemoveAdminUserAccountCommandHandler,
     RoleProfile,
@@ -66,6 +68,7 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
     PermissionsGuard,
     AdminAuthGuard,
     AuditLogInterceptor,
+
     {
       provide: ADMIN_USER_ACCOUNT_REPOSITORY_TOKEN,
       useClass: AdminUserAccountRepositoryImpl,
