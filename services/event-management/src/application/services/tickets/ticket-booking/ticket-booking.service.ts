@@ -620,6 +620,10 @@ export class TicketBookingService {
         await queryRunner.release();
     }
   }
+
+  async getMyTicketBooking(userId: string): Promise<TicketBooking[] | null> {
+    return this.ticketBookingRepository.getMyTicketBooking(userId);
+  }
   async onModuleInit() {
     this.kafkaClient.subscribeToResponseOf('check-checkin-privilege');
 
@@ -659,4 +663,6 @@ export class TicketBookingService {
       },
     );
   }
+
+
 }

@@ -55,6 +55,7 @@ import { TicketBookingController } from 'src/presentation/controllers/ticket-boo
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { EventsModule } from '../event/events.module';
 import { TicketsModule } from './tickets.module';
+import { GetMyTicketBookingQueryHandler } from 'src/application/handlers/tickets/get-my-ticket-booking.handler';
 
 @Module({
   imports: [
@@ -91,6 +92,7 @@ import { TicketsModule } from './tickets.module';
     CreateTicketBookingCommandHandler,
     GetAllTicketBookingsQueryHandler,
     UpdateTicketStatusHandler,
+    GetMyTicketBookingQueryHandler,
     FindTicketBookingByEventQueryHandler,
     FindTicketBookingByIdQueryHandler,
     FindTicketBookingsByTicketBuyerQueryHandler,

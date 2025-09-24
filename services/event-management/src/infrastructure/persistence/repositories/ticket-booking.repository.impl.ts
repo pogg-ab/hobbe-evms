@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BookingHasPayment } from 'src/domain/entities/booking-has-payment.entity';
 import { Events } from 'src/domain/entities/events.entity';
@@ -17,7 +22,7 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
     @InjectRepository(BookingHasPayment)
     private bookingHasPaymentRepository: Repository<BookingHasPayment>,
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   async create(
     manager: EntityManager,
@@ -61,6 +66,33 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
     } catch (error) {
       throw new HttpException(
         `Error fetching Ticket Bookings: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getMyTicketBooking(userId: string): Promise<TicketBooking[] | null> {
+    try {
+      // const ticketBookings = await this.ticketBookingRepository.find({
+      //   where: { user_id: Equal(userId) },
+      //   order: { created_at: 'DESC' },
+
+      // });
+      // return ticketBookings;
+
+      const query = `
+        SELECT tb.*, p.*
+        FROM ticket_booking tb
+        LEFT JOIN payments p
+          ON tb.booking_id::text = p.booking_id::text
+        WHERE tb.user_id::text = $1
+        ORDER BY tb.created_at DESC;
+    `;
+
+      return await this.dataSource.query(query, [userId]);
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching Ticket Bookings for User ID ${userId}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -175,7 +207,6 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
     }
   }
 
-
   async updateStatus(
     id: string,
     booking_status: string,
@@ -187,7 +218,7 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
         ticketBooking,
         { booking_status, updated_at },
       );
-     
+
       await this.ticketBookingRepository.save(updatedTicketBooking);
       return updatedTicketBooking;
     } catch (error) {
@@ -212,29 +243,32 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
 
   // Replace the existing findUserIdsByEventId method
 
-async findUserIdsByEventId(eventId: string): Promise<string[]> {
+  async findUserIdsByEventId(eventId: string): Promise<string[]> {
     try {
-        // --- THIS IS THE FIX ---
-        // We use the QueryBuilder for a more precise and robust query.
-        // This avoids any confusion with entity relations.
-        const bookings = await this.ticketBookingRepository.createQueryBuilder("booking")
-            .select("booking.user_id", "user_id") // Select only the user_id column
-            .where("booking.event_id = :eventId", { eventId })
-            .getRawMany(); // getRawMany is efficient as it returns simple objects
+      // --- THIS IS THE FIX ---
+      // We use the QueryBuilder for a more precise and robust query.
+      // This avoids any confusion with entity relations.
+      const bookings = await this.ticketBookingRepository
+        .createQueryBuilder('booking')
+        .select('booking.user_id', 'user_id') // Select only the user_id column
+        .where('booking.event_id = :eventId', { eventId })
+        .getRawMany(); // getRawMany is efficient as it returns simple objects
 
-        if (bookings.length === 0) {
-            return [];
-        }
+      if (bookings.length === 0) {
+        return [];
+      }
 
-        // The result from getRawMany is like [{ user_id: '...' }, { user_id: '...' }]
-        // We use a Set to get the unique user IDs from this array.
-        const uniqueUserIds = new Set(bookings.map(booking => booking.user_id));
+      // The result from getRawMany is like [{ user_id: '...' }, { user_id: '...' }]
+      // We use a Set to get the unique user IDs from this array.
+      const uniqueUserIds = new Set(bookings.map((booking) => booking.user_id));
 
-        return Array.from(uniqueUserIds);
+      return Array.from(uniqueUserIds);
     } catch (error) {
-        throw new InternalServerErrorException(`Error fetching user IDs for event ${eventId}: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Error fetching user IDs for event ${eventId}: ${error.message}`,
+      );
     }
-}
+  }
 
   async processRefund(bookingId: string): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -253,19 +287,19 @@ async findUserIdsByEventId(eventId: string): Promise<string[]> {
         );
       }
 
-      if(booking.booking_status === 'refunded'){
+      if (booking.booking_status === 'refunded') {
         throw new HttpException(
-            `Booking with ID ${bookingId} is already refunded`,
-            HttpStatus.BAD_REQUEST,
-          );
+          `Booking with ID ${bookingId} is already refunded`,
+          HttpStatus.BAD_REQUEST,
+        );
       }
       // Update booking status to 'refunded'
       booking.booking_status = 'refunded';
       booking.updated_at = new Date();
       await queryRunner.manager.save(booking);
-           
+
       await queryRunner.commitTransaction();
-    } catch (error) { 
+    } catch (error) {
       await queryRunner.rollbackTransaction();
       throw new HttpException(
         `Error processing refund for booking ID ${bookingId}: ${error.message}`,
@@ -275,6 +309,4 @@ async findUserIdsByEventId(eventId: string): Promise<string[]> {
       await queryRunner.release();
     }
   }
-
-
 }
