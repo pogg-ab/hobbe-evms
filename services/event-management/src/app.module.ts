@@ -16,6 +16,7 @@ import { EventShareModule } from './modules/event-share/event-share.module';
 import { GuestsModule } from './modules/guest/guest.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TicketGiftsModule } from './modules/ticketes/ticket-gifts.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     EventSponsorModule,
     CommentsModule,
     TicketBookingModule,
+    TicketGiftsModule,
     SocketIoModule,
     EventShareModule,
     GuestsModule,

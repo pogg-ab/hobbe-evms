@@ -687,9 +687,32 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
 
+  async regenerateTicketQrCode(ticketId: string,userId): Promise<void> {
+    try {
+      const ticket = await this.ticketsListRepository.findOne({
+        where: { id: Equal(ticketId) },
+      });
+      if (!ticket) {
+        throw new NotFoundException(`Ticket with ID ${ticketId} not found`);
+      }
+      const newTicketNumber = uuidv4();
+      const newQrCode = await qrcode.toDataURL(
+        `http://http://89.117.37.84/:4001/tickets/get/ticket-info/${newTicketNumber}`
+      );
 
+      ticket.ticket_no = newTicketNumber;
+      ticket.qr_code = newQrCode;
+      ticket.updated_at = new Date();
+      ticket.updated_by = userId;
 
-
+      await this.ticketsListRepository.save(ticket);
+    } catch (error) {
+      throw new HttpException(
+        `Error regenerating QR code for Ticket with ID ${ticketId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
