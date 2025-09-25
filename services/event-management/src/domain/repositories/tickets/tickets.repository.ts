@@ -107,4 +107,6 @@ export interface ITicketsRepository {
   countQrCodeScannedLogs(event_id: string): Promise<any>;
   aggregateQrCodeScannedLogs(dto: any): Promise<any>;
 
+  regenerateTicketQrCode(ticketId: string,userId): Promise<void>;
+
 }

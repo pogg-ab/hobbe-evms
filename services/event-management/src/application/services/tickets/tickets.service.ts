@@ -242,6 +242,11 @@ export class TicketsService {
     await this.createTicketsRepository.ticketRefundProcess(ticketId);
   }
 
+  async regenerateTicketQrCode(ticketId: string,userId:string): Promise<void> {
+    const newQrCode = await this.createTicketsRepository.regenerateTicketQrCode(ticketId,userId);
+    return newQrCode;
+  }
+
 
   //        async findByCategory(category:string):Promise<Events[]>{
   //         const event  = await this.createEventRepository.findByCategory(category);

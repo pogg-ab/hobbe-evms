@@ -9,7 +9,6 @@ import {
 import { IdValueObject } from '../value-objects/event-id.value-object';
 import { Events } from './events.entity';
 import { ParticipantHasTicket } from './participant-has-ticket.entity';
-import { Tickets } from './tickets.entity';
 
 @Entity()
 export class TicketBooking {
