@@ -4,6 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -17,6 +18,7 @@ import { OrganizationalAccountID } from '../value-objects/organizational-account
 import { OwnerID } from '../value-objects/owner-id.value-object';
 import { KYC } from './kyc.entity';
 import { Owner } from './owner.entity';
+import { VerificationRequest } from './verification-request.entity';
 
 @Entity()
 export class OrganizationalAccount {
@@ -94,4 +96,11 @@ export class OrganizationalAccount {
 
   @UpdateDateColumn()
   updated_date: Date;
+
+  @OneToMany(() => VerificationRequest, (vr) => vr.organizational_account, {
+    cascade: true,
+    nullable: true,
+    eager: false,
+  })
+  verification_request?: VerificationRequest | null;
 }

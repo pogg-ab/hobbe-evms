@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { PersonalAccount } from './personal-account.entity';
 import { AdminUser } from './admin-user.entity';
+import { OrganizationalAccount } from './organizational-account.entity';
 
 export enum VerificationStatus {
   PENDING = 'PENDING',
@@ -28,6 +29,13 @@ export class VerificationRequest {
   })
   @JoinColumn({ name: 'personal_account_id' })
   personal_account: PersonalAccount;
+
+  @ManyToOne(() => OrganizationalAccount, (oa) => oa.verification_request, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'organizational_account_id' })
+  organizational_account?: OrganizationalAccount | null;
 
   @Column({
     type: 'enum',
@@ -48,7 +56,11 @@ export class VerificationRequest {
   @CreateDateColumn({ name: 'submitted_at', type: 'timestamp with time zone' })
   submitted_at: Date;
 
-  @Column({ type: 'timestamp with time zone', name: 'reviewed_at', nullable: true })
+  @Column({
+    type: 'timestamp with time zone',
+    name: 'reviewed_at',
+    nullable: true,
+  })
   reviewed_at?: Date | null;
 
   /**
@@ -56,6 +68,6 @@ export class VerificationRequest {
    */
   @OneToOne(() => AdminUser, { nullable: true, eager: false })
   @JoinColumn({ name: 'reviewed_by' })
-  reviewed_by?: AdminUser| null;
+  reviewed_by?: AdminUser | null;
   length: number;
 }
