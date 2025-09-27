@@ -25,6 +25,7 @@ import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorat
 import { ChapaRefundDto } from 'src/presentation/dtos/chapa/chapa-refund.dto';
 import { ChapaCancelEventRefundDto } from 'src/presentation/dtos/chapa/chapa-cancel-event.refund.dto';
 import { ChapaGetRefundByDateRangeDto } from 'src/presentation/dtos/chapa/chapa-get-refund-by-date-range.dto';
+import { Response } from 'express';
 
 @Controller('chapa')
 @ApiTags('Chapa')
@@ -185,7 +186,7 @@ export class ChapaController {
     @Param('refundRequestId') refundRequestId: string,
     @CurrentUserId() user: any,
   ) {
-    return this.chapaSdkService.approveRefundRequest(
+    return await this.chapaSdkService.approveRefundRequest(
       refundRequestId,
       user.userId,
     );
@@ -248,6 +249,32 @@ export class ChapaController {
     return await this.chapaSdkService.getSupportedBanks();
   }
 
+
+
+
+
+  @Post('webhook')
+  @HttpCode(200)
+  async handleWebhook(@Body() body: any, @Res() res: Response) {
+   try {
+    // console.log('Webhook payload:', body);
+
+    const { status, tx_ref, amount, event } = body;
+
+    if (status === 'success' || event === 'payment.success') {
+      console.log(`Payment success for tx_ref: ${tx_ref}, amount: ${amount}`);
+    } else if (status === 'failed' || event === 'payment.failed') {
+      console.log(`Payment failed for tx_ref: ${tx_ref}`);
+    } else if (event === 'charge.refunded' && status === 'refunded') {
+      console.log(`Refund settled for tx_ref: ${tx_ref} '---' ${body}`);
+    }
+
+    return res.json({ status: 'ok' });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    return res.status(500).json({ error: 'Webhook failed' });
+  }
+  }
 
 
 

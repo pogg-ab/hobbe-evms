@@ -66,7 +66,7 @@ export class PaymentRepositoryImpl implements IPaymentsRepository{
         const accounts = await this.financialAccountRepository.find({
           where: {
             user_id: userId,
-            total_balance: Not(0),
+            // total_balance: Not(0),
           }
             ,relations: ['financial_account_type']
         });
