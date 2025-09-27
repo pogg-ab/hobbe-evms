@@ -246,7 +246,7 @@ export class ChapaSDKService {
         },
       );
 
-      console.log('Payout verification status:', res);
+      // console.log('Payout verification status:', res);
 
       if (res.data.data.status !== 'success') {
         throw new HttpException(
@@ -392,9 +392,9 @@ export class ChapaSDKService {
         },
       );
 
-
       await this.paymentRepository.changePaymentStatus(payment.id.toString(),'Refund In Progress');
       await this.refundRepository.save({
+        refund_external_id:res.data.id,
         payment_id: payment.id.toString(),
         event_id: payment.event_id.toString(),
         reason: reason,
@@ -445,9 +445,12 @@ export class ChapaSDKService {
         },
       );
 
+    
+           
 
       await this.paymentRepository.changePaymentStatus(payment.id.toString(),'Refund In Progress');
       await this.refundRepository.save({
+        refund_external_id:res.data.id,
         payment_id: payment.id.toString(),
         event_id: payment.event_id.toString(),
         reason: reason,
@@ -601,7 +604,7 @@ export class ChapaSDKService {
         refundRequest.reason,
       );
 
-      console.log(refundResponse);
+      // console.log(refundResponse);
             
       refundRequest.status = RefundStatus.APPROVED;
       refundRequest.approval_level = 1;

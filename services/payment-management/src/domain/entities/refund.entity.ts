@@ -10,6 +10,9 @@ export class Refund {
     @PrimaryGeneratedColumn('uuid')
     id:string;
 
+    @Column({nullable:true})
+    refund_external_id:string;
+
     @Column()
     payment_id: string;
 
