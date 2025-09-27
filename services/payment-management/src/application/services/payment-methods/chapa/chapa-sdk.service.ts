@@ -453,7 +453,7 @@ export class ChapaSDKService {
         reason: reason,
       });
       
-     await this.insertRefundTransaction(
+     await this.insertManualRefundTransaction(
         payment.id.toString() as `${string}-${string}-${string}-${string}-${string}`,
         exRef,
         userId,
@@ -469,6 +469,9 @@ export class ChapaSDKService {
       );
     }
   }
+
+
+
 
 
   async getRefundRequests(){
@@ -543,6 +546,20 @@ export class ChapaSDKService {
 
    const result = await this.connection.query(
        `SELECT fn_auto_refund($1::uuid, $2::varchar, $3::varchar, $4::uuid) as message`,
+        [paymentId, externalRefNo,username, userId.toString()]
+      );
+
+    return result[0].message;
+  }
+
+  async insertManualRefundTransaction(
+    paymentId: UUID, 
+    externalRefNo: string, 
+    username: string, 
+    userId: UUID) {
+
+   const result = await this.connection.query(
+       `SELECT fn_manual_refund($1::uuid, $2::varchar, $3::varchar, $4::uuid) as message`,
         [paymentId, externalRefNo,username, userId.toString()]
       );
 

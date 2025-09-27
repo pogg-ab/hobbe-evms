@@ -45,8 +45,8 @@ export class Transaction {
     @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true })
     exchange_rate: number;
 
-    @Column({ type: 'int', nullable: true })
-    __reverses: number;
+    @Column({nullable: true })
+    __reverses: string;
 
     @Column({ nullable: true })
     __reversed_by: string;
