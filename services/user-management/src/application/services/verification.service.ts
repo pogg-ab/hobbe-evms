@@ -227,10 +227,9 @@ export class VerificationService {
       if (!admin) {
         throw new NotFoundException(`Admin user not found for id: ${adminId}`);
       }
-
       vr.status = decision.decision;
       vr.reviewed_at = new Date();
-      vr.reviewed_by = admin;
+      vr.reviewed_by = admin.admin_user_id;
 
       if (decision.decision === VerificationStatus.REJECTED) {
         vr.rejection_reason = decision.rejectionReason ?? null;
@@ -292,7 +291,7 @@ export class VerificationService {
         vr.status = VerificationStatus.REJECTED;
         vr.rejection_reason = 'Revoked by admin';
         vr.reviewed_at = new Date();
-        vr.reviewed_by = admin;
+        vr.reviewed_by = admin.admin_user_id;
         await manager.save(vr);
       }
 

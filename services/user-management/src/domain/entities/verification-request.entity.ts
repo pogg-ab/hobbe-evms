@@ -11,6 +11,7 @@ import {
 import { PersonalAccount } from './personal-account.entity';
 import { AdminUser } from './admin-user.entity';
 import { OrganizationalAccount } from './organizational-account.entity';
+import { AdminUserID } from '../value-objects/admin-user-id.value-object';
 
 export enum VerificationStatus {
   PENDING = 'PENDING',
@@ -68,6 +69,6 @@ export class VerificationRequest {
    */
   @OneToOne(() => AdminUser, { nullable: true, eager: false })
   @JoinColumn({ name: 'reviewed_by' })
-  reviewed_by?: AdminUser | null;
+  reviewed_by?: AdminUserID | null;
   length: number;
 }
