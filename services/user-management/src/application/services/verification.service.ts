@@ -263,16 +263,6 @@ export class VerificationService {
           VerificationResponseDto,
         );
       }
-
-      const populated = await manager.findOne(VerificationRequest, {
-        where: { verification_request_id: vr.verification_request_id },
-        relations: ['personal_account', 'reviewed_by'],
-      });
-      return this.mapper.map(
-        populated,
-        VerificationRequest,
-        VerificationResponseDto,
-      );
     });
   }
 
