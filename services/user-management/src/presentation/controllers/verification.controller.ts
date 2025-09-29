@@ -100,7 +100,6 @@ export class VerificationController {
     //   @CurrentUserId() currentUserId: string,
     @CurrentUserId() userPayload: any,
   ) {
-    console.log('current-user', userPayload);
     const currentUserId = userPayload.user.user_id;
     try {
       if (!file) {

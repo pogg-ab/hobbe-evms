@@ -264,7 +264,6 @@ export class VerificationService {
         );
       }
 
-      await manager.save(vr);
       const populated = await manager.findOne(VerificationRequest, {
         where: { verification_request_id: vr.verification_request_id },
         relations: ['personal_account', 'reviewed_by'],
