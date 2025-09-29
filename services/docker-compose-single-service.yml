@@ -1,12 +1,12 @@
 version: "1.0"
 
 services:
-  payment-management:
+  user-management:
     build:
-      context: ./payment-management
+      context: ./user-management
       dockerfile: Dockerfile
     ports:
-      - "4002:4002"
+      - "4000:4000"
     environment:
       NODE_ENV: production
       DB_HOST: postgres

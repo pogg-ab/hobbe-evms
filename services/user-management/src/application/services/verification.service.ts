@@ -210,7 +210,6 @@ export class VerificationService {
     verificationRequestId: string,
     decision: { decision: VerificationStatus; rejectionReason?: string | null },
   ): Promise<VerificationResponseDto> {
-    console.log('admin id:', adminId);
     return await this.dataSource.transaction(async (manager) => {
       const vr = await manager.findOne(VerificationRequest, {
         where: { verification_request_id: verificationRequestId },
@@ -227,23 +226,12 @@ export class VerificationService {
       if (!admin) {
         throw new NotFoundException(`Admin user not found for id: ${adminId}`);
       }
-
       vr.status = decision.decision;
       vr.reviewed_at = new Date();
       vr.reviewed_by = admin;
 
       if (decision.decision === VerificationStatus.REJECTED) {
         vr.rejection_reason = decision.rejectionReason ?? null;
-        await manager.save(vr);
-        const populated = await manager.findOne(VerificationRequest, {
-          where: { verification_request_id: vr.verification_request_id },
-          relations: ['personal_account', 'reviewed_by'],
-        });
-        return this.mapper.map(
-          populated,
-          VerificationRequest,
-          VerificationResponseDto,
-        );
       }
 
       if (decision.decision === VerificationStatus.APPROVED) {
@@ -252,18 +240,7 @@ export class VerificationService {
         pa.verification_date = new Date();
 
         await manager.save(pa);
-        await manager.save(vr);
-        const populated = await manager.findOne(VerificationRequest, {
-          where: { verification_request_id: vr.verification_request_id },
-          relations: ['personal_account', 'reviewed_by'],
-        });
-        return this.mapper.map(
-          populated,
-          VerificationRequest,
-          VerificationResponseDto,
-        );
       }
-
       await manager.save(vr);
       const populated = await manager.findOne(VerificationRequest, {
         where: { verification_request_id: vr.verification_request_id },
