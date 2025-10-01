@@ -256,14 +256,11 @@ export class UserController {
     summary: 'FOR INTERNAL USE ONLY: Get a list of all user IDs',
   })
   @ApiResponse({ status: 200, description: 'An array of all user UUIDs.' })
-  // We will omit guards for now, assuming your internal network is trusted.
-  // In production, you would add an API key or internal JWT guard here.
   async getAllUserIds(): Promise<string[]> {
     return this.userService.getAllUserIds();
   }
   @MessagePattern('get_all_user_ids')
   async handleGetAllUserIdsForRPC(): Promise<string[]> {
-    // This simply calls the same service method as our HTTP endpoint
     return this.userService.getAllUserIds();
   }
 }

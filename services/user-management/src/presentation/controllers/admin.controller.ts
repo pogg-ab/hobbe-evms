@@ -1,5 +1,13 @@
 import {
-  Body, Controller, Delete, Get, Param, Post, Put, UseGuards, UseInterceptors
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -33,11 +41,11 @@ export class AdminController {
     private readonly commandBus: CommandBus,
     private readonly adminService: AdminService,
     private readonly queryBus: QueryBus,
-  ) { }
+  ) {}
 
   // --- ROLE ENDPOINTS ---
   @Post('roles')
-  @Permissions('create:role:RBAC') // <-- CORRECTED
+  @Permissions('create:role:RBAC')
   @ApiOperation({ summary: 'Create a new role' })
   @ApiBody({ type: CreateRoleDto })
   async addRole(@Body() createRoleDto: CreateRoleDto): Promise<Role> {
@@ -45,29 +53,32 @@ export class AdminController {
   }
 
   @Get('roles')
-  @Permissions('view:roles:RBAC') // <-- CORRECTED
+  @Permissions('view:roles:RBAC')
   @ApiOperation({ summary: 'Retrieve all roles' })
   async viewRoles(): Promise<GetRoleDto[]> {
     return this.queryBus.execute(new GetAllRolesQuery());
   }
 
   @Put('roles/:id')
-  @Permissions('update:role:RBAC') // <-- CORRECTED
+  @Permissions('update:role:RBAC')
   @ApiOperation({ summary: 'Update an existing role' })
   @ApiBody({ type: UpdateRoleDto })
-  async updateRole(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto): Promise<Role> {
+  async updateRole(
+    @Param('id') id: string,
+    @Body() updateRoleDto: UpdateRoleDto,
+  ): Promise<Role> {
     return this.adminService.updateRole(id, updateRoleDto);
   }
 
   @Get('roles/:id')
-  @Permissions('view:roles:RBAC') // <-- CORRECTED
+  @Permissions('view:roles:RBAC')
   @ApiOperation({ summary: 'Retrieve a single role by ID' })
   async findRoleById(@Param('id') id: string): Promise<Role> {
     return this.queryBus.execute(new GetRoleByIdQuery(id));
   }
 
   @Delete('roles/:id')
-  @Permissions('delete:role:RBAC') // <-- CORRECTED
+  @Permissions('delete:role:RBAC')
   @ApiOperation({ summary: 'Delete a role by ID' })
   async deleteRole(@Param('id') id: string): Promise<void> {
     return this.adminService.deleteRole(id);
@@ -75,37 +86,44 @@ export class AdminController {
 
   // --- PERMISSION ENDPOINTS ---
   @Post('permissions')
-  @Permissions('create:permission:RBAC') // <-- CORRECTED
+  @Permissions('create:permission:RBAC')
   @ApiOperation({ summary: 'Create a new permission' })
   @ApiBody({ type: CreatePermissionDto })
-  async addPermission(@Body() createPermissionDto: CreatePermissionDto): Promise<Permission> {
-    return this.commandBus.execute(new CreatePermissionCommand(createPermissionDto));
+  async addPermission(
+    @Body() createPermissionDto: CreatePermissionDto,
+  ): Promise<Permission> {
+    return this.commandBus.execute(
+      new CreatePermissionCommand(createPermissionDto),
+    );
   }
 
   @Get('permissions')
-  @Permissions('view:permissions:RBAC') // <-- CORRECTED
+  @Permissions('view:permissions:RBAC')
   @ApiOperation({ summary: 'Retrieve all permissions' })
   async viewPermissions(): Promise<Permission[]> {
     return this.queryBus.execute(new GetAllPermissionQuery());
   }
 
   @Get('permissions/:id')
-  @Permissions('view:permissions:RBAC') // <-- CORRECTED
+  @Permissions('view:permissions:RBAC')
   @ApiOperation({ summary: 'Retrieve a single permission by ID' })
   async findPermissionById(@Param('id') id: string): Promise<Permission> {
     return this.queryBus.execute(new GetPermissionByIdQuery(id));
   }
 
   @Put('permissions/:id')
-  @Permissions('update:permission:RBAC') // Note: This permission wasn't in your seeder, you may need to add it
+  @Permissions('update:permission:RBAC')
   @ApiOperation({ summary: 'Update an existing permission' })
   @ApiBody({ type: UpdatePermissionDto })
-  async updatePermission(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionDto): Promise<Permission> {
+  async updatePermission(
+    @Param('id') id: string,
+    @Body() updatePermissionDto: UpdatePermissionDto,
+  ): Promise<Permission> {
     return this.adminService.updatePermission(id, updatePermissionDto);
   }
 
   @Delete('permissions/:id')
-  @Permissions('delete:permission:RBAC') // Note: This permission wasn't in your seeder, you may need to add it
+  @Permissions('delete:permission:RBAC')
   @ApiOperation({ summary: 'Delete a permission by ID' })
   async deletePermission(@Param('id') id: string): Promise<void> {
     return this.adminService.deletePermission(id);

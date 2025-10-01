@@ -10,7 +10,7 @@ export class SubAccountRepositoryImpl implements ISubAccountRepository {
   constructor(
     @InjectRepository(SubAccount)
     private readonly subAccountRepository: Repository<SubAccount>,
-  ) { }
+  ) {}
 
   async create(subAccount: SubAccount): Promise<SubAccount> {
     try {
@@ -23,13 +23,16 @@ export class SubAccountRepositoryImpl implements ISubAccountRepository {
       );
     }
   }
-  async existsBetweenUsers(ownerUserId: string, subAccountUserId: string): Promise<boolean> {
+  async existsBetweenUsers(
+    ownerUserId: string,
+    subAccountUserId: string,
+  ): Promise<boolean> {
     const result = await this.subAccountRepository.findOne({
       where: {
         owner_user: { user_id: ownerUserId },
-        sub_account_user: { user_id: subAccountUserId }
+        sub_account_user: { user_id: subAccountUserId },
       },
-      select: ['sub_account_id']
+      select: ['sub_account_id'],
     });
 
     return !!result;
@@ -38,7 +41,7 @@ export class SubAccountRepositoryImpl implements ISubAccountRepository {
   async findAll(): Promise<SubAccount[]> {
     try {
       return await this.subAccountRepository.find({
-        relations: ['owner_user', 'sub_account_user']
+        relations: ['owner_user', 'sub_account_user'],
       });
     } catch (error) {
       throw new HttpException(
@@ -52,7 +55,7 @@ export class SubAccountRepositoryImpl implements ISubAccountRepository {
     try {
       const account = await this.subAccountRepository.findOne({
         where: { sub_account_id: id },
-        relations: ['owner_user', 'sub_account_user']
+        relations: ['owner_user', 'sub_account_user'],
       });
       if (!account) {
         throw new HttpException(

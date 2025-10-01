@@ -33,8 +33,6 @@ export class LoginWithOAuthHandler
       relations: ['user'],
     });
 
-    // if (providerAccount) return providerAccount.user;
-
     let user = await this.userRepo.findOne({
       where: { user_name: email },
       relations: ['providers'],
@@ -49,7 +47,6 @@ export class LoginWithOAuthHandler
       await this.userRepo.save(user);
     }
 
-    // Check if the provider account already exists
     if (!providerAccount) {
       const newProvider = this.providerRepo.create({
         provider,
@@ -61,7 +58,6 @@ export class LoginWithOAuthHandler
       await this.providerRepo.save(newProvider);
     }
 
-    // Generate JWT token
     const payload = {
       sub: user.user_id,
       email: user.user_name,
@@ -74,7 +70,6 @@ export class LoginWithOAuthHandler
       }),
     );
 
-    // Generate refresh token if needed
     let refresh_token: string | null = null;
     if (true) {
       const refreshPayload = { username: user.user_name, sub: user.user_id };

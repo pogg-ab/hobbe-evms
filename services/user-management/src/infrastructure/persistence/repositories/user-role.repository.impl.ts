@@ -9,7 +9,7 @@ export class UserRoleRepositoryImpl implements IUserRoleRepository {
   constructor(
     @InjectRepository(UserRole)
     private readonly userRoleRepository: Repository<UserRole>,
-  ) { }
+  ) {}
 
   async create(manager: EntityManager, userRole: UserRole): Promise<UserRole> {
     try {

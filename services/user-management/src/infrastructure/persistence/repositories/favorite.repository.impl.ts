@@ -9,7 +9,7 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
   constructor(
     @InjectRepository(Favorite)
     private readonly favoriteRepository: Repository<Favorite>,
-  ) { }
+  ) {}
 
   async create(favorite: Favorite): Promise<Favorite> {
     try {
@@ -23,7 +23,11 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
     }
   }
 
-  async findAllByUserId(userId: string, page: number, limit: number,): Promise<{
+  async findAllByUserId(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{
     favoriteUsers: Favorite[] | null;
     total: number;
     page: number;
@@ -33,32 +37,32 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
       const offset = (page - 1) * limit;
 
       const favoriteUsers = await this.favoriteRepository.find({
-        where: [
-          { favorited_user: { user_id: userId } },
+        where: [{ favorited_user: { user_id: userId } }],
+        relations: [
+          'favoriting_user',
+          'favoriting_user.personal_account',
+          'favoriting_user.organizational_account',
         ],
-        relations: ['favoriting_user', 'favoriting_user.personal_account', 'favoriting_user.organizational_account'],
         take: limit,
         skip: offset,
       });
       const total = await this.favoriteRepository.count({
-        where: [
-          { favorited_user: { user_id: userId } },
-        ],
+        where: [{ favorited_user: { user_id: userId } }],
       });
 
-      await Promise.all(favoriteUsers.map(async (favoriteUser) => {
-
-        if (favoriteUser.favoriting_user) {
-          this.removeSensitiveFields(favoriteUser.favoriting_user);
-        }
-      }));
+      await Promise.all(
+        favoriteUsers.map(async (favoriteUser) => {
+          if (favoriteUser.favoriting_user) {
+            this.removeSensitiveFields(favoriteUser.favoriting_user);
+          }
+        }),
+      );
       return {
         favoriteUsers: favoriteUsers || null,
         total,
         page,
         limit,
       };
-
     } catch (error) {
       throw new HttpException(
         `Error fetching Favorites for user with ID ${userId}: ${error.message}`,
@@ -66,7 +70,11 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
       );
     }
   }
-  async findAllFavoritedByUserId(userId: string, page: number, limit: number,): Promise<{
+  async findAllFavoritedByUserId(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{
     favoritedByUsers: Favorite[] | null;
     total: number;
     page: number;
@@ -77,22 +85,25 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
 
       const favoritedByUsers = await this.favoriteRepository.find({
         where: { favoriting_user: { user_id: userId } },
-        relations: ['favorited_user', 'favorited_user.personal_account', 'favorited_user.organizational_account'],
+        relations: [
+          'favorited_user',
+          'favorited_user.personal_account',
+          'favorited_user.organizational_account',
+        ],
         take: limit,
         skip: offset,
       });
       const total = await this.favoriteRepository.count({
-        where: [
-          { favoriting_user: { user_id: userId } },
-        ],
+        where: [{ favoriting_user: { user_id: userId } }],
       });
 
-      await Promise.all(favoritedByUsers.map(async (favoritedUser) => {
-
-        if (favoritedUser.favorited_user) {
-          this.removeSensitiveFields(favoritedUser.favorited_user);
-        }
-      }));
+      await Promise.all(
+        favoritedByUsers.map(async (favoritedUser) => {
+          if (favoritedUser.favorited_user) {
+            this.removeSensitiveFields(favoritedUser.favorited_user);
+          }
+        }),
+      );
       return {
         favoritedByUsers: favoritedByUsers || null,
         total,
@@ -116,7 +127,7 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
       'otp_expiry',
     ];
 
-    fieldsToRemove.forEach(field => {
+    fieldsToRemove.forEach((field) => {
       delete user[field];
     });
   }
@@ -148,8 +159,14 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
     try {
       return await this.favoriteRepository.findOne({
         where: [
-          { favoriting_user: { user_id: favoritingUserId }, favorited_user: { user_id: favoritedUserId } },
-          { favoriting_user: { user_id: favoritedUserId }, favorited_user: { user_id: favoritingUserId } },
+          {
+            favoriting_user: { user_id: favoritingUserId },
+            favorited_user: { user_id: favoritedUserId },
+          },
+          {
+            favoriting_user: { user_id: favoritedUserId },
+            favorited_user: { user_id: favoritingUserId },
+          },
         ],
       });
     } catch (error) {
@@ -159,6 +176,4 @@ export class FavoriteRepositoryImpl implements IFavoriteRepository {
       );
     }
   }
-
-
 }

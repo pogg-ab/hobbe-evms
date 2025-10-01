@@ -29,7 +29,7 @@ export class MessageProducerService
     }
   }
 
-    async sendMessage(topic: string, payload: any): Promise<void> {
+  async sendMessage(topic: string, payload: any): Promise<void> {
     try {
       await this.producer.send({
         topic,
@@ -37,8 +37,11 @@ export class MessageProducerService
       });
       this.logger.log(`Message successfully sent to Kafka topic: ${topic}`);
     } catch (error) {
-      this.logger.error(`Error sending message to Kafka topic ${topic}:`, error);
-      throw error; // Re-throw the error to be handled by the calling service
+      this.logger.error(
+        `Error sending message to Kafka topic ${topic}:`,
+        error,
+      );
+      throw error;
     }
   }
 

@@ -10,14 +10,10 @@ import { AuditLogController } from 'src/presentation/controllers/audit-log.contr
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AuditLog]),
-    forwardRef(() => AuthModule), // <-- Solves circular dependency
-  ],
+  imports: [TypeOrmModule.forFeature([AuditLog]), forwardRef(() => AuthModule)],
   controllers: [AuditLogController],
   providers: [
     AuditLogService,
-    // Guards are no longer provided here; they are imported from AuthModule
     {
       provide: AUDIT_LOG_REPOSITORY_TOKEN,
       useClass: AuditLogRepositoryImpl,

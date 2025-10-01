@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ClientsModule } from '@nestjs/microservices'; // <-- 1. IMPORT ClientsModule
-import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.producer.config'; // <-- 2. IMPORT Kafka Config
+import { ClientsModule } from '@nestjs/microservices';
+import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.producer.config';
 
 import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
 import { AdminUser } from 'src/domain/entities/admin-user.entity';
@@ -27,18 +27,14 @@ import { RoleProfile } from 'src/application/mapping/role.profile';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Role, 
-      Permission, 
+      Role,
+      Permission,
       RolePermission,
       AdminUser,
-      AdminUserRole
+      AdminUserRole,
     ]),
     CqrsModule,
     AuditLogModule,
-
-    // --- 3. THIS IS THE FIX ---
-    // This makes the 'KAFKA_PRODUCER' provider available to any provider in this module,
-    // which is needed by the AuditLogInterceptor.
     ClientsModule.register([
       {
         name: 'KAFKA_PRODUCER',
