@@ -54,12 +54,9 @@ export class AdminUserAccountService {
     return password;
   }
 
-  // Inside the AdminUserAccountService class...
-
   async create(
     createAdminUserAccountDto: CreateAdminUserAccountDto,
   ): Promise<AdminUserAccount | { success: boolean; message: string }> {
-    // This part of your code remains the same
     const newAccount = this.mapper.map(
       createAdminUserAccountDto,
       CreateAdminUserAccountDto,
@@ -78,21 +75,13 @@ export class AdminUserAccountService {
     adminUser.admin_user_account = savedAccount.admin_user_account_id;
     const newAdminUser = await this.adminUserRepository.create(adminUser);
 
-    // --- THIS IS THE CORRECTED LOGIC ---
-    // The old logic for getting the 'Admin' role is removed.
-    // We now iterate through the roleIds provided in the DTO using a for...of loop.
-
     for (const roleId of createAdminUserAccountDto.roleIds) {
       const adminUserRole = new AdminUserRole();
       adminUserRole.admin_user_id = newAdminUser.admin_user_id;
-      adminUserRole.role = { role_id: roleId } as Role; // Type assertion to satisfy the relation
+      adminUserRole.role = { role_id: roleId } as Role;
 
-      // This calls the existing 'create' method on your repository for each role.
       await this.adminUserRoleRepository.create(adminUserRole);
     }
-    // --- END OF CORRECTED LOGIC ---
-
-    // This part of your code remains the same
     const emailPayload = this.createPasswordEmail(
       createAdminUserAccountDto.emailAddress,
       generatedPassword,
@@ -107,7 +96,6 @@ export class AdminUserAccountService {
     return savedAccount;
   }
 
-  // --- THIS IS THE NEW, CORRECTED METHOD ---
   async assignRoleToUser(
     userId: string,
     assignRoleDto: AssignRoleDto,

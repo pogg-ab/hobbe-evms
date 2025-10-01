@@ -9,11 +9,7 @@ export class AssignRoleToUserCommandHandler
   constructor(private readonly service: AdminUserAccountService) {}
 
   async execute(command: AssignRoleToUserCommand): Promise<any> {
-    // This is the only part that changes.
-    // We now get the full 'assignRoleDto' from the command.
     const { userId, assignRoleDto } = command;
-    
-    // And we pass the full DTO to the service.
     return this.service.assignRoleToUser(userId, assignRoleDto);
   }
 }

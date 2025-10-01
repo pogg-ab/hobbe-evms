@@ -13,7 +13,6 @@ export class RoleProfile extends AutomapperProfile {
 
   override get profile() {
     return (mapper) => {
-      // This is the original mapping for creating a role
       createMap(
         mapper,
         CreateRoleDto,
@@ -28,7 +27,6 @@ export class RoleProfile extends AutomapperProfile {
         ),
       );
 
-      // --- ADD THE NEW MAPPING FOR UPDATING A ROLE ---
       createMap(
         mapper,
         UpdateRoleDto,

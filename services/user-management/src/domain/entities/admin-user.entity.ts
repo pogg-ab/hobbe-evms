@@ -22,7 +22,6 @@ export class AdminUser {
   @Column({ unique: true })
   user_name: string;
 
-  
   @Column({ nullable: true })
   password: string;
 
@@ -33,14 +32,16 @@ export class AdminUser {
   @JoinColumn({ name: 'admin_user_account_id' })
   admin_user_account: AdminUserAccountID;
 
- 
   @Column({ type: 'varchar', length: 50, nullable: true })
   ssoProvider: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   ssoProviderId: string | null;
- 
-  @OneToOne(() => AdminUserSecuritySetting, (settings) => settings.adminUser, { cascade: true, eager: true })
+
+  @OneToOne(() => AdminUserSecuritySetting, (settings) => settings.adminUser, {
+    cascade: true,
+    eager: true,
+  })
   securitySettings: AdminUserSecuritySetting;
 
   @OneToMany(() => AdminUserSession, (session) => session.adminUser)

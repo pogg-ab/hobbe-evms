@@ -11,16 +11,14 @@ export class UpdateRoleDto {
   @IsString()
   @IsOptional()
   description?: string;
-  
-  // --- ADD THIS NEW PROPERTY ---
+
   @ApiProperty({
     description: 'An array of permission UUIDs to assign to the role.',
     example: ['uuid-1', 'uuid-2'],
     required: false,
   })
   @IsArray()
-  @IsUUID('4', { each: true }) // Validates that each item in the array is a UUID
+  @IsUUID('4', { each: true })
   @IsOptional()
   permissions?: string[];
-  // --- END OF NEW PROPERTY ---
 }

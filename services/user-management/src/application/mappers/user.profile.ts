@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { Role } from 'src/domain/entities/role.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { CreateRoleDto } from 'src/presentation/dtos/create-role.dto';
-import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto'; // Adjust the path
+import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto';
 import { UpdateUserDto } from 'src/presentation/dtos/update-user.dto';
 
 @Injectable()
@@ -72,10 +72,7 @@ export class UserProfile extends AutomapperProfile {
           (destination) => destination.updated_date,
           mapFrom(() => new Date()),
         ),
-
-
       );
-
     };
   }
 }

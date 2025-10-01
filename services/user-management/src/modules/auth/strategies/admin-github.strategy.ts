@@ -4,7 +4,10 @@ import { Strategy, Profile } from 'passport-github2';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class AdminGitHubStrategy extends PassportStrategy(Strategy, 'admin-github') {
+export class AdminGitHubStrategy extends PassportStrategy(
+  Strategy,
+  'admin-github',
+) {
   constructor(private readonly configService: ConfigService) {
     super({
       clientID: configService.get<string>('ADMIN_GITHUB_CLIENT_ID'),
@@ -21,13 +24,17 @@ export class AdminGitHubStrategy extends PassportStrategy(Strategy, 'admin-githu
     done: (err: any, user: any, info?: any) => void,
   ): Promise<any> {
     const { id, displayName, emails } = profile;
-    const [firstName, lastName] = displayName ? displayName.split(' ') : ['', ''];
-    
-    // GitHub emails can sometimes be null, so we handle that case.
+    const [firstName, lastName] = displayName
+      ? displayName.split(' ')
+      : ['', ''];
+
     if (!emails || !emails[0] || !emails[0].value) {
-      return done(new Error('No primary email found for this GitHub user.'), null);
+      return done(
+        new Error('No primary email found for this GitHub user.'),
+        null,
+      );
     }
-    
+
     const adminProfile = {
       provider: 'github',
       id: id,

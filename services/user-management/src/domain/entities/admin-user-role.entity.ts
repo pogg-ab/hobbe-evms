@@ -12,7 +12,6 @@ import { AdminUserRoleID } from '../value-objects/admin-user-role-id.value-objec
 import { AdminUser } from './admin-user.entity';
 import { Role } from './role.entity';
 
-// Define the possible roles within a group (as per the Jira ticket)
 export enum GroupMembershipRole {
   MEMBER = 'MEMBER',
   GROUP_ADMIN = 'GROUP_ADMIN',

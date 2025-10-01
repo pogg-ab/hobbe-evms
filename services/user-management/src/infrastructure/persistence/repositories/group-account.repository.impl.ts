@@ -65,7 +65,6 @@ export class GroupAccountRepositoryImpl implements IGroupAccountRepository {
         where: [{ primary_user_id: userId }, { linked_user_id: userId }],
       });
 
-      // Remove sensitive fields from related users
       await Promise.all(
         groupAccounts.map(async (groupAccount) => {
           if (groupAccount.primary_organizer) {

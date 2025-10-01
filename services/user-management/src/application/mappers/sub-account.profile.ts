@@ -16,7 +16,6 @@ export class SubAccountProfile extends AutomapperProfile {
     @InjectMapper() mapper: Mapper,
     @InjectRepository(User)
     private userRepo: Repository<User>,
-
   ) {
     super(mapper);
   }
@@ -51,21 +50,17 @@ export class SubAccountProfile extends AutomapperProfile {
           (destination) => destination.generated_user_id,
           mapFrom(() => uuidv4()),
         ),
-
       );
     };
   }
 
   private async getUser(userId: string) {
     if (userId) {
-      const user =
-        await this.userRepo.findOne({
-          where: { user_id: userId },
-        });
+      const user = await this.userRepo.findOne({
+        where: { user_id: userId },
+      });
       return user || null;
     }
     return null;
   }
-
-
 }
