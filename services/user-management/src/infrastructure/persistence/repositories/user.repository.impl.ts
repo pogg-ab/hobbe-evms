@@ -600,7 +600,10 @@ export class UserRepositoryImpl
 
       user.is_active = false;
       user.updated_date = new Date();
-      await queryRunner.manager.save(User, user);
+      await queryRunner.manager.update(User, user.user_id, {
+        is_active: false,
+        updated_date: new Date(),
+      });
       account.status = Status.SUSPENDED;
       account.updated_date = new Date();
       await queryRunner.manager.save(accountEntity, account);
