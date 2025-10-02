@@ -598,6 +598,8 @@ export class UserRepositoryImpl
         );
       }
 
+      user.is_active = false;
+      user.updated_date = new Date();
       await queryRunner.manager.update(User, user.user_id, {
         is_active: false,
         updated_date: new Date(),
@@ -738,7 +740,9 @@ export class UserRepositoryImpl
         statusCode: HttpStatus.OK,
       };
     } catch (error) {
-      if (transactionStarted) await queryRunner.rollbackTransaction();
+      if (transactionStarted && queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
       throw new HttpException(
         `Error reactivating user: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
