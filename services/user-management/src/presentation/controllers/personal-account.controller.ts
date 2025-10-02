@@ -7,6 +7,7 @@ import {
   HttpCode,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Put,
   Res,
@@ -15,7 +16,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreatePersonalAccountCommand } from 'src/application/commands/personal-account/create-personal-account.command';
 import { RemovePersonalAccountCommand } from 'src/application/commands/personal-account/remove-personal-account.command';
 import { SendEmailVerificationCommand } from 'src/application/commands/personal-account/send-email-verification.command';
@@ -33,7 +40,7 @@ import { UpdatePersonalAccountDto } from '../dtos/update-personal-account.dto';
 import { VerifyEmailDto } from '../dtos/verify-email.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
-import { Express } from 'express'
+import { Express } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/infrastructure/file-upload/multer.config';
 import * as path from 'path';
@@ -41,15 +48,19 @@ import { Response } from 'express';
 import { CurrentUserId } from '../decorators/currentUserId.decorater';
 import { UpdateProfileImageCommand } from 'src/application/commands/personal-account/update-profile-image-command';
 import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
+import { AdminAuthGuard } from '../guards/admin-auth.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { Permissions } from '../decorators/permissions.decorator';
+import { AdminUpdatePersonalAccountDto } from '../dtos/admin-update-personal-account.dto';
 
 @ApiTags('Personal Account')
 @Controller('personal-account')
-@UseInterceptors(AuditLogInterceptor) 
+@UseInterceptors(AuditLogInterceptor)
 export class PersonalAccountController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) { }
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new personal account' })
@@ -60,7 +71,9 @@ export class PersonalAccountController {
     description: 'Account created successfully',
     type: PersonalAccount,
   })
-  @UseInterceptors(FileInterceptor('profile_image', multerConfig('profile_image')))
+  @UseInterceptors(
+    FileInterceptor('profile_image', multerConfig('profile_image')),
+  )
   async create(
     @Body() createPersonalAccountDto: CreatePersonalAccountDto,
     @UploadedFile() profile_image: Express.Multer.File,
@@ -82,30 +95,57 @@ export class PersonalAccountController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update profile image of the account' })
   @ApiBody({ description: 'Profile image file to update the user profile' })
-  @UseInterceptors(FileInterceptor('profile_image', multerConfig('profile_image')))
+  @UseInterceptors(
+    FileInterceptor('profile_image', multerConfig('profile_image')),
+  )
   async updateProfileImage(
     @Param('id') id: PersonalAccountID,
     @UploadedFile() profile_image: Express.Multer.File,
     @Res() res: Response,
   ): Promise<any> {
-    if (!profile_image) { throw new BadRequestException('No profile image file uploaded'); }
+    if (!profile_image) {
+      throw new BadRequestException('No profile image file uploaded');
+    }
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
     if (!allowedMimeTypes.includes(profile_image.mimetype)) {
-      throw new BadRequestException('Invalid file type. Only JPEG, PNG, and GIF are allowed.');
+      throw new BadRequestException(
+        'Invalid file type. Only JPEG, PNG, and GIF are allowed.',
+      );
     }
-    const account: PersonalAccount | null = await this.queryBus.execute(new FindPersonalAccountByIdQuery(id));
-    if (!account) { throw new NotFoundException('Personal account not found'); }
-    await this.commandBus.execute(new UpdateProfileImageCommand(id, profile_image.path));
-    return res.status(200).json({ message: 'Profile image updated successfully' });
+    const account: PersonalAccount | null = await this.queryBus.execute(
+      new FindPersonalAccountByIdQuery(id),
+    );
+    if (!account) {
+      throw new NotFoundException('Personal account not found');
+    }
+    await this.commandBus.execute(
+      new UpdateProfileImageCommand(id, profile_image.path),
+    );
+    return res
+      .status(200)
+      .json({ message: 'Profile image updated successfully' });
   }
 
   @Get(':id/profile-image')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  async getProfileImage(@Param('id') id: PersonalAccountID, @Res() res: Response): Promise<any> {
-    const account: PersonalAccount | null = await this.queryBus.execute(new FindPersonalAccountByIdQuery(id));
-    if (!account || !account.profile_image) { throw new NotFoundException('Profile image not found.'); }
-    const filePath = path.join(__dirname, '..', '..', '..', account.profile_image);
+  async getProfileImage(
+    @Param('id') id: PersonalAccountID,
+    @Res() res: Response,
+  ): Promise<any> {
+    const account: PersonalAccount | null = await this.queryBus.execute(
+      new FindPersonalAccountByIdQuery(id),
+    );
+    if (!account || !account.profile_image) {
+      throw new NotFoundException('Profile image not found.');
+    }
+    const filePath = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      account.profile_image,
+    );
     res.sendFile(filePath);
   }
 
@@ -118,7 +158,9 @@ export class PersonalAccountController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: PersonalAccountID): Promise<PersonalAccount | null> {
+  async findOne(
+    @Param('id') id: PersonalAccountID,
+  ): Promise<PersonalAccount | null> {
     return this.queryBus.execute(new FindPersonalAccountByIdQuery(id));
   }
 
@@ -131,9 +173,31 @@ export class PersonalAccountController {
     @Body() updatePersonalAccountDto: UpdatePersonalAccountDto,
     @CurrentUserId() user: any,
   ): Promise<PersonalAccount> {
-    const account = await this.queryBus.execute(new FindPersonalAccountByIdQuery(id));
+    const account = await this.queryBus.execute(
+      new FindPersonalAccountByIdQuery(id),
+    );
     Object.assign(account, updatePersonalAccountDto);
-    return this.commandBus.execute(new UpdatePersonalAccountCommand(id, account));
+    return this.commandBus.execute(
+      new UpdatePersonalAccountCommand(id, account),
+    );
+  }
+
+  @Patch('admin/:id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @Permissions('manage:User')
+  async adminUpdate(
+    @Param('id') id: string,
+    @Body() updatePersonalAccountDto: AdminUpdatePersonalAccountDto,
+  ): Promise<PersonalAccount> {
+    const account_id = new PersonalAccountID(id);
+    const account = await this.queryBus.execute(
+      new FindPersonalAccountByIdQuery(account_id),
+    );
+    Object.assign(account, updatePersonalAccountDto);
+    return this.commandBus.execute(
+      new UpdatePersonalAccountCommand(account_id, account),
+    );
   }
 
   @Delete(':id')
@@ -143,11 +207,18 @@ export class PersonalAccountController {
 
   @Post('send-email-verification-registration')
   @ApiOperation({ summary: 'Send email verification code during registration' })
-  async sendEmailVerificationRegistration(@Body() sendEmailVerificationDto: SendEmailVerificationDto): Promise<{ message: string }> {
+  async sendEmailVerificationRegistration(
+    @Body() sendEmailVerificationDto: SendEmailVerificationDto,
+  ): Promise<{ message: string }> {
     try {
-      const command = new SendEmailVerificationCommand(sendEmailVerificationDto);
+      const command = new SendEmailVerificationCommand(
+        sendEmailVerificationDto,
+      );
       await this.commandBus.execute(command);
-      return { message: 'Email verification code sent successfully during registration.' };
+      return {
+        message:
+          'Email verification code sent successfully during registration.',
+      };
     } catch (error) {
       throw error;
     }
@@ -155,11 +226,18 @@ export class PersonalAccountController {
 
   @Post('send-email-verification-after-registration')
   @ApiOperation({ summary: 'Send email verification code after registration' })
-  async sendEmailVerificationAfterRegistration(@Body() sendEmailVerificationDto: SendEmailVerificationDto): Promise<{ message: string }> {
+  async sendEmailVerificationAfterRegistration(
+    @Body() sendEmailVerificationDto: SendEmailVerificationDto,
+  ): Promise<{ message: string }> {
     try {
-      const command = new SendEmailVerificationDbCommand(sendEmailVerificationDto);
+      const command = new SendEmailVerificationDbCommand(
+        sendEmailVerificationDto,
+      );
       await this.commandBus.execute(command);
-      return { message: 'Email verification code sent successfully after registration.' };
+      return {
+        message:
+          'Email verification code sent successfully after registration.',
+      };
     } catch (error) {
       throw error;
     }

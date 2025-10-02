@@ -43,7 +43,7 @@ export class PersonalAccountRepositoryImpl
   async findOneById(id: PersonalAccountID): Promise<PersonalAccount | null> {
     try {
       const account = await this.personalAccountRepository.findOne({
-        where: { personal_account_id: id },
+        where: { personal_account_id: id.toString() },
       });
       if (!account) {
         throw new HttpException(
