@@ -116,7 +116,7 @@ export class User {
   })
   securitySettings: UserSecuritySetting;
 
-  @OneToMany(() => UserSession, (session) => session.user)
+  @OneToMany(() => UserSession, (session) => session.user, { cascade: false })
   sessions: UserSession[];
 
   @AfterLoad()
