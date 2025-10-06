@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty } from 'class-validator';
 
-
 export class UpdateEventsDto {
   // user_id: string;
 
@@ -9,18 +8,25 @@ export class UpdateEventsDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ description: 'Event Thumbnail', example: 'https://3.files.edl.io/7e26/22/02/01/162416-f4c177eb-1c0c-4604-ad72-2fc53c318332.jpg' })
+  @ApiProperty({
+    description: 'Event Thumbnail',
+    example:
+      'https://3.files.edl.io/7e26/22/02/01/162416-f4c177eb-1c0c-4604-ad72-2fc53c318332.jpg',
+  })
   @IsNotEmpty()
   thumbnail: string;
 
-  @ApiProperty({ description: 'Event Cover Image', example: 'https://3.files.edl.io/7e26/22/02/01/162416-f4c177eb-1c0c-4604-ad72-2fc53c318332.jpg' })
+  @ApiProperty({
+    description: 'Event Cover Image',
+    example:
+      'https://3.files.edl.io/7e26/22/02/01/162416-f4c177eb-1c0c-4604-ad72-2fc53c318332.jpg',
+  })
   @IsNotEmpty()
   cover_image: string;
 
   @ApiProperty({ description: 'Event Type', example: 'In Person' })
   @IsNotEmpty()
   event_type: string;
-   
 
   @ApiProperty({ description: 'Event Has Promocode ?', example: false })
   @IsNotEmpty()
@@ -65,11 +71,8 @@ export class UpdateEventsDto {
   @ApiProperty({
     description: 'Event Category',
     isArray: true,
-    example:['Sports','Health'],
+    example: ['Sports', 'Health'],
   })
   @IsNotEmpty()
   categories: string[];
-
-
-
 }

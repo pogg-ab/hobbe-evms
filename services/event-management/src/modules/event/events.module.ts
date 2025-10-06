@@ -114,7 +114,7 @@ import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
     AuditLogModule,
     ClientsModule.register([
       {
-        name: 'KAFKA_PRODUCER', // This name must match the @Inject() token
+        name: 'KAFKA_PRODUCER',
         transport: Transport.KAFKA,
         options: {
           client: {
@@ -184,7 +184,7 @@ import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
 export class EventsModule {
   constructor(
     @Inject('KAFKA_VALIDATE_USER_SERVICE') private client: ClientKafka,
-  ) { }
+  ) {}
 
   async onModuleInit() {
     this.client.subscribeToResponseOf('validateUser');

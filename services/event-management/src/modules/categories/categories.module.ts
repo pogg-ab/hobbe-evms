@@ -15,27 +15,25 @@ import { UpdatedCategoryCommandHandler } from 'src/application/handlers/categori
 import { DeleteCategoriesCommandHandler } from 'src/application/handlers/categories/daelete-categories.handler';
 
 @Module({
-  
-    imports: [
-      AutomapperModule,
-      TypeOrmModule.forFeature([Categories]),
-      CqrsModule,
-    ],
-    controllers: [CategoriesController],
-    providers: [
-      CategoriesService,
-      CategoriesProfile,
-      CategoriesCommandHandler,
-      GetAllCategoriesHandler,
-      CategoriesFindByIdHandler,
-      UpdatedCategoryCommandHandler,
-      DeleteCategoriesCommandHandler,
-      {
-        provide: CATEGORIES_REPOSITORY_TOKEN,
-        useClass: CategoriesRepositoryImpl,
-      },
-    ],
-    exports: [CATEGORIES_REPOSITORY_TOKEN], // Export for use in other modules
-  })
-  export class CategoriesModule {}
-  
+  imports: [
+    AutomapperModule,
+    TypeOrmModule.forFeature([Categories]),
+    CqrsModule,
+  ],
+  controllers: [CategoriesController],
+  providers: [
+    CategoriesService,
+    CategoriesProfile,
+    CategoriesCommandHandler,
+    GetAllCategoriesHandler,
+    CategoriesFindByIdHandler,
+    UpdatedCategoryCommandHandler,
+    DeleteCategoriesCommandHandler,
+    {
+      provide: CATEGORIES_REPOSITORY_TOKEN,
+      useClass: CategoriesRepositoryImpl,
+    },
+  ],
+  exports: [CATEGORIES_REPOSITORY_TOKEN],
+})
+export class CategoriesModule {}
