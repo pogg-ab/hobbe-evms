@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsDateString, IsNotEmpty, IsUUID } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { IsDateString, IsNotEmpty, IsUUID } from 'class-validator';
 
 export class CreateStreamDto {
   @ApiProperty({
@@ -17,5 +17,4 @@ export class CreateStreamDto {
   @IsNotEmpty()
   @IsUUID()
   eventId: string;
-
 }

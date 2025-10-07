@@ -51,12 +51,12 @@ import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.co
     FindByEventCommentsQueryHandler,
     UpdateCommentsCommandHandler,
     RemoveCommentsCommandHandler,
-    UserInfoService, // Assuming UserInfoService is defined and imported
+    UserInfoService,
     {
       provide: COMMENTS_REPOSITORY_TOKEN,
       useClass: CommentsRepositoryImpl,
     },
   ],
-  exports: [COMMENTS_REPOSITORY_TOKEN], // Export for use in other modules
+  exports: [COMMENTS_REPOSITORY_TOKEN],
 })
 export class CommentsModule {}

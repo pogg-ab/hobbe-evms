@@ -1,23 +1,22 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, Max } from "class-validator";
-import { CreateEventsDto } from "../events/create-events.dto";
-import { IdValueObject } from "src/domain/value-objects/event-id.value-object";
-import { Tickets } from "src/domain/entities/tickets.entity";
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, Max } from 'class-validator';
+import { CreateEventsDto } from '../events/create-events.dto';
+import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
+import { Tickets } from 'src/domain/entities/tickets.entity';
 
+export class QrScandDto {
+  @ApiProperty({ description: 'Promocode', example: '#CRT123' })
+  @IsNotEmpty()
+  ticket: Tickets;
 
-export class QrScandDto{
-    @ApiProperty({ description: 'Promocode', example: '#CRT123' })
-    @IsNotEmpty()
-    ticket: Tickets;
+  @ApiProperty({ description: 'Promocode Quantity', example: 50 })
+  @IsNotEmpty()
+  metadata: number;
 
-    @ApiProperty({ description: 'Promocode Quantity', example: 50 })
-    @IsNotEmpty()
-    metadata: number;
-
-    @ApiProperty({ description: 'Discount in %', example: 10})
-    @IsNotEmpty()
-    @Max(100)
-    discount: number;
+  @ApiProperty({ description: 'Discount in %', example: 10 })
+  @IsNotEmpty()
+  @Max(100)
+  discount: number;
 
   //   @ApiProperty({ description: 'Event ID'})
   // // @IsNotEmpty()
@@ -27,19 +26,18 @@ export class QrScandDto{
   //    // @IsNotEmpty()
   //    ticket_heading_id: IdValueObject;
 
-    @ApiProperty({ description: 'Promocode start from', example: new Date() })
-    // @IsNotEmpty()
-    promo_start_date: Date;
-  
-    @ApiProperty({ description: 'Sales End', example: new Date() })
-    // @IsNotEmpty()
-    promo_end_date: Date;
+  @ApiProperty({ description: 'Promocode start from', example: new Date() })
+  // @IsNotEmpty()
+  promo_start_date: Date;
 
+  @ApiProperty({ description: 'Sales End', example: new Date() })
+  // @IsNotEmpty()
+  promo_end_date: Date;
 
-    @ApiProperty({
-        description: 'Promocode Description',
-        example:
-          "Join us at the City Tech Expo 2024 to explore the latest innovations in technology. Experience live demonstrations, expert panels, and networking opportunities with industry leaders and tech enthusiasts. From AI advancements to sustainable tech solutions, there's something for everyone!",
-      })
-      description?: string;
-    }
+  @ApiProperty({
+    description: 'Promocode Description',
+    example:
+      "Join us at the City Tech Expo 2024 to explore the latest innovations in technology. Experience live demonstrations, expert panels, and networking opportunities with industry leaders and tech enthusiasts. From AI advancements to sustainable tech solutions, there's something for everyone!",
+  })
+  description?: string;
+}

@@ -12,7 +12,6 @@ import { FavoriteCommandHandler } from 'src/application/handlers/favorite/favori
 import { FindEventsByUsersFavoriteQueryHandler } from 'src/application/handlers/favorite/find-events-by-user.favorite.handler';
 
 @Module({
-
   imports: [
     AutomapperModule,
     TypeOrmModule.forFeature([FavoriteEvent]),
@@ -29,7 +28,6 @@ import { FindEventsByUsersFavoriteQueryHandler } from 'src/application/handlers/
       useClass: FavoriteEventRepositoryImpl,
     },
   ],
-  exports: [FAVORITE_EVENT_TOKEN], // Export for use in other modules
+  exports: [FAVORITE_EVENT_TOKEN],
 })
-export class FavoriteModule { }
-
+export class FavoriteModule {}

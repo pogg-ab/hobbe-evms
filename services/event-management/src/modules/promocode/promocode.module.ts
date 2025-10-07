@@ -13,25 +13,24 @@ import { PromocodeRepositoryImpl } from 'src/infrastructure/persistence/reposito
 import { PromocodeController } from 'src/presentation/controllers/promocode/promocode.controller';
 
 @Module({
-  
-    imports: [
-      AutomapperModule,
-      TypeOrmModule.forFeature([Promocodes]),
-      CqrsModule,
-    ],
-    controllers: [PromocodeController],
-    providers: [
-      PromocodeServices,
-      PromocodeProfile,
-      CreatePromocodeCommandHandler,
-      FindOnePoromocodeQueryHandler,
-      UpdatePromocodeCommandHandler,
+  imports: [
+    AutomapperModule,
+    TypeOrmModule.forFeature([Promocodes]),
+    CqrsModule,
+  ],
+  controllers: [PromocodeController],
+  providers: [
+    PromocodeServices,
+    PromocodeProfile,
+    CreatePromocodeCommandHandler,
+    FindOnePoromocodeQueryHandler,
+    UpdatePromocodeCommandHandler,
 
-      {
-        provide: CREATE_PROMOCODE_TOKEN,
-        useClass: PromocodeRepositoryImpl,
-      },
-    ],
-    exports: [CREATE_PROMOCODE_TOKEN], // Export for use in other modules
-  })
+    {
+      provide: CREATE_PROMOCODE_TOKEN,
+      useClass: PromocodeRepositoryImpl,
+    },
+  ],
+  exports: [CREATE_PROMOCODE_TOKEN],
+})
 export class PromocodeModule {}

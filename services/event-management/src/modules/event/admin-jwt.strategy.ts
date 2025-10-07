@@ -5,24 +5,18 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') {
-  // --- ADD THIS LINE ---
   private readonly logger = new Logger(AdminJwtStrategy.name);
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET'),
-      // --- ADD THIS NEW OPTION ---
-      passReqToCallback: true, // This will pass the whole request object to validate()
+      passReqToCallback: true,
     });
   }
 
-  // --- MODIFY THE validate() METHOD ---
   async validate(req: Request, payload: any): Promise<any> {
-    // This log will tell us EVERYTHING.
     this.logger.debug('--- AdminJwtStrategy VALIDATE ---');
     this.logger.debug(`Headers: ${JSON.stringify(req.headers)}`);
     this.logger.debug(`Payload from JWT: ${JSON.stringify(payload)}`);
@@ -35,7 +29,7 @@ export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') {
       permissions: payload.permissions,
       jti: payload.jti,
       isAdmin: true,
-      type: 'admin'
+      type: 'admin',
     };
   }
 }

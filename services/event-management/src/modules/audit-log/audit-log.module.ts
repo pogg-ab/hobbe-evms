@@ -13,7 +13,6 @@ import { kafkaPermissionConfig } from 'src/infrastructure/kafka/kafka-permission
 @Module({
   imports: [
     TypeOrmModule.forFeature([AuditLog]),
-    // --- ADD THE KAFKA CLIENTS MODULE ---
     ClientsModule.register([
       {
         name: 'KAFKA_PRODUCER',
@@ -37,9 +36,7 @@ import { kafkaPermissionConfig } from 'src/infrastructure/kafka/kafka-permission
     ]),
   ],
 
-  controllers: [
-    AuditLogController,
-  ],
+  controllers: [AuditLogController],
   providers: [
     AuditLogService,
     AuditLogInterceptor,
@@ -49,9 +46,6 @@ import { kafkaPermissionConfig } from 'src/infrastructure/kafka/kafka-permission
       useClass: AuditLogRepositoryImpl,
     },
   ],
-  exports: [
-    AuditLogService,
-    AuditLogInterceptor, // <-- EXPORT THE INTERCEPTOR
-  ],
+  exports: [AuditLogService, AuditLogInterceptor],
 })
-export class AuditLogModule { }
+export class AuditLogModule {}
