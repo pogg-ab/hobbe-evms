@@ -727,9 +727,8 @@ export class UserRepositoryImpl
           },
         });
       } catch (esError) {
-        console.error('Elasticsearch update failed:', esError.meta?.body || esError);
         throw new HttpException(
-          'User reactivated but Elasticsearch sync failed.',
+          esError.meta?.body?.error?.reason || 'User reactivated but Elasticsearch sync failed.',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
 
