@@ -23,8 +23,7 @@ import { SearchFilters } from 'src/presentation/dtos/search-filters.dto';
 
 @Injectable()
 export class UserRepositoryImpl
-  implements IUserRepository, OnApplicationBootstrap
-{
+  implements IUserRepository, OnApplicationBootstrap {
   private readonly client: Client;
   constructor(
     @InjectRepository(User)
@@ -622,7 +621,7 @@ export class UserRepositoryImpl
         });
       } catch (esError) {
         throw new HttpException(
-          'User suspended but Elasticsearch sync failed. Reverted DB changes.',
+          'User suspended but Elasticsearch sync failed.',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
@@ -723,13 +722,13 @@ export class UserRepositoryImpl
           body: {
             doc: {
               isActive: true,
-              reactivatedAt: user.updated_date.toISOString(),
+              suspendedAt: user.updated_date.toISOString(),
             },
           },
         });
       } catch (esError) {
         throw new HttpException(
-          'User reactivated but Elasticsearch sync failed. Reverted DB changes.',
+          'User reactivated but Elasticsearch sync failed.',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
