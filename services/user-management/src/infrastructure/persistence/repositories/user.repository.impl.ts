@@ -703,10 +703,11 @@ export class UserRepositoryImpl
           HttpStatus.NOT_FOUND,
         );
       }
-
+      user.is_active = true;
+      user.updated_date = new Date();
       await queryRunner.manager.update(User, user.user_id, {
         is_active: true,
-        updated_date: new Date(),
+        updated_date: user.updated_date,
       });
 
       account.status = Status.ACTIVE;
@@ -728,7 +729,7 @@ export class UserRepositoryImpl
         });
       } catch (esError) {
         throw new HttpException(
-          esError.meta?.body?.error?.reason || 'User reactivated but Elasticsearch sync failed.',
+          'User reactivated but Elasticsearch sync failed.',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
 
