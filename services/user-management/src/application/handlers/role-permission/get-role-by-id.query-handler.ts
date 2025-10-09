@@ -9,7 +9,9 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 
 @QueryHandler(GetRoleByIdQuery)
-export class GetRoleByIdQueryHandler implements IQueryHandler<GetRoleByIdQuery, GetRoleDto> {
+export class GetRoleByIdQueryHandler
+  implements IQueryHandler<GetRoleByIdQuery, GetRoleDto>
+{
   constructor(
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
@@ -18,7 +20,6 @@ export class GetRoleByIdQueryHandler implements IQueryHandler<GetRoleByIdQuery, 
   ) {}
 
   async execute(query: GetRoleByIdQuery): Promise<GetRoleDto> {
-    // 1. The 'relations' query is corrected to use the new entity structure.
     const roleFromDb = await this.roleRepository.findOne({
       where: { role_id: query.id },
       relations: {
@@ -31,8 +32,6 @@ export class GetRoleByIdQueryHandler implements IQueryHandler<GetRoleByIdQuery, 
     if (!roleFromDb) {
       throw new NotFoundException(`Role with ID "${query.id}" not found`);
     }
-
-    // 2. We map the single entity object into our clean DTO.
     return this.mapper.map(roleFromDb, Role, GetRoleDto);
   }
 }

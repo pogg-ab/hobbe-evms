@@ -14,7 +14,6 @@ export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') {
   }
 
   async validate(payload: any) {
-    // This returns the object that will be attached to `req.user`
     return {
       userId: payload.sub,
       username: payload.username,

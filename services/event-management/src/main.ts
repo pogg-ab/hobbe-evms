@@ -6,12 +6,11 @@ import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
 import { kafkaProducerConfig } from './infrastructure/kafka/kafka.config';
 
-// This is the correct call to load a file named '.env' from the service root.
 dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   const config = new DocumentBuilder()
     .setTitle('Event Management API')
     .setDescription('API for managing events')
@@ -23,7 +22,7 @@ async function bootstrap() {
         bearerFormat: 'Bearer',
         scheme: 'Bearer',
         type: 'http',
-        in: 'Header'
+        in: 'Header',
       },
       'access-token',
     )

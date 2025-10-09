@@ -2,7 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
 import { CreateTicketsDto } from './create-tickets.dto';
 
-
 export class UpdateTicketsHeadingDto {
   @ApiProperty({ description: 'Ticket Name', example: 'Tech Expo 2024' })
   @IsNotEmpty()
@@ -30,5 +29,4 @@ export class UpdateTicketsHeadingDto {
   @ApiProperty({ description: 'Sales End', example: new Date() })
   @IsNotEmpty()
   sales_end: Date;
-
 }

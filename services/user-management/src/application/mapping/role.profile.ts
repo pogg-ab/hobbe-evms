@@ -14,20 +14,21 @@ export class RoleProfile extends AutomapperProfile {
 
   override get profile() {
     return (mapper) => {
-      // Map Permission -> PermissionDto (simple, will be auto-mapped)
       createMap(mapper, Permission, PermissionDto);
 
-      // Map Role -> GetRoleDto
-      createMap(mapper, Role, GetRoleDto,
-        // Because we added @AutoMap() to the Role entity, the simple properties
-        // (role_id, name, description) will now be mapped automatically.
-        // We only need to provide the special rule for the 'permissions' property.
+      createMap(
+        mapper,
+        Role,
+        GetRoleDto,
+
         forMember(
           (destination) => destination.permissions,
-          mapFrom((source) => 
-            source.rolePermissions ? source.rolePermissions.map(rp => rp.permission) : []
-          )
-        )
+          mapFrom((source) =>
+            source.rolePermissions
+              ? source.rolePermissions.map((rp) => rp.permission)
+              : [],
+          ),
+        ),
       );
     };
   }

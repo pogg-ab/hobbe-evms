@@ -24,7 +24,11 @@ export class Auth {
   @JoinColumn({ name: 'user_id' })
   user_id: UserID;
 
-  @ManyToOne(() => GuestSession, { cascade: true, onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => GuestSession, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'session_id' })
   session_id: SessionID | null;
 

@@ -30,10 +30,10 @@ export class AdminAlert {
   alert_id: string;
 
   @Column({ unique: true })
-  title: string; 
+  title: string;
 
   @Column({ type: 'text' })
-  description: string; 
+  description: string;
 
   @Column({
     type: 'enum',
@@ -50,16 +50,14 @@ export class AdminAlert {
   @Column({ default: true })
   is_active: boolean;
 
-  // --- NEW FIELD FOR GLOBAL BROADCASTS ---
-  @Column({ 
-    type: 'boolean', 
-    default: false, 
-    comment: 'If true, this alert is a broadcast to all regular users' 
+  @Column({
+    type: 'boolean',
+    default: false,
+    comment: 'If true, this alert is a broadcast to all regular users',
   })
   is_broadcast: boolean;
 
-  // Relation to the new UserAlertSubscription entity
-  @OneToMany(() => UserAlertSubscription, subscription => subscription.alert)
+  @OneToMany(() => UserAlertSubscription, (subscription) => subscription.alert)
   userSubscriptions: UserAlertSubscription[];
 
   @CreateDateColumn()

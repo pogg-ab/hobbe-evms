@@ -7,9 +7,11 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
+  RelationId,
 } from 'typeorm';
 import { PersonalAccount } from './personal-account.entity';
 import { AdminUser } from './admin-user.entity';
+import { OrganizationalAccount } from './organizational-account.entity';
 
 export enum VerificationStatus {
   PENDING = 'PENDING',
@@ -28,6 +30,13 @@ export class VerificationRequest {
   })
   @JoinColumn({ name: 'personal_account_id' })
   personal_account: PersonalAccount;
+
+  @ManyToOne(() => OrganizationalAccount, (oa) => oa.verification_request, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'organizational_account_id' })
+  organizational_account?: OrganizationalAccount | null;
 
   @Column({
     type: 'enum',
@@ -48,14 +57,17 @@ export class VerificationRequest {
   @CreateDateColumn({ name: 'submitted_at', type: 'timestamp with time zone' })
   submitted_at: Date;
 
-  @Column({ type: 'timestamp with time zone', name: 'reviewed_at', nullable: true })
+  @Column({
+    type: 'timestamp with time zone',
+    name: 'reviewed_at',
+    nullable: true,
+  })
   reviewed_at?: Date | null;
 
-  /**
-   * Admin who reviewed. FK stored in `reviewed_by` column referencing admin_user_account(admin_user_account_id).
-   */
-  @OneToOne(() => AdminUser, { nullable: true, eager: false })
+  @ManyToOne(() => AdminUser, { nullable: true })
   @JoinColumn({ name: 'reviewed_by' })
-  reviewed_by?: AdminUser| null;
-  length: number;
+  reviewed_by?: AdminUser | null;
+
+  @RelationId((vr: VerificationRequest) => vr.reviewed_by)
+  reviewed_by_id?: string;
 }

@@ -19,10 +19,8 @@ export class AuditLog {
   @Column()
   module: string;
 
-  // --- ADD THIS NEW COLUMN ---
-  @Column({ default: 'unknown' }) // Add a default value for safety
-  serviceName: string; // Will store 'user-management', 'event-management', etc.
-  // --- END OF NEW COLUMN ---
+  @Column({ default: 'unknown' })
+  serviceName: string;
 
   @Column({ type: 'uuid', nullable: true })
   target_id: string;

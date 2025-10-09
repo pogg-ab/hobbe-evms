@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from 'src/domain/entities/role.entity';
 import { IRoleRepository } from 'src/domain/repositories/role.repository';
-import { FindManyOptions, Repository } from 'typeorm'; // <-- IMPORT FindManyOptions
+import { FindManyOptions, Repository } from 'typeorm';
 
 @Injectable()
 export class RoleRepositoryImpl implements IRoleRepository {
@@ -28,13 +28,10 @@ export class RoleRepositoryImpl implements IRoleRepository {
     }
   }
 
-  // --- THIS IS THE CORRECTED METHOD ---
   async find(options?: FindManyOptions<Role>): Promise<Role[]> {
     try {
-      // We now pass the optional 'options' object directly to the underlying
-      // TypeORM find method. If 'options' is undefined, it works exactly as before.
       return await this.roleRepository.find(options);
-    } catch (error) { // Added missing brace
+    } catch (error) {
       throw new HttpException(
         `Error fetching roles: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,

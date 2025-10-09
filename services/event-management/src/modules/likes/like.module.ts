@@ -11,23 +11,17 @@ import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { LikeEventCommandHandler } from 'src/application/handlers/like/like-event-handler';
 
 @Module({
-  
-    imports: [
-      AutomapperModule,
-      TypeOrmModule.forFeature([Like]),
-      CqrsModule,
-    ],
-    controllers: [LikeController],
-    providers: [
-      LikeEventService,
-      SocketIo,
-      LikeEventCommandHandler,
-      {
-        provide: LIKE_EVENT_TOKEN,
-        useClass: LikeEventRepositoryImpl,
-      },
-    ],
-    exports: [LIKE_EVENT_TOKEN], // Export for use in other modules
-  })
-  export class LikeModule {}
-  
+  imports: [AutomapperModule, TypeOrmModule.forFeature([Like]), CqrsModule],
+  controllers: [LikeController],
+  providers: [
+    LikeEventService,
+    SocketIo,
+    LikeEventCommandHandler,
+    {
+      provide: LIKE_EVENT_TOKEN,
+      useClass: LikeEventRepositoryImpl,
+    },
+  ],
+  exports: [LIKE_EVENT_TOKEN],
+})
+export class LikeModule {}

@@ -13,7 +13,9 @@ export class UserSecuritySetting {
   @PrimaryColumn({ type: 'uuid' })
   user_id: string;
 
-  @OneToOne(() => User, (user) => user.securitySettings, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.securitySettings, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'user_id' })
   user: User;
 

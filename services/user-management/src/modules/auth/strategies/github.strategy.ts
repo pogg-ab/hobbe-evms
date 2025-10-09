@@ -19,7 +19,7 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     refreshToken: string,
     profile: any,
   ): Promise<any> {
-    const { id, username, emails, photos,githubId } = profile;
+    const { id, username, emails, photos, githubId } = profile;
     const user = {
       id,
       email: emails?.[0]?.value,
@@ -27,9 +27,9 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
       lastName: '',
       picture: photos?.[0]?.value,
       accessToken,
-      githubId: id.toString(), // Use providerId if available, otherwise fallback to id
+      githubId: id.toString(),
       provider: 'GitHub',
     };
     return user;
   }
-} 
+}

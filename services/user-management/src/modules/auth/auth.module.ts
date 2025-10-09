@@ -31,10 +31,8 @@ import { LoginWithOAuthHandler } from 'src/application/handlers/sso/LoginWithOAu
 import { OAuthProvider } from 'src/domain/entities/oauth-provider.entity';
 import { GithubStrategy } from './strategies/github.strategy';
 
-// --- IMPORTS FROM YOUR FEATURE BRANCH ---
 import { AdminJwtStrategy } from './admin-jwt.strategy';
 import { AuditLogModule } from '../audit-log/audit-log.module';
-// Note: We don't import AdminAuthGuard here as it's a legacy file we might not need. Let's see.
 import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
 import { UserSecuritySetting } from 'src/domain/entities/user-security-setting.entity';
 import { AdminUserSecuritySetting } from 'src/domain/entities/admin-user-security-setting.entity';
@@ -55,8 +53,8 @@ import { AdminGoogleStrategy } from './strategies/admin-google.strategy';
 import { AdminFacebookStrategy } from './strategies/admin-facebook.strategy';
 import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
 import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
-import { AdminAlertsController } from 'src/presentation/controllers/admin-alerts.controller'; 
-import { AdminAlertsService } from 'src/application/services/admin-alerts.service';      
+import { AdminAlertsController } from 'src/presentation/controllers/admin-alerts.controller';
+import { AdminAlertsService } from 'src/application/services/admin-alerts.service';
 import { AdminAlert } from 'src/domain/entities/admin-alert.entity';
 import { AdminAlertLog } from 'src/domain/entities/admin-alert-log.entity';
 import { AdminAlertSubscription } from 'src/domain/entities/admin-alert-subscription.entity';
@@ -76,16 +74,16 @@ import { UserAlertSubscription } from 'src/domain/entities/user-alert-subscripti
       PersonalAccount,
       OrganizationalAccount,
       Follower,
-      UserSecuritySetting, 
-       AdminUserSecuritySetting,
-      UserSession,  
-      AdminUserSession,       
+      UserSecuritySetting,
+      AdminUserSecuritySetting,
+      UserSession,
+      AdminUserSession,
       GuestSession,
-      ConfigModule, 
-      SystemSetting,   
+      ConfigModule,
+      SystemSetting,
       AdminAlert,
-      AdminAlertLog,   
-      AdminAlertSubscription,  
+      AdminAlertLog,
+      AdminAlertSubscription,
       UserAlertSubscription,
     ]),
     PassportModule,
@@ -100,25 +98,25 @@ import { UserAlertSubscription } from 'src/domain/entities/user-alert-subscripti
         options: kafkaProducerConfig.options,
       },
     ]),
-    forwardRef(() => AuditLogModule), 
+    forwardRef(() => AuditLogModule),
   ],
   providers: [
     AuthService,
     ElasticsearchConfig,
     JwtStrategy,
-    AdminJwtStrategy, 
+    AdminJwtStrategy,
     GoogleStrategy,
     FacebookStrategy,
     GithubStrategy,
     MessageProducerService,
     NotificationConfigService,
-    GuestUserService, 
+    GuestUserService,
     LoginWithOAuthHandler,
-    PermissionsGuard, 
+    PermissionsGuard,
     SessionGuard,
-    MfaService,  
-    SystemSettingsService, 
-    UniversalAuthGuard,  
+    MfaService,
+    SystemSettingsService,
+    UniversalAuthGuard,
     AdminGoogleStrategy,
     AdminFacebookStrategy,
     AdminGitHubStrategy,
@@ -147,15 +145,20 @@ import { UserAlertSubscription } from 'src/domain/entities/user-alert-subscripti
       },
     },
   ],
-  controllers: [AuthController,  MfaController,  SystemSettingsController,AdminAlertsController,],
+  controllers: [
+    AuthController,
+    MfaController,
+    SystemSettingsController,
+    AdminAlertsController,
+  ],
   exports: [
     AuthService,
-    PermissionsGuard, 
+    PermissionsGuard,
     SessionGuard,
-    MfaService,  
+    MfaService,
     SystemSettingsService,
-    AdminAuthGuard, 
-    UniversalAuthGuard,   
+    AdminAuthGuard,
+    UniversalAuthGuard,
   ],
 })
 export class AuthModule {}

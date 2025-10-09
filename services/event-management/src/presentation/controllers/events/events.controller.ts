@@ -86,9 +86,6 @@ export class EventsController {
     private readonly queryBus: QueryBus,
   ) {}
 
-  /*
-     Get All Events
-  */
   @ApiOperation({ description: 'Gust Get All Events' })
   @HttpCode(200)
   @Get('get-events-as-gust')
@@ -159,9 +156,6 @@ export class EventsController {
     };
   }
 
-  /*
-        Event Creation API Endpoint
-  */
   @ApiBody({ type: CreateEventsDto })
   @ApiOperation({ description: 'Create a new event' })
   @UseInterceptors(AuditLogInterceptor)
@@ -175,13 +169,13 @@ export class EventsController {
   @UseInterceptors(AuditLogInterceptor)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @UseInterceptors(
-    FileInterceptor('thumbnail', multerConfig('thumbnail')), // For 'thumbnail' field, allows 1 file only
+    FileInterceptor('thumbnail', multerConfig('thumbnail')),
     // FileInterceptor('cover_image', multerConfig('cover_image'))  // For 'cover_image' field, allows 1 file only
   )
   async createEvent(
     @Body() createEventsDto: CreateEventsDto,
-    @UploadedFile() thumbnail: Express.Multer.File, // Handle the uploaded 'thumbnail'
-    // @UploadedFile() cover_image: Express.Multer.File,  // Handle the uploaded 'cover_image'
+    @UploadedFile() thumbnail: Express.Multer.File,
+    // @UploadedFile() cover_image: Express.Multer.File,
     @CurrentUserId() user: any,
   ): Promise<{ message: string; events: Events }> {
     // createEventsDto.user_id = (user.user.user_id).toString();
@@ -310,7 +304,7 @@ export class EventsController {
   async update(
     @Param('id') id: string,
     @Body() updateEventsDto: UpdateEventsDto,
-    @CurrentUserId() user: any, // This decorator will automatically fetch the user ID from the request context
+    @CurrentUserId() user: any,
   ): Promise<Events> {
     // const event = await this.queryBus.execute(new GetEventsByIdQuery(id));
     // if (!event) throw new Error('Event not found');
@@ -341,17 +335,15 @@ export class EventsController {
   @Get('/search/:keyword')
   async search(
     @Param('keyword') keyword: string,
-    @Query('page') page: number = 1, // Default value for page if not provided
-    @Query('limit') limit: number = 5, // Default value for limit if not provided
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 5,
   ): Promise<{
     events: Events[] | null;
     total: number;
     page: number;
     limit: number;
   }> {
-    //  Convert keyword to lowercase before passing it to the query for consistency
     const _keyword = keyword.toLowerCase();
-    // Clean up the keyword to remove unnecessary whitespace
     const _keyword_ = keyword.trim();
     return this.queryBus.execute(new SearchEventQuery(_keyword_, page, limit));
   }

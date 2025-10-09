@@ -10,20 +10,13 @@ export class CreatePermissionCommandHandler
 {
   constructor(
     private readonly adminService: AdminService,
-    // --- 1. INJECT THE EVENTBUS ---
     private readonly eventBus: EventBus,
   ) {}
 
   async execute(command: CreatePermissionCommand): Promise<Permission> {
     const { createPermissionDto } = command;
-
-    // --- YOUR EXISTING, WORKING CODE ---
-    // This line remains exactly the same.
-    const savedPermission = await this.adminService.addPermission(createPermissionDto);
-    // --- END OF EXISTING CODE ---
-
-    // --- 2. PUBLISH THE EVENT AFTER THE SERVICE SUCCEEDS ---
-    // We use the result from the service to create the event.
+    const savedPermission =
+      await this.adminService.addPermission(createPermissionDto);
     this.eventBus.publish(new PermissionCreatedEvent(savedPermission));
 
     return savedPermission;

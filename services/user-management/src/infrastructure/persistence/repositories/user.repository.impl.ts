@@ -23,8 +23,7 @@ import { SearchFilters } from 'src/presentation/dtos/search-filters.dto';
 
 @Injectable()
 export class UserRepositoryImpl
-  implements IUserRepository, OnApplicationBootstrap
-{
+  implements IUserRepository, OnApplicationBootstrap {
   private readonly client: Client;
   constructor(
     @InjectRepository(User)
@@ -600,7 +599,10 @@ export class UserRepositoryImpl
 
       user.is_active = false;
       user.updated_date = new Date();
-      await queryRunner.manager.save(User, user);
+      await queryRunner.manager.update(User, user.user_id, {
+        is_active: false,
+        updated_date: new Date(),
+      });
       account.status = Status.SUSPENDED;
       account.updated_date = new Date();
       await queryRunner.manager.save(accountEntity, account);
@@ -619,7 +621,7 @@ export class UserRepositoryImpl
         });
       } catch (esError) {
         throw new HttpException(
-          'User suspended but Elasticsearch sync failed. Reverted DB changes.',
+          'User suspended but Elasticsearch sync failed.',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
@@ -701,10 +703,12 @@ export class UserRepositoryImpl
           HttpStatus.NOT_FOUND,
         );
       }
-
       user.is_active = true;
       user.updated_date = new Date();
-      await queryRunner.manager.save(User, user);
+      await queryRunner.manager.update(User, user.user_id, {
+        is_active: true,
+        updated_date: user.updated_date,
+      });
 
       account.status = Status.ACTIVE;
       account.updated_date = new Date();
@@ -719,15 +723,16 @@ export class UserRepositoryImpl
           body: {
             doc: {
               isActive: true,
-              reactivatedAt: user.updated_date.toISOString(),
+              suspendedAt: user.updated_date.toISOString(),
             },
           },
         });
       } catch (esError) {
         throw new HttpException(
-          'User reactivated but Elasticsearch sync failed. Reverted DB changes.',
+          'User reactivated but Elasticsearch sync failed.',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
+
       }
 
       return {
@@ -736,7 +741,9 @@ export class UserRepositoryImpl
         statusCode: HttpStatus.OK,
       };
     } catch (error) {
-      if (transactionStarted) await queryRunner.rollbackTransaction();
+      if (transactionStarted && queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
       throw new HttpException(
         `Error reactivating user: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -747,10 +754,9 @@ export class UserRepositoryImpl
   }
   async findAllUserIds(): Promise<string[]> {
     try {
-      // This is a highly efficient query that only fetches the user_id column
       const users = await this.userRepository.find({
         select: ['user_id'],
-        where: { is_active: true }, // We should only broadcast to active users
+        where: { is_active: true },
       });
       return users.map((user) => user.user_id.toString());
     } catch (error) {

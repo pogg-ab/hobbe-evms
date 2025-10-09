@@ -12,7 +12,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateTicketBookingCommand } from 'src/application/commands/ticket/create-ticket-booking.command';
 import { DeleteTicketBookingCommand } from 'src/application/commands/ticket/delete-ticket-booking.command';
 import { UpdateTicketBookingCommand } from 'src/application/commands/ticket/update-ticket-booking.command';
@@ -31,7 +37,6 @@ import { MarkTicketAsAttendedDto } from 'src/presentation/dtos/tickets/mark-tick
 import { UpdateTicketBookingDto } from 'src/presentation/dtos/tickets/update-ticket-booking.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 
-
 @ApiTags('Ticket Booking')
 @Controller('ticket-booking')
 export class TicketBookingController {
@@ -39,8 +44,7 @@ export class TicketBookingController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
     private readonly kafkaConsumerService: KafkaConsumerService,
-
-  ) { }
+  ) {}
 
   @ApiOperation({ description: 'Get All Ticket Bookings' })
   @HttpCode(200)
@@ -57,8 +61,6 @@ export class TicketBookingController {
     return this.queryBus.execute(new GetAllTicketBookingsQuery(page, limit));
   }
 
-  // get loogeed in users ticket bookings
-
   @ApiOperation({ description: 'Get My Ticket Bookings' })
   @HttpCode(200)
   @Get('my-bookings')
@@ -74,7 +76,7 @@ export class TicketBookingController {
     page: number;
     limit: number;
   }> {
-    const user_id = user.user.user_id.toString()
+    const user_id = user.user.user_id.toString();
     return this.queryBus.execute(new GetMyTicketBookingQuery(user_id));
   }
 
@@ -90,7 +92,11 @@ export class TicketBookingController {
   async createTicketBooking(
     @Body() createTicketBookingDto: CreateTicketBookingDto,
     @CurrentUserId() user: any,
-  ): Promise<{ message: string; ticketBooking: TicketBooking, paymentLink: any }> {
+  ): Promise<{
+    message: string;
+    ticketBooking: TicketBooking;
+    paymentLink: any;
+  }> {
     const command = new CreateTicketBookingCommand(
       createTicketBookingDto,
       user.user.user_id.toString(),
@@ -98,7 +104,6 @@ export class TicketBookingController {
     const ticketBooking = await this.commandBus.execute(command);
     return ticketBooking;
   }
-
 
   @ApiOperation({ description: 'Get Ticket Booking By ID' })
   @HttpCode(200)
@@ -178,7 +183,7 @@ export class TicketBookingController {
     @Param('ticket_number') ticket_number: string,
     @CurrentUserId() user: any,
   ): Promise<{ message: string }> {
-    const user_id = user.user.user_id.toString()
+    const user_id = user.user.user_id.toString();
     const command = new UpdateTicketStatusCommand(
       ticket_number,
       user.user.user_id.toString(),

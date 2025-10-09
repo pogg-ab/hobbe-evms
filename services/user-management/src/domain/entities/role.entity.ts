@@ -1,24 +1,29 @@
 import {
-  Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { RolePermission } from './role-permission.entity';
-import { AutoMap } from '@automapper/classes'; // <-- IMPORT THIS
+import { AutoMap } from '@automapper/classes';
 
 @Entity({ name: 'role' })
 export class Role {
-  @AutoMap() // <-- ADD THIS
+  @AutoMap()
   @PrimaryGeneratedColumn('uuid')
   role_id: string;
 
-  @AutoMap() // <-- ADD THIS
+  @AutoMap()
   @Column({ unique: true })
   name: string;
 
-  @AutoMap() // <-- ADD THIS
+  @AutoMap()
   @Column({ nullable: true })
   description: string;
 
-  @OneToMany(() => RolePermission, rolePermission => rolePermission.role)
+  @OneToMany(() => RolePermission, (rolePermission) => rolePermission.role)
   rolePermissions: RolePermission[];
 
   @CreateDateColumn({ type: 'timestamp' })

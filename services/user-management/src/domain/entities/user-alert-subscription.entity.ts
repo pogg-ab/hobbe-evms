@@ -13,19 +13,18 @@ import {
 import { AdminAlert } from './admin-alert.entity';
 
 @Entity('user_alert_subscriptions')
-@Unique(['user_id', 'alert_id']) // Ensures a user can only subscribe to an alert once
+@Unique(['user_id', 'alert_id'])
 export class UserAlertSubscription {
   @PrimaryGeneratedColumn('uuid')
   subscription_id: string;
 
-  // This will store the ID of the regular user
   @Column({ type: 'uuid' })
   user_id: string;
 
   @Column({ type: 'uuid' })
   alert_id: string;
 
-  @ManyToOne(() => AdminAlert, alert => alert.userSubscriptions)
+  @ManyToOne(() => AdminAlert, (alert) => alert.userSubscriptions)
   @JoinColumn({ name: 'alert_id' })
   alert: AdminAlert;
 

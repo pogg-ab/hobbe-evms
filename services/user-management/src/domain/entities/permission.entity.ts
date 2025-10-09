@@ -1,6 +1,12 @@
 // src/domain/entities/permission.entity.ts
 import {
-  Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn, Unique
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 import { RolePermission } from './role-permission.entity';
 
@@ -8,7 +14,7 @@ import { RolePermission } from './role-permission.entity';
 @Unique(['action', 'resource'])
 export class Permission {
   @PrimaryGeneratedColumn('uuid')
-  permission_id: string; // <-- This change is a best-practice for TypeORM compatibility
+  permission_id: string;
 
   @Column()
   action: string;
@@ -16,10 +22,10 @@ export class Permission {
   @Column()
   resource: string;
 
-  /**
-   * This defines the One-to-Many relationship with the RolePermission link table.
-   */
-  @OneToMany(() => RolePermission, rolePermission => rolePermission.permission)
+  @OneToMany(
+    () => RolePermission,
+    (rolePermission) => rolePermission.permission,
+  )
   rolePermissions: RolePermission[];
 
   @CreateDateColumn({ type: 'timestamp' })

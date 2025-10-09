@@ -4,7 +4,10 @@ import { Profile, Strategy } from 'passport-facebook';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class AdminFacebookStrategy extends PassportStrategy(Strategy, 'admin-facebook') {
+export class AdminFacebookStrategy extends PassportStrategy(
+  Strategy,
+  'admin-facebook',
+) {
   constructor(private readonly configService: ConfigService) {
     super({
       clientID: configService.get<string>('ADMIN_FACEBOOK_CLIENT_ID'),
@@ -23,11 +26,13 @@ export class AdminFacebookStrategy extends PassportStrategy(Strategy, 'admin-fac
   ): Promise<any> {
     const { id, name, emails } = profile;
 
-    // Handle cases where email might not be provided by Facebook
     if (!emails || !emails[0] || !emails[0].value) {
-      return done(new Error('No primary email found for this Facebook user.'), null);
+      return done(
+        new Error('No primary email found for this Facebook user.'),
+        null,
+      );
     }
-    
+
     const adminProfile = {
       provider: 'facebook',
       id: id,

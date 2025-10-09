@@ -7,13 +7,17 @@ import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class PersonalAccountRepositoryImpl
-  implements IPersonalAccountRepository {
+  implements IPersonalAccountRepository
+{
   constructor(
     @InjectRepository(PersonalAccount)
     private readonly personalAccountRepository: Repository<PersonalAccount>,
-  ) { }
+  ) {}
 
-  async create(manager: EntityManager, personalAccount: PersonalAccount): Promise<PersonalAccount> {
+  async create(
+    manager: EntityManager,
+    personalAccount: PersonalAccount,
+  ): Promise<PersonalAccount> {
     try {
       const newAccount = this.personalAccountRepository.create(personalAccount);
       return await manager.save(newAccount);
@@ -39,7 +43,7 @@ export class PersonalAccountRepositoryImpl
   async findOneById(id: PersonalAccountID): Promise<PersonalAccount | null> {
     try {
       const account = await this.personalAccountRepository.findOne({
-        where: { personal_account_id: id },
+        where: { personal_account_id: id.toString() },
       });
       if (!account) {
         throw new HttpException(
@@ -49,7 +53,10 @@ export class PersonalAccountRepositoryImpl
       }
       return account;
     } catch (error) {
-      if (error instanceof HttpException && error.getStatus() === HttpStatus.NOT_FOUND) {
+      if (
+        error instanceof HttpException &&
+        error.getStatus() === HttpStatus.NOT_FOUND
+      ) {
         throw error;
       }
 
@@ -57,7 +64,6 @@ export class PersonalAccountRepositoryImpl
         `Error fetching PersonalAccount with ID ${id}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
-
     }
   }
 

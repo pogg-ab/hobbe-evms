@@ -9,9 +9,12 @@ export class SocialMediaRepositoryImpl implements ISocialMediaRepository {
   constructor(
     @InjectRepository(SocialMedia)
     private readonly socialMediaRepository: Repository<SocialMedia>,
-  ) { }
+  ) {}
 
-  async create(manager: EntityManager, socialMedia: SocialMedia): Promise<SocialMedia> {
+  async create(
+    manager: EntityManager,
+    socialMedia: SocialMedia,
+  ): Promise<SocialMedia> {
     try {
       const newSocialMedia = this.socialMediaRepository.create(socialMedia);
       return await manager.save(newSocialMedia);
@@ -36,7 +39,9 @@ export class SocialMediaRepositoryImpl implements ISocialMediaRepository {
     }
   }
 
-  async findByOrganizerId(organizationalAccountId: string): Promise<SocialMedia[]> {
+  async findByOrganizerId(
+    organizationalAccountId: string,
+  ): Promise<SocialMedia[]> {
     try {
       return await this.socialMediaRepository.find({
         where: { organizational_account: organizationalAccountId },

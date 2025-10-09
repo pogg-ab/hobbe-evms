@@ -18,7 +18,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthService } from 'src/application/services/auth.service';
 import { AdminUserAuthDto } from '../dtos/create-admin-user-auth.dto';
 import { AuthDto } from '../dtos/create-auth.dto';
@@ -47,7 +53,6 @@ import { ConfigService } from '@nestjs/config';
 import { MfaLoginDto } from '../dtos/mfa-login.dto';
 import { AdminAuthGuard } from '../guards/admin-auth.guard';
 
-
 @ApiTags('Auth')
 @Controller('auth')
 @UseInterceptors(AuditLogInterceptor)
@@ -57,7 +62,7 @@ export class AuthController {
     private readonly commandBus: CommandBus,
     private readonly guestUserService: GuestUserService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
   private readonly VALID_TOKEN_REGEX = /^[a-f0-9]{64}$/i;
 
   async oauthLogin(@Body() dto: OAuthLoginDto) {
@@ -201,7 +206,6 @@ export class AuthController {
       return res.status(400).send('Missing redirect_uri query');
     }
 
-
     const state = encodeURIComponent(redirect_uri as string);
 
     const authUrl =
@@ -250,7 +254,6 @@ export class AuthController {
     res.send('Authentication successful! You can close this window.');
   }
 
-  
   @Get('admin/google')
   @Public()
   @UseGuards(AuthGuard('admin-google'))
@@ -262,10 +265,15 @@ export class AuthController {
   @UseGuards(AuthGuard('admin-google'))
   @ApiOperation({ summary: 'Handles Google SSO callback for Admins' })
   async adminGoogleAuthCallback(@Req() req, @Res() res: Response) {
-    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
-    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const tokens = await this.authService.validateAndLoginAdminWithSso(
+      req,
+      req.user,
+    );
+    const redirectBaseUrl = this.configService.get<string>(
+      'ADMIN_PORTAL_SSO_REDIRECT_URL',
+    );
     const adminPanelUrl = new URL(redirectBaseUrl);
-   adminPanelUrl.pathname = '/auth/admin/callback';
+    adminPanelUrl.pathname = '/auth/admin/callback';
     adminPanelUrl.searchParams.set('token', tokens.access_token);
     res.redirect(adminPanelUrl.toString());
   }
@@ -281,10 +289,15 @@ export class AuthController {
   @UseGuards(AuthGuard('admin-facebook'))
   @ApiOperation({ summary: 'Handles Facebook SSO callback for Admins' })
   async adminFacebookAuthCallback(@Req() req, @Res() res: Response) {
-    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
-    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const tokens = await this.authService.validateAndLoginAdminWithSso(
+      req,
+      req.user,
+    );
+    const redirectBaseUrl = this.configService.get<string>(
+      'ADMIN_PORTAL_SSO_REDIRECT_URL',
+    );
     const adminPanelUrl = new URL(redirectBaseUrl);
-   adminPanelUrl.pathname = '/auth/admin/callback';
+    adminPanelUrl.pathname = '/auth/admin/callback';
     adminPanelUrl.searchParams.set('token', tokens.access_token);
     res.redirect(adminPanelUrl.toString());
   }
@@ -300,18 +313,25 @@ export class AuthController {
   @UseGuards(AuthGuard('admin-github'))
   @ApiOperation({ summary: 'Handles GitHub SSO callback for Admins' })
   async adminGitHubAuthCallback(@Req() req, @Res() res: Response) {
-    const tokens = await this.authService.validateAndLoginAdminWithSso(req, req.user);
-    const redirectBaseUrl = this.configService.get<string>('ADMIN_PORTAL_SSO_REDIRECT_URL');
+    const tokens = await this.authService.validateAndLoginAdminWithSso(
+      req,
+      req.user,
+    );
+    const redirectBaseUrl = this.configService.get<string>(
+      'ADMIN_PORTAL_SSO_REDIRECT_URL',
+    );
     const adminPanelUrl = new URL(redirectBaseUrl);
     adminPanelUrl.pathname = '/auth/admin/callback';
     adminPanelUrl.searchParams.set('token', tokens.access_token);
     res.redirect(adminPanelUrl.toString());
   }
 
-   @Post('mfa-login')
+  @Post('mfa-login')
   @Public() // It's public because the user isn't fully logged in yet
   @HttpCode(200)
-  @ApiOperation({ summary: 'Step 2 (Verification Flow): Verify MFA code and get final tokens' })
+  @ApiOperation({
+    summary: 'Step 2 (Verification Flow): Verify MFA code and get final tokens',
+  })
   @ApiBody({ type: MfaLoginDto })
   async mfaLogin(@Req() req: Request, @Body() mfaLoginDto: MfaLoginDto) {
     return this.authService.verifyMfaAndLogin(
@@ -347,23 +367,20 @@ export class AuthController {
     }
     const rememberMe =
       authDto.rememberMe !== undefined ? authDto.rememberMe : false;
-    
-    // --- CHANGE: Pass the req object to the service ---
+
     return this.authService.login(req, user, rememberMe);
   }
 
   @Post('logout')
-@UseGuards(UniversalAuthGuard, SessionGuard) // Protected
-@ApiBearerAuth('access-token')
-@HttpCode(200)
-@ApiOperation({ summary: 'Log out a regular user' })
-async userLogout(@Req() req) {
+  @UseGuards(UniversalAuthGuard, SessionGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Log out a regular user' })
+  async userLogout(@Req() req) {
     const sessionId = req.user.jti;
     return this.authService.userLogout(sessionId);
-}
+  }
 
-
- 
   @Post('refresh-token')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
   @ApiBody({ type: RefreshTokenDto })
@@ -404,12 +421,11 @@ async userLogout(@Req() req) {
     return this.authService.getUserAccountInfo(userId);
   }
 
-   @Post('admin-user/login')
+  @Post('admin-user/login')
   @ApiOperation({ summary: 'Authenticate an admin user' })
   @ApiBody({ type: AuthDto })
   @HttpCode(200)
-  // --- CHANGE: Added @Req() req: Request ---
- async adminLogin(@Req() req: Request, @Body() authDto: AdminUserAuthDto) {
+  async adminLogin(@Req() req: Request, @Body() authDto: AdminUserAuthDto) {
     const adminUser = await this.authService.validateAdminUser(
       authDto.username,
       authDto.password,
@@ -431,19 +447,18 @@ async userLogout(@Req() req) {
       );
     }
 
-    
     return this.authService.adminUserLogin(req, adminUser);
   }
 
-@Post('admin-user/logout')
-@UseGuards(AdminAuthGuard, SessionGuard) // Protected
-@ApiBearerAuth('access-token')
-@HttpCode(200)
-@ApiOperation({ summary: 'Log out an admin user' })
-async adminLogout(@Req() req) {
+  @Post('admin-user/logout')
+  @UseGuards(AdminAuthGuard, SessionGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Log out an admin user' })
+  async adminLogout(@Req() req) {
     const sessionId = req.user.jti;
     return this.authService.adminLogout(sessionId);
-}
+  }
 
   @Post('verify-otp')
   @ApiOperation({ summary: 'Verify OTP for user registration' })
@@ -548,9 +563,7 @@ async adminLogout(@Req() req) {
   @Post('guest/session')
   @ApiOperation({ summary: 'Create a new guest session' })
   @HttpCode(200)
-  async createGuestSession(
-    @Req() req: Request,
-  ) {
+  async createGuestSession(@Req() req: Request) {
     const deviceInfo = req.headers['user-agent'] || 'unknown';
     const ipAddress = this.getClientIp(req);
 
@@ -564,7 +577,7 @@ async adminLogout(@Req() req) {
   async upgradeGuestToUser(@Body() dto: UpgradeGuestDto) {
     return this.guestUserService.upgradeGuestToUser(
       new SessionID(dto.sessionId),
-      new UserID(dto.userId)
+      new UserID(dto.userId),
     );
   }
 
