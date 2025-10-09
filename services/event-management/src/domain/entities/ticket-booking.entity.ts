@@ -9,6 +9,7 @@ import {
 import { IdValueObject } from '../value-objects/event-id.value-object';
 import { Events } from './events.entity';
 import { ParticipantHasTicket } from './participant-has-ticket.entity';
+import { Tickets } from './tickets.entity';
 
 @Entity()
 export class TicketBooking {
@@ -42,6 +43,9 @@ export class TicketBooking {
   @Column({ type: 'varchar', default: 'pending' })
   booking_status: string;
 
+  @Column({nullable:true })
+  external_refrence: string;
+
   @Column({ type: 'boolean', default: false })
   hasGift: boolean;
 
@@ -65,5 +69,8 @@ export class TicketBooking {
 
   @Column({ type: 'timestamp' })
   updated_at: Date;
+
+   @OneToMany(() => Tickets, (tickets) => tickets.booking_id, { cascade: true })
+   tickets: Tickets[];
 
 }
