@@ -9,6 +9,12 @@ import { EntityManager } from 'typeorm';
 
 export interface ITicketsRepository {
   create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void>;
+
+  getMyTickets(
+    userId:string,
+    page: number,
+    limit: number,
+  ):Promise<any>
   findAll(
     page: number,
     limit: number,

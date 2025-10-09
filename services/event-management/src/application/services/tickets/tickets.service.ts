@@ -33,6 +33,19 @@ export class TicketsService {
     return this.createTicketsRepository.getEventsAllTicketsList(ticket_id);
   }
 
+  async getMyTickets(
+    userId:string,
+    page: number,
+    limit: number,
+  ):Promise<any>{
+
+    return await this.createTicketsRepository.getMyTickets(
+      userId,
+      page,
+      limit
+    )
+  }
+
   async findAll(
     page: number,
     limit: number,

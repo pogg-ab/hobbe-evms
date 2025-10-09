@@ -25,6 +25,7 @@ import { QrAfterScannedActionsAggregateQuery } from 'src/application/queries/qr-
 import { FindTicketByHeadingQuery } from 'src/application/queries/tickets/find-all-tickets-by-heading.query';
 import { FindOneQuery } from 'src/application/queries/tickets/find-one.query';
 import { GetAllTicketsQuery } from 'src/application/queries/tickets/get-all-tickets.query';
+import { GetMyTicketsQuery } from 'src/application/queries/tickets/get-my-tickets.query';
 import { GetUserTicketsQuery } from 'src/application/queries/tickets/get-user-tickets.query';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { TicketsStatusOV } from 'src/domain/value-objects/tickets-status.value-object';
@@ -82,6 +83,21 @@ export class TicketsController {
     ticketsList: Tickets | null;
   }> {
     return this.queryBus.execute(new FindOneQuery(id));
+  }
+
+
+  @ApiOperation({ description: 'Get Tickets Users Tickets List' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('/get/my/tickets')
+  async getUsersTickets(
+    @CurrentUserId() user: any,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ): Promise<any> {
+    return await this.queryBus.execute(new GetMyTicketsQuery(user.user.user_id.toString(), page, limit));
   }
 
   @ApiOperation({ description: 'Get Tickets for Upcoming Events for the User' })

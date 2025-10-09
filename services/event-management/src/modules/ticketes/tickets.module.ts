@@ -18,7 +18,6 @@ import { ParticipantHasTicketRepositoryImpl } from 'src/infrastructure/persisten
 import { GetUserTicketsQueryHandler } from 'src/application/handlers/tickets/get-user-tickets.query-handler';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
-import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { Events } from 'src/domain/entities/events.entity';
 import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
 import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
@@ -29,6 +28,7 @@ import { CountQrCodeScannedLogsQueryHandler } from 'src/application/handlers/qr-
 import { QrScannedAggregateQueryHandler } from 'src/application/handlers/qr-code/qr-code-scanned-logs-aggregate-query.handler';
 import { QrCodeLogAfterScannedCommandHandler } from 'src/application/handlers/qr-code/qr-code-log-after-scanned-command.handler';
 import { QrAfterScannedActionsAggregateQueryHandler } from 'src/application/handlers/qr-code/qr-code-actions-after-scanned-query.handler';
+import { GetMyTicketsQueryHandler } from 'src/application/handlers/tickets/get-my-tickets.query-handler';
 
 @Module({
   imports: [
@@ -47,6 +47,7 @@ import { QrAfterScannedActionsAggregateQueryHandler } from 'src/application/hand
     TicketsService,
     TicktesProfile,
     CreateTicketsCommandHandler,
+    GetMyTicketsQueryHandler,
     GetAllTicketsQueryHandler,
     FindOneQueryHandler,
     GetAllTicketsHandler,

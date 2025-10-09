@@ -1,4 +1,13 @@
-import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Events } from 'src/domain/entities/events.entity';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
@@ -13,28 +22,30 @@ import { DataSource, EntityManager, Equal, Not, Repository } from 'typeorm';
 import * as qrcode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 
-
-
 @Injectable()
 export class TicketsRepositoryEmpl implements ITicketsRepository {
   constructor(
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
+  
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
     private readonly dataSource: DataSource,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) { }
+  ) {}
 
-  async create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void> {
+  async create(
+    createTicketsDto: CreateTicketsDto,
+    entityManager?: EntityManager,
+  ): Promise<void> {
     try {
       const newTicket = this.ticketsListRepository.create(createTicketsDto);
       newTicket.created_by = 'auto_system';
       newTicket.created_at = new Date();
       newTicket.updated_at = new Date();
       const manager = entityManager || this.ticketsListRepository.manager;
-        
+
       await manager.save(newTicket);
     } catch (error) {
       throw new HttpException(
@@ -44,11 +55,67 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     }
   }
 
+  async getMyTickets(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<any> {
+    const now = new Date();
+
+    const tickets = await this.dataSource
+  .createQueryBuilder()
+  .select([
+    'payment.id AS payment_id',
+    'payment.external_reference AS payment_external_reference',
+    'payment.event_id AS payment_event_id',
+    'payment.booking_id AS payment_booking_id',
+    'ticket.id AS ticket_id',
+    'ticket.ticket_no AS ticket_ticket_no',
+    'ticket.type AS ticket_type',           // <-- use "type"
+    'ticket.status AS ticket_status',
+    'ticket.price AS ticket_price',
+    'ticket.hasPromcode AS ticket_hasPromcode',
+    'ticket.qr_code AS ticket_qr_code',
+    'ticket.created_at AS ticket_created_at',
+    'ticket.updated_at AS ticket_updated_at'
+  ])
+  .from('payments', 'payment')
+  .leftJoin('tickets', 'ticket', 'ticket.booking_id = payment.booking_id')
+  .leftJoin('events', 'event', 'event.id = payment.event_id')
+  .where('payment.user_id = :userId', { userId })
+  .andWhere('payment.payment_status != :status', { status: 'Refund In Progress' })
+  .getRawMany();
+
+  const categorized = { upcoming: [], past: [], gifted:[] };
+
+    tickets.forEach(row => {
+      if (row.event_event_start_date > now) categorized.upcoming.push(row);
+      else categorized.past.push(row);
+    });
+
+
+     categorized.gifted = await this.participantHasTicketRepository
+        .createQueryBuilder('participant_has_ticket')
+        .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('participant_has_ticket.participant_id = :userId', { userId })
+        .andWhere('ticket.status = :status', { status: 'Gifted' })
+        .take(limit)
+        .getMany();
+
+    // return { futureTickets,pastTickets, page, limit };
+    return {
+      tickets:categorized,
+      page: page,
+      limit: limit,
+    };
+  }
+
   async findOne(id: string): Promise<Tickets | null> {
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { id: id },
-        relations: ['event_id', 'ticket_heading_id']
+        relations: ['event_id', 'ticket_heading_id'],
       });
 
       if (!ticket) {
@@ -176,14 +243,17 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     //  lets remove this ticket and create a new ticket with status refunded
     try {
       const ticket = await this.ticketsListRepository.findOne({
-        where: { id: Equal(id) }, });
+        where: { id: Equal(id) },
+      });
       if (!ticket) {
         throw new NotFoundException(`Ticket with ID ${id} not found`);
       }
-     const ticketNumber = uuidv4();
+      const ticketNumber = uuidv4();
 
-      const qrCode = await qrcode.toDataURL(`http://89.117.37.84/:4001/tickets/get/ticket-info/${ticketNumber}`);
-      
+      const qrCode = await qrcode.toDataURL(
+        `http://89.117.37.84/:4001/tickets/get/ticket-info/${ticketNumber}`,
+      );
+
       ticket.status = 'New';
       ticket.booking_id = null;
       ticket.ticket_no = ticketNumber;
@@ -197,8 +267,6 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-
-    
   }
   async findTicketsByStatusTypeAndPromocode(
     eventId: IdValueObject,
@@ -236,7 +304,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { ticket_no: ticketNumber },
-        relations: ['event_id']
+        relations: ['event_id'],
       });
 
       if (!ticket) {
@@ -298,7 +366,6 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         message: `Ticket ${shortId}... successfully marked as attended`,
         statusCode: 200, // OK
       };
-
     } catch (error) {
       return {
         success: false,
@@ -312,13 +379,12 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     id: IdValueObject,
     booking_id: string,
     status: string,
-    user: any
+    user: any,
   ): Promise<Tickets | null> {
     try {
       const ticket = await manager.findOne(Tickets, {
         where: { id },
       });
-
 
       if (!ticket) {
         throw new HttpException(
@@ -369,7 +435,6 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       );
     }
   }
-
 
   async findUpcomingTickets(
     userId: string,
@@ -523,7 +588,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     try {
       const count = await manager
         .getRepository(Tickets)
-        .count({ where: { event_id: Equal(eventId), status: Not('New'), } });
+        .count({ where: { event_id: Equal(eventId), status: Not('New') } });
 
       return count;
     } catch (error) {
@@ -534,10 +599,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     }
   }
 
-  async qrCodeScannedLog(
-    ticket_id: string,
-    metadata: string,
-  ): Promise<any> {
+  async qrCodeScannedLog(ticket_id: string, metadata: string): Promise<any> {
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { ticket_no: ticket_id },
@@ -563,13 +625,13 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     }
   }
 
-  async qrCodeLogAfterScanned(
-    dto: QrCodeActionAfterScannedDto
-  ): Promise<void> {
+  async qrCodeLogAfterScanned(dto: QrCodeActionAfterScannedDto): Promise<void> {
     try {
-      const qrScanLog = await this.dataSource.getRepository('QrScanLogs').findOne({
-        where: { id: dto.id },
-      });
+      const qrScanLog = await this.dataSource
+        .getRepository('QrScanLogs')
+        .findOne({
+          where: { id: dto.id },
+        });
 
       if (!qrScanLog) {
         throw new NotFoundException(`QR Scan Log with ID ${dto.id} not found`);
@@ -601,17 +663,18 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         .select('qr_scan_logs.ticket_id', 'ticket_id')
 
         .addSelect('COUNT(qr_scan_logs.id)', 'scanned_count')
-        .where('qr_scan_logs.ticket_id IN (SELECT id FROM tickets WHERE event_id = :eventId)', { eventId: event_id })
+        .where(
+          'qr_scan_logs.ticket_id IN (SELECT id FROM tickets WHERE event_id = :eventId)',
+          { eventId: event_id },
+        )
         .groupBy('qr_scan_logs.ticket_id')
         .getRawMany();
 
-      return scannedLogs.map(log => ({
+      return scannedLogs.map((log) => ({
         event: event_id,
         ticket_id: log.ticket_id,
         scannedCount: log.scanned_count,
       }));
-
-
     } catch (error) {
       throw new HttpException(
         `Error counting QR code scanned logs for Event ID ${event_id}: ${error.message}`,
@@ -620,15 +683,17 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     }
   }
 
-
   async qrCodeActionsAfterScanned(
-    dto: QrAfterScannedActionsAggregateDto
+    dto: QrAfterScannedActionsAggregateDto,
   ): Promise<any> {
     try {
       const actions = await this.dataSource
         .getRepository('QrScanLogs')
         .createQueryBuilder('qr_scan_logs')
-        .select('qr_scan_logs.action_taken_after_scan', 'action_taken_after_scan')
+        .select(
+          'qr_scan_logs.action_taken_after_scan',
+          'action_taken_after_scan',
+        )
         .addSelect('COUNT(qr_scan_logs.id)', 'scanned_count')
         .where('qr_scan_logs.scanned_at BETWEEN :startDate AND :endDate', {
           startDate: dto.startDate,
@@ -637,7 +702,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         .groupBy('qr_scan_logs.action_taken_after_scan')
         .getRawMany();
 
-      return actions.map(action => ({
+      return actions.map((action) => ({
         action_taken_after_scan: action.action_taken_after_scan,
         scanned_count: action.scanned_count,
       }));
@@ -650,13 +715,19 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   }
 
   async aggregateQrCodeScannedLogs(dto: any): Promise<any> {
-
     // Assuming dto contains startDate and endDate for the aggregation
     if (!dto.startDate || !dto.endDate) {
-      throw new BadRequestException('Start date and end date are required for aggregation');
+      throw new BadRequestException(
+        'Start date and end date are required for aggregation',
+      );
     }
-    if (!dto.aggregateType || !['day', 'week', 'month', 'year'].includes(dto.aggregateType)) {
-      throw new BadRequestException('Invalid aggregate type. Must be one of: day, week, month, year');
+    if (
+      !dto.aggregateType ||
+      !['day', 'week', 'month', 'year'].includes(dto.aggregateType)
+    ) {
+      throw new BadRequestException(
+        'Invalid aggregate type. Must be one of: day, week, month, year',
+      );
     }
 
     // Example aggregation logic using TypeORM QueryBuilder
@@ -665,7 +736,10 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       .getRepository('QrScanLogs')
       .createQueryBuilder('qr_scan_logs')
       .select('qr_scan_logs.ticket_id', 'ticket_id')
-      .addSelect(`DATE_TRUNC('${dto.aggregateType}', qr_scan_logs.scanned_at)`, 'aggregation_date')
+      .addSelect(
+        `DATE_TRUNC('${dto.aggregateType}', qr_scan_logs.scanned_at)`,
+        'aggregation_date',
+      )
       .addSelect('COUNT(qr_scan_logs.id)', 'scanned_count')
       .where('qr_scan_logs.scanned_at BETWEEN :startDate AND :endDate', {
         startDate: dto.startDate,
@@ -676,7 +750,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       const aggregatedLogs = await queryBuilder.getRawMany();
 
       // Format the result to match the expected output
-      return aggregatedLogs.map(log => ({
+      return aggregatedLogs.map((log) => ({
         ticket_id: log.ticket_id,
         aggregation_date: log.aggregation_date,
         scanned_count: log.scanned_count,
@@ -689,7 +763,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     }
   }
 
-  async regenerateTicketQrCode(ticketId: string,userId): Promise<void> {
+  async regenerateTicketQrCode(ticketId: string, userId): Promise<void> {
     try {
       const ticket = await this.ticketsListRepository.findOne({
         where: { id: Equal(ticketId) },
@@ -699,7 +773,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       }
       const newTicketNumber = uuidv4();
       const newQrCode = await qrcode.toDataURL(
-        `http://http://89.117.37.84/:4001/tickets/get/ticket-info/${newTicketNumber}`
+        `http://http://89.117.37.84/:4001/tickets/get/ticket-info/${newTicketNumber}`,
       );
 
       ticket.ticket_no = newTicketNumber;
