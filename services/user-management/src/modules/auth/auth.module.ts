@@ -60,6 +60,7 @@ import { AdminAlertLog } from 'src/domain/entities/admin-alert-log.entity';
 import { AdminAlertSubscription } from 'src/domain/entities/admin-alert-subscription.entity';
 import { KafkaProducerModule } from 'src/infrastructure/kafka/kafka-producer.module';
 import { UserAlertSubscription } from 'src/domain/entities/user-alert-subscription.entity';
+import { Role } from 'src/domain/entities/role.entity';
 @Module({
   imports: [
     CqrsModule,
@@ -67,6 +68,7 @@ import { UserAlertSubscription } from 'src/domain/entities/user-alert-subscripti
       User,
       AdminUser,
       UserRole,
+      Role,
       AdminUserRole,
       Auth,
       OAuthProvider,
