@@ -71,7 +71,7 @@ export class LoginWithOAuthHandler
         date_of_birth: 'unknown',
         national_id: 'unknown',
         gender: 'unknown',
-        is_verified: true,
+        // is_verified: true,
         verification_date: new Date(),
         is_email_verified: true,
       });

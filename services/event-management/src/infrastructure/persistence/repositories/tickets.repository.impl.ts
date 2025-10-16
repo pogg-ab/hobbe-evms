@@ -27,7 +27,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
   constructor(
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
-  
+
     @InjectRepository(Events)
     private eventRepository: Repository<Events>,
     private readonly dataSource: DataSource,
@@ -63,49 +63,50 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     const now = new Date();
 
     const tickets = await this.dataSource
-  .createQueryBuilder()
-  .select([
-    'payment.id AS payment_id',
-    'payment.external_reference AS payment_external_reference',
-    'payment.event_id AS payment_event_id',
-    'payment.booking_id AS payment_booking_id',
-    'ticket.id AS ticket_id',
-    'ticket.ticket_no AS ticket_ticket_no',
-    'ticket.type AS ticket_type',           // <-- use "type"
-    'ticket.status AS ticket_status',
-    'ticket.price AS ticket_price',
-    'ticket.hasPromcode AS ticket_hasPromcode',
-    'ticket.qr_code AS ticket_qr_code',
-    'ticket.created_at AS ticket_created_at',
-    'ticket.updated_at AS ticket_updated_at'
-  ])
-  .from('payments', 'payment')
-  .leftJoin('tickets', 'ticket', 'ticket.booking_id = payment.booking_id')
-  .leftJoin('events', 'event', 'event.id = payment.event_id')
-  .where('payment.user_id = :userId', { userId })
-  .andWhere('payment.payment_status != :status', { status: 'Refund In Progress' })
-  .getRawMany();
+      .createQueryBuilder()
+      .select([
+        'payment.id AS payment_id',
+        'payment.external_reference AS payment_external_reference',
+        'payment.event_id AS payment_event_id',
+        'payment.booking_id AS payment_booking_id',
+        'ticket.id AS ticket_id',
+        'ticket.ticket_no AS ticket_ticket_no',
+        'ticket.type AS ticket_type',
+        'ticket.status AS ticket_status',
+        'ticket.price AS ticket_price',
+        'ticket.hasPromcode AS ticket_hasPromcode',
+        'ticket.qr_code AS ticket_qr_code',
+        'ticket.created_at AS ticket_created_at',
+        'ticket.updated_at AS ticket_updated_at',
+      ])
+      .from('payments', 'payment')
+      .leftJoin('tickets', 'ticket', 'ticket.booking_id = payment.booking_id')
+      .leftJoinAndSelect('events', 'event', 'event.id = payment.event_id')
+      .where('payment.user_id = :userId', { userId })
+      .andWhere('payment.payment_status != :status', {
+        status: 'Refund In Progress',
+      })
+      .getRawMany();
 
-  const categorized = { upcoming: [], past: [], gifted:[] };
+    const categorized = { upcoming: [], past: [], gifted: [] };
 
-    tickets.forEach(row => {
+    tickets.forEach((row) => {
       if (row.event_event_start_date > now) categorized.upcoming.push(row);
       else categorized.past.push(row);
     });
 
-
-     categorized.gifted = await this.participantHasTicketRepository
-        .createQueryBuilder('participant_has_ticket')
-        .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
-        .leftJoinAndSelect('ticket.event_id', 'event')
-        .where('participant_has_ticket.participant_id = :userId', { userId })
-        .andWhere('ticket.status = :status', { status: 'Gifted' })
-        .take(limit)
-        .getMany();
+    categorized.gifted = await this.participantHasTicketRepository
+      .createQueryBuilder('participant_has_ticket')
+      .leftJoinAndSelect('participant_has_ticket.ticket_id', 'ticket')
+      .leftJoinAndSelect('ticket.event_id', 'event')
+      .where('participant_has_ticket.participant_id = :userId', { userId })
+      .andWhere('ticket.status = :status', { status: 'Gifted' })
+      .take(limit)
+      .getMany();
 
     // return { futureTickets,pastTickets, page, limit };
     return {
-      tickets:categorized,
+      tickets: categorized,
       page: page,
       limit: limit,
     };
