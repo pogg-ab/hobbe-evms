@@ -27,7 +27,7 @@ export class CreateChapaPayDto{
     @IsNotEmpty()
     currency: string;
 
-    @ApiProperty({ description: "Phone", example: "0900123456"})
+    @ApiProperty({ description: "Phone"})
     @IsNotEmpty()
     phone_number: string;
 

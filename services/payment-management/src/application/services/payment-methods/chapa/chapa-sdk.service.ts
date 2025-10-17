@@ -8,6 +8,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { Chapa } from 'chapa-nodejs';
 import { ConfigService } from '@nestjs/config';
 import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
@@ -51,6 +52,7 @@ export class ChapaSDKService {
 
     @InjectRepository(RefundRequest)
     private refundRequestRepository: Repository<RefundRequest>,
+    private readonly dataSource: DataSource
   ) {
     const secretKey = this.configService.get<string>('CHAPA_SECRET_KEY');
     if (!secretKey) {
@@ -131,16 +133,23 @@ export class ChapaSDKService {
         response.data.data.charge,
       );
       const paymentId = verifiedPayment.paymentStatus.id.toString();
-      const userId = verifiedPayment.paymentStatus.user_id.toString();
+
+      // Iwent to get user_id of event table
+
+      // const userId = verifiedPayment.paymentStatus.user_id.toString();
+      const organizerId = (await (this.getOrganizerIdsByEvent(verifiedPayment.paymentStatus.event_id.toString()))).toString();
+      
 
       if (!uuidValidate(paymentId)) { throw new Error(`Invalid payment ID format: ${paymentId}`); }
-      if (!uuidValidate(userId)) { throw new Error(`Invalid user ID format: ${userId}`); }
+      if (!uuidValidate(organizerId)) { throw new Error(`Invalid user ID format: ${organizerId}`); }
+
+
 
       await this.insertTransactionFunction(
         paymentId as UUID,
         paymentData.reference,
         paymentData.phone_number,
-        userId as UUID,
+        organizerId as UUID,
         verifiedPayment.paymentStatus.currency,
         verifiedPayment.paymentStatus.payment_method,
         'Regular',
@@ -195,6 +204,18 @@ export class ChapaSDKService {
       throw new Error(`Failed to insert transaction: ${error.message}`);
     }
   }
+
+
+  async getOrganizerIdsByEvent(eventId: string): Promise<string | null> {
+    
+  const result = await this.dataSource.query(
+    `SELECT user_id FROM events WHERE id = $1`,
+    [eventId],
+  );
+   return result.length ? result[0].user_id : null;
+   
+  }
+
 
   async payoutInit(chapaPayDto: ChapaPayoutDto, userId: string) {
     const tx_ref = `HOBBE-PO-${Date.now()}`;
