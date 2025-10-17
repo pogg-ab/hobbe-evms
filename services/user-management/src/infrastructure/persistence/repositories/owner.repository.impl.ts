@@ -13,6 +13,16 @@ export class OwnerRepositoryImpl implements IOwnerRepository {
 
   async create(manager: EntityManager, owner: Owner): Promise<Owner> {
     try {
+      const existing = await this.ownerRepository.findOne({
+        where: { owner_email: owner.owner_email },
+      });
+      if (existing) {
+        throw new HttpException(
+          `Owner with email ${owner.owner_email} already exists.`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const newOwner = this.ownerRepository.create(owner);
       return await manager.save(newOwner);
     } catch (error) {
