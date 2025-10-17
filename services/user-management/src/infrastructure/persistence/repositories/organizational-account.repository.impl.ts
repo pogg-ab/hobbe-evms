@@ -7,20 +7,41 @@ import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class OrganizationalAccountRepositoryImpl
-  implements IOrganizationalAccountRepository {
+  implements IOrganizationalAccountRepository
+{
   constructor(
     @InjectRepository(OrganizationalAccount)
     private readonly organizationalAccountRepository: Repository<OrganizationalAccount>,
-  ) { }
+  ) {}
 
-  async create(manager: EntityManager,
+  async create(
+    manager: EntityManager,
     organizationalAccount: OrganizationalAccount,
   ): Promise<OrganizationalAccount> {
     try {
-      const newOrganizationalAccount =
-        this.organizationalAccountRepository.create(organizationalAccount);
+      const existingByEmail = await manager.findOne(OrganizationalAccount, {
+        where: { company_email: organizationalAccount.company_email },
+      });
+      if (existingByEmail) {
+        throw new HttpException(
+          `An organizational account with this email already exists.`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const newOrganizationalAccount = manager.create(
+        OrganizationalAccount,
+        organizationalAccount,
+      );
+
       return await manager.save(newOrganizationalAccount);
     } catch (error) {
+      if (error.code === '23505') {
+        throw new HttpException(
+          'Duplicate unique field (likely owner_id or company_email).',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       throw new HttpException(
         `Error creating Organizational Account: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -68,12 +89,15 @@ export class OrganizationalAccountRepositoryImpl
       }
 
       if (organizationalAccount.company_email) {
-        const existingWithEmail = await this.organizationalAccountRepository.findOne({
-          where: { company_email: organizationalAccount.company_email },
-        });
+        const existingWithEmail =
+          await this.organizationalAccountRepository.findOne({
+            where: { company_email: organizationalAccount.company_email },
+          });
 
-
-        if (existingWithEmail && existingWithEmail.organizational_account_id !== id) {
+        if (
+          existingWithEmail &&
+          existingWithEmail.organizational_account_id !== id
+        ) {
           throw new HttpException(
             `Email ${organizationalAccount.company_email} is already in use.`,
             HttpStatus.BAD_REQUEST,
@@ -81,16 +105,21 @@ export class OrganizationalAccountRepositoryImpl
         }
       }
 
-      const updatedAccount = Object.assign(existingAccount, organizationalAccount);
-      const savedAccount = await this.organizationalAccountRepository.save(updatedAccount);
+      const updatedAccount = Object.assign(
+        existingAccount,
+        organizationalAccount,
+      );
+      const savedAccount =
+        await this.organizationalAccountRepository.save(updatedAccount);
 
       const result = await this.organizationalAccountRepository.findOne({
-        where: { organizational_account_id: savedAccount.organizational_account_id },
+        where: {
+          organizational_account_id: savedAccount.organizational_account_id,
+        },
         relations: ['kyc', 'owner'],
       });
 
       return result;
-
     } catch (error) {
       throw new HttpException(
         `Error updating Organizational Account with ID ${id}: ${error.message}`,
@@ -98,7 +127,6 @@ export class OrganizationalAccountRepositoryImpl
       );
     }
   }
-
 
   async delete(organizationalAccountId: string): Promise<void> {
     try {
