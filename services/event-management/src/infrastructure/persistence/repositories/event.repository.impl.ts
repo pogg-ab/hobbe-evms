@@ -923,7 +923,6 @@ export class EventRepositoryEmpl implements IEventRepository {
       .orderBy('booking.created_at', 'DESC');
 
     const [phtResults, total] = await queryBuilder.getManyAndCount();
-    console.log(phtResults);
 
     const events: Events[] = [];
     for (const pht of phtResults) {
