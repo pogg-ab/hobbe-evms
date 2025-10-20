@@ -39,7 +39,7 @@ export class CreateTicketBookingDto {
   })
   @IsNotEmpty()
   @IsUUID()
-  event_id: IdValueObject;
+  event_id: string;
 
   @ApiProperty({ description: 'Booking Type', example: 'VIP' })
   @IsNotEmpty()

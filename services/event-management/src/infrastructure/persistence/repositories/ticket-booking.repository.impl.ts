@@ -167,7 +167,7 @@ export class TicketBookingRepositoryImpl implements ITicketBookingRepository {
 
       for (const event of events) {
         const ticketBookings = await this.ticketBookingRepository.find({
-          where: { event_id: Equal(event.id) },
+          where: { event_id: Equal(event.id.toString()) },
         });
 
         eventsGroupedByBooking.push({
