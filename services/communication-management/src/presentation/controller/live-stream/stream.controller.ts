@@ -1,4 +1,16 @@
-import { Body, ConsoleLogger, Controller, Get, HttpCode, Logger, OnModuleInit, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  ConsoleLogger,
+  Controller,
+  Get,
+  HttpCode,
+  Logger,
+  OnModuleInit,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateStreamCommand } from 'src/application/commands/live-stream/create-stream.command';
 // import { StartStreamCommand } from 'src/application/commands/live-stream/start-stream.command';
@@ -23,7 +35,13 @@ import { RolesGuard } from 'src/presentation/guards/roles.guard';
 import { StartScheduledStreamCommand } from 'src/application/commands/live-stream/start-scheduled-stream.command';
 import { StartScheduledStreamHandler } from 'src/application/handlers/live-stream/start-scheduled-stream.command-handler';
 import { EndStreamCommand } from 'src/application/commands/live-stream/end-stream.command';
-import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GetAllStreamsQuery } from 'src/application/queries/live-stream/get-all-streams.query';
 import { GetActiveStreamsQuery } from 'src/application/queries/live-stream/get-active-streams.query';
@@ -40,8 +58,7 @@ export class StreamController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) { }
-
+  ) {}
 
   @Post('schedule')
   @ApiOperation({ description: 'Schedule a new stream' })
@@ -54,32 +71,32 @@ export class StreamController {
     @Body() scheduleStreamDto: ScheduleStreamDto,
   ): Promise<any> {
     const userId = user.user.user_id.toString();
-    const { eventId, scheduledDate, scheduledTime, timezone } = scheduleStreamDto;
-    console.log("Stream DTO : ", scheduleStreamDto)
+    const { eventId, scheduledDate, scheduledTime, timezone } =
+      scheduleStreamDto;
+    console.log('Stream DTO : ', scheduleStreamDto);
 
-    return this.commandBus.execute(
-      new ScheduleStreamCommand(
-        userId,
-        eventId,
-      ),
-    );
+    return this.commandBus.execute(new ScheduleStreamCommand(userId, eventId));
   }
 
   @MessagePattern('schedule-stream')
   async handleKafkaPayload(@Payload() payload: CreateStreamDto) {
-    console.log(payload)
+    console.log(payload);
     this.logger.log('Received Kafka message to schedule stream.');
     try {
-      await this.commandBus.execute(new ScheduleStreamCommand(payload.userId, payload.eventId));
+      await this.commandBus.execute(
+        new ScheduleStreamCommand(payload.userId, payload.eventId),
+      );
       this.logger.log('Stream sent successfully.');
 
       return { message: 'Stream sent from Kafka payload successfully.' };
     } catch (error) {
-      this.logger.error('Failed to send stream from Kafka payload', error.stack);
+      this.logger.error(
+        'Failed to send stream from Kafka payload',
+        error.stack,
+      );
       return { message: 'Failed to send stream from Kafka payload.' };
     }
   }
-
 
   // @Patch(':id')
   // async updateStream(
@@ -91,8 +108,6 @@ export class StreamController {
   //     new UpdateStreamCommand(streamId, url, status),
   //   );
   // }
-
-
 
   @Get(':id')
   async getStream(@Param('id') streamId: string) {
@@ -110,14 +125,13 @@ export class StreamController {
     return this.queryBus.execute(new GetAllStreamsQuery());
   }
 
-
-  @Get('inactive')
+  @Get('status/inactive')
   @ApiOperation({ summary: 'Get all inactive streams' })
   async getInactiveStreams() {
     return this.queryBus.execute(new GetInActiveStreamsQuery());
   }
 
-  @Get('active')
+  @Get('status/active')
   @ApiOperation({ summary: 'Get all active streams' })
   async getActiveStreams() {
     return this.queryBus.execute(new GetActiveStreamsQuery());
@@ -135,7 +149,9 @@ export class StreamController {
     const userId = user.user.user_id.toString();
 
     try {
-      const result = await this.commandBus.execute(new StartStreamCommand(streamId, userId));
+      const result = await this.commandBus.execute(
+        new StartStreamCommand(streamId, userId),
+      );
 
       return {
         success: true,
@@ -154,12 +170,13 @@ export class StreamController {
   @Post(':streamId/end')
   @ApiOperation({
     summary: 'End a live stream',
-    description: 'Stops broadcasting and transitions a live stream to ENDED status'
+    description:
+      'Stops broadcasting and transitions a live stream to ENDED status',
   })
   @ApiParam({
     name: 'streamId',
     description: 'ID of the stream to end',
-    example: '9ea675ab-19bc-440d-808e-842efbbc467'
+    example: '9ea675ab-19bc-440d-808e-842efbbc467',
   })
   @ApiBearerAuth('access-token')
   @Roles('User')
@@ -169,11 +186,8 @@ export class StreamController {
     @Param('streamId') streamId: string,
   ): Promise<any> {
     const userId = user.user.user_id.toString();
-    return this.commandBus.execute(
-      new EndStreamCommand(userId, streamId)
-    );
+    return this.commandBus.execute(new EndStreamCommand(userId, streamId));
   }
-
 
   // @Post(':id/pause')
   // async pauseStream(@Param('id') streamId: string) {
@@ -200,6 +214,4 @@ export class StreamController {
   //     data: result,
   //   };
   // }
-
-
 }

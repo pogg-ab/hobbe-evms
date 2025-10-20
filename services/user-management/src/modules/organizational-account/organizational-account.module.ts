@@ -36,6 +36,12 @@ import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { GroupAccount } from 'src/domain/entities/group-account.entity';
 import { GROUP_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/group-account.repository.token';
 import { GroupAccountRepositoryImpl } from 'src/infrastructure/persistence/repositories/group-account.repository.impl';
+import { Role } from 'src/domain/entities/role.entity';
+import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
+import { RoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/role.repository.impl';
+import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
+import { UserRoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/user-role.repository.impl';
+import { UserRole } from 'src/domain/entities/user-role.entity';
 
 @Module({
   imports: [
@@ -50,6 +56,8 @@ import { GroupAccountRepositoryImpl } from 'src/infrastructure/persistence/repos
       Follower,
       PersonalAccount,
       GroupAccount,
+      Role,
+      UserRole,
     ]),
     ClientsModule.register([
       {
@@ -97,6 +105,14 @@ import { GroupAccountRepositoryImpl } from 'src/infrastructure/persistence/repos
     {
       provide: GROUP_ACCOUNT_REPOSITORY_TOKEN,
       useClass: GroupAccountRepositoryImpl,
+    },
+    {
+      provide: ROLE_REPOSITORY_TOKEN,
+      useClass: RoleRepositoryImpl,
+    },
+    {
+      provide: USER_ROLE_REPOSITORY_TOKEN,
+      useClass: UserRoleRepositoryImpl,
     },
   ],
 })

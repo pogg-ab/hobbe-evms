@@ -2834,7 +2834,7 @@ etag@~1.8.1:
     date-fns "^4.1.0"
     event-management "file:"
     kafkajs "^2.2.4"
-    multer "^1.4.5-lts.1"
+    multer "^2.0.2"
     nodemailer "^6.10.0"
     passport "^0.7.0"
     passport-jwt "^4.0.1"

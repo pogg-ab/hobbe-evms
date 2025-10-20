@@ -40,6 +40,12 @@ import { GroupAccount } from 'src/domain/entities/group-account.entity';
 import { GROUP_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/group-account.repository.token';
 import { IGroupAccountRepository } from 'src/domain/repositories/group-account.repository';
 import { InjectRepository } from '@nestjs/typeorm';
+import { UserRole } from 'src/domain/entities/user-role.entity';
+import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
+import { IRoleRepository } from 'src/domain/repositories/role.repository';
+import { Role } from 'src/domain/entities/role.entity';
+import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
+import { IUserRoleRepository } from 'src/domain/repositories/user-role.repository';
 
 @Injectable()
 export class OrganizationalAccountService {
@@ -61,6 +67,12 @@ export class OrganizationalAccountService {
 
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
+
+    @Inject(ROLE_REPOSITORY_TOKEN)
+    private readonly roleRepository: IRoleRepository,
+
+    @Inject(USER_ROLE_REPOSITORY_TOKEN)
+    private readonly userRoleRepository: IUserRoleRepository,
 
     @InjectRepository(User)
     private userEntityRepository: Repository<User>,
@@ -196,6 +208,13 @@ export class OrganizationalAccountService {
 
       await this.socialMediaRepository.create(queryRunner.manager, socialMedia);
 
+      const role = await this.getRoleByName('User');
+
+      const userRole = new UserRole();
+      userRole.user_id = newUser.user_id;
+      userRole.role = role;
+      await this.userRoleRepository.create(queryRunner.manager, userRole);
+
       await queryRunner.commitTransaction();
 
       const otp = this.generateOtp();
@@ -225,6 +244,24 @@ export class OrganizationalAccountService {
       );
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  private async getRoleByName(roleName: string): Promise<Role> {
+    try {
+      const role = await this.roleRepository.findOneBy({ name: roleName });
+      if (!role) {
+        throw new HttpException(
+          `Role ${roleName} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return role;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching role: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
