@@ -915,7 +915,12 @@ export class EventRepositoryEmpl implements IEventRepository {
     const queryBuilder = this.participantHasTicketRepository
       .createQueryBuilder('pht')
       .innerJoin('pht.booking_id', 'booking')
-      .innerJoinAndSelect('booking.event_id', 'event')
+      .innerJoinAndMapOne(
+        'booking.event',
+        Events,
+        'event',
+        'event.id = booking.event_id',
+      )
       .where('pht.participant_id = :userId', { userId })
       .skip((page - 1) * limit)
       .take(limit)
@@ -923,9 +928,9 @@ export class EventRepositoryEmpl implements IEventRepository {
 
     const [phtResults, total] = await queryBuilder.getManyAndCount();
 
-    const events = phtResults.map(
-      (pht) => (pht.booking_id as any).event_id as Events,
-    );
+    const events = phtResults
+      .map((pht) => (pht.booking_id as any).event as Events)
+      .filter(Boolean);
 
     return {
       events: events.length > 0 ? events : null,
