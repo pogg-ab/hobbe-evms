@@ -69,6 +69,7 @@ import { AdminUpdateEventCommandHandler } from 'src/application/handlers/events/
 import { TicketBookingModule } from '../ticketes/ticket-booking.module';
 import { AdminJwtStrategy } from './admin-jwt.strategy';
 import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
+import { GetParticipatedEventsQueryHandler } from 'src/application/handlers/events/get-participated-events.query.handler';
 
 @Module({
   imports: [
@@ -159,6 +160,7 @@ import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
     SetEventPendingCommandHandler,
     CancelEventCommandHandler,
     AdminUpdateEventCommandHandler,
+    GetParticipatedEventsQueryHandler,
     RejectEventCommandHandler,
     RequestEventChangesCommandHandler,
     EventsProfile,

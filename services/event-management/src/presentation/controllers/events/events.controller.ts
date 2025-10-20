@@ -77,6 +77,7 @@ import {
 } from 'src/application/commands/event-status.commands';
 import { AdminUpdateEventCommand } from 'src/application/commands/admin-update-event.command';
 import { AdminUpdateEventsDto } from 'src/presentation/dtos/events/admin-update-events.dto';
+import { GetParticipatedEventsQuery } from 'src/application/queries/events/get-participated-events.query';
 
 @ApiTags('Events')
 @Controller('events')
@@ -553,5 +554,38 @@ export class EventsController {
     return await this.commandBus.execute(
       new AdminUpdateEventCommand(eventId, adminUpdateEventsDto, adminId),
     );
+  }
+
+  @ApiOperation({
+    summary: 'Get Participated Events by User',
+    description:
+      'Returns all events a user has participated in by their user ID, with pagination support.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved participated events.',
+    schema: {
+      example: [
+        { eventId: '1', name: 'Tech Conference', date: '2025-09-10' },
+        { eventId: '2', name: 'Music Festival', date: '2025-09-15' },
+      ],
+    },
+  })
+  @ApiBearerAuth('access-token')
+  @Permissions('view:Event')
+  @UseGuards(UniversalAuthGuard, PermissionsGuard)
+  @HttpCode(200)
+  @Get('users/:userId/participated-events')
+  async getParticipatedEvents(
+    @Param('userId') userId: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    const query = new GetParticipatedEventsQuery(
+      userId,
+      Number(page),
+      Number(limit),
+    );
+    return await this.queryBus.execute(query);
   }
 }

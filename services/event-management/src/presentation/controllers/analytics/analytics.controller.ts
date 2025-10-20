@@ -23,7 +23,7 @@ export class AnalyticsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) { }
+  ) {}
   @ApiOperation({ description: 'Analytics of All Events' })
   @HttpCode(200)
   @ApiBearerAuth('access-token')

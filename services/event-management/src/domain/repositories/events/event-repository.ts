@@ -5,7 +5,11 @@ import { TicketSalesOverviewResponseDto } from 'src/presentation/dtos/events/tic
 import { EntityManager } from 'typeorm';
 
 export interface IEventRepository {
-  create(createEventsDto: CreateEventsDto, user: any, entityManager?: EntityManager): Promise<Events>;
+  create(
+    createEventsDto: CreateEventsDto,
+    user: any,
+    entityManager?: EntityManager,
+  ): Promise<Events>;
   findAll(
     page: number,
     limit: number,
@@ -63,6 +67,16 @@ export interface IEventRepository {
 
   countEventsOrganizedByUser(userId: string): Promise<number>;
   countEventsUserParticipatedIn(userId: string): Promise<number>;
+  findParticipatedByUser(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }>;
   getTicketSalesOverview(
     eventId: string,
   ): Promise<TicketSalesOverviewResponseDto>;
