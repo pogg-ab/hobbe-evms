@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { start } from 'repl';
 import { Events } from 'src/domain/entities/events.entity';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
+import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { IEventRepository } from 'src/domain/repositories/events/event-repository';
 import { FilterEventsDto } from 'src/presentation/dtos/events/filter-events.dto';
 import {
@@ -914,23 +915,25 @@ export class EventRepositoryEmpl implements IEventRepository {
   }> {
     const queryBuilder = this.participantHasTicketRepository
       .createQueryBuilder('pht')
-      .innerJoin('pht.booking_id', 'booking')
-      .innerJoinAndMapOne(
-        'booking.event',
-        Events,
-        'event',
-        'event.id = booking.event_id',
-      )
+      .innerJoinAndSelect('pht.booking_id', 'booking')
       .where('pht.participant_id = :userId', { userId })
       .skip((page - 1) * limit)
       .take(limit)
-      .orderBy('event.event_start_date', 'DESC');
+      .orderBy('booking.created_at', 'DESC');
 
     const [phtResults, total] = await queryBuilder.getManyAndCount();
 
-    const events = phtResults
-      .map((pht) => (pht.booking_id as any).event as Events)
-      .filter(Boolean);
+    const events: Events[] = [];
+    for (const pht of phtResults) {
+      const booking = pht.booking_id as TicketBooking;
+      if (!booking?.event_id) continue;
+
+      const event = await this.eventRepository.findOne({
+        where: { id: booking.event_id.toString() },
+      });
+
+      if (event) events.push(event);
+    }
 
     return {
       events: events.length > 0 ? events : null,
