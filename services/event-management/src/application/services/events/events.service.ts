@@ -11,7 +11,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { addHours, endOfDay, nextSaturday, nextSunday, startOfDay } from 'date-fns';
+import {
+  addHours,
+  endOfDay,
+  nextSaturday,
+  nextSunday,
+  startOfDay,
+} from 'date-fns';
 import { CreateTicketsCommand } from 'src/application/commands/ticket/create-tickets.command';
 import { CustomEventTicketMapper } from 'src/application/mappers/event-tickets.mapper';
 import { Events } from 'src/domain/entities/events.entity';
@@ -36,7 +42,6 @@ import { ITicketBookingRepository } from 'src/domain/repositories/tickets/ticket
 import { CREATE_TICKET_BOOKING_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticket-booking.repository.token';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-
 @Injectable()
 export class EventsService {
   private readonly logger = new Logger(EventsService.name);
@@ -56,7 +61,7 @@ export class EventsService {
     private readonly connection: Connection,
     @Inject(CREATE_TICKET_BOOKING_REPOSITORY_TOKEN)
     private readonly ticketBookingRepository: ITicketBookingRepository,
-  ) { }
+  ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleEventReminders() {
@@ -65,18 +70,27 @@ export class EventsService {
     const reminderWindowEnd = addHours(now, 24);
 
     try {
-      const upcomingEvents = await this.createEventRepository.findUpcomingEvents(now, reminderWindowEnd);
+      const upcomingEvents =
+        await this.createEventRepository.findUpcomingEvents(
+          now,
+          reminderWindowEnd,
+        );
 
       if (upcomingEvents.length === 0) {
         this.logger.log('No upcoming events found within the 24-hour window.');
         return;
       }
 
-      this.logger.log(`Found ${upcomingEvents.length} upcoming event(s) to process for reminders.`);
+      this.logger.log(
+        `Found ${upcomingEvents.length} upcoming event(s) to process for reminders.`,
+      );
 
       for (const event of upcomingEvents) {
-        const subscriberIds = await this.ticketBookingRepository.findUserIdsByEventId(event.id.toString());
-        
+        const subscriberIds =
+          await this.ticketBookingRepository.findUserIdsByEventId(
+            event.id.toString(),
+          );
+
         if (subscriberIds.length > 0) {
           const eventPayload = {
             userIds: subscriberIds,
@@ -89,8 +103,10 @@ export class EventsService {
             topic: 'event_reminder',
             messages: [{ value: JSON.stringify(eventPayload) }],
           });
-          
-          this.logger.log(`Emitted 'event_reminder' for event ${event.id} to ${subscriberIds.length} subscribers.`);
+
+          this.logger.log(
+            `Emitted 'event_reminder' for event ${event.id} to ${subscriberIds.length} subscribers.`,
+          );
         }
       }
     } catch (error) {
@@ -116,7 +132,11 @@ export class EventsService {
         CreateEventsDto,
         Events,
       );
-      const event = await this.createEventRepository.create(mappedEvent, user, queryRunner.manager);
+      const event = await this.createEventRepository.create(
+        mappedEvent,
+        user,
+        queryRunner.manager,
+      );
       const accounts = createEventsDto.bank_accounts;
       if (accounts) {
         const accountsWithIds = accounts.map((account) => ({
@@ -134,13 +154,18 @@ export class EventsService {
           await Promise.race([
             kafkaPromise,
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Kafka producer timeout')), kafkaTimeout)
-            )
+              setTimeout(
+                () => reject(new Error('Kafka producer timeout')),
+                kafkaTimeout,
+              ),
+            ),
           ]);
         } catch (kafkaError) {
           await queryRunner.rollbackTransaction();
           await queryRunner.release();
-          throw new ServiceUnavailableException('Kafka service unavailable. Event creation aborted.');
+          throw new ServiceUnavailableException(
+            'Kafka service unavailable. Event creation aborted.',
+          );
         }
       }
       if (event.ticket_heading) {
@@ -151,7 +176,10 @@ export class EventsService {
             this.createTicketsDto,
             'Regular',
           );
-          const command = new CreateTicketsCommand(ticketDto, queryRunner.manager);
+          const command = new CreateTicketsCommand(
+            ticketDto,
+            queryRunner.manager,
+          );
           ticketPromises.push(this.commandBus.execute(command));
         }
 
@@ -161,7 +189,10 @@ export class EventsService {
             this.createTicketsDto,
             'VIP',
           );
-          const command = new CreateTicketsCommand(ticketDto, queryRunner.manager);
+          const command = new CreateTicketsCommand(
+            ticketDto,
+            queryRunner.manager,
+          );
           ticketPromises.push(this.commandBus.execute(command));
         }
 
@@ -171,7 +202,10 @@ export class EventsService {
             this.createTicketsDto,
             'VVIP',
           );
-          const command = new CreateTicketsCommand(ticketDto, queryRunner.manager);
+          const command = new CreateTicketsCommand(
+            ticketDto,
+            queryRunner.manager,
+          );
           ticketPromises.push(this.commandBus.execute(command));
         }
 
@@ -187,32 +221,37 @@ export class EventsService {
       await queryRunner.commitTransaction();
 
       return event;
-
-
     } catch (error) {
       if (queryRunner.isTransactionActive) {
         await queryRunner.rollbackTransaction();
       }
 
       if (error.code === '23505') {
-        throw new ConflictException('Event with similar details already exists');
+        throw new ConflictException(
+          'Event with similar details already exists',
+        );
       } else if (error.code === '23503') {
         throw new BadRequestException('Invalid reference data provided');
       } else if (error.name === 'QueryFailedError') {
         throw new InternalServerErrorException('Database operation failed');
-      } else if (error.message.includes('Kafka') ||
+      } else if (
+        error.message.includes('Kafka') ||
         error.message.includes('stream') ||
         error.message.includes('producer') ||
-        error.message.includes('timeout')) {
-        throw new ServiceUnavailableException('External service temporarily unavailable');
+        error.message.includes('timeout')
+      ) {
+        throw new ServiceUnavailableException(
+          'External service temporarily unavailable',
+        );
       } else if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new InternalServerErrorException('Failed to create event. Please try again later.');
+      throw new InternalServerErrorException(
+        'Failed to create event. Please try again later.',
+      );
     } finally {
       await queryRunner.release();
     }
-
   }
 
   async findAll(
@@ -493,43 +532,52 @@ export class EventsService {
   async update(
     id: string,
     updateEventsDto: UpdateEventsDto,
-    user: any, 
+    user: any,
   ): Promise<Events> {
-      const eventToUpdate = await this.findOne(id);
-      if (!eventToUpdate) {
-          throw new NotFoundException(`Event with id ${id} not found.`);
-      }
-  
-      const mappedChanges = this.mapper.map(
-        updateEventsDto,
-        UpdateEventsDto,
-        Events,
+    const eventToUpdate = await this.findOne(id);
+    if (!eventToUpdate) {
+      throw new NotFoundException(`Event with id ${id} not found.`);
+    }
+
+    const mappedChanges = this.mapper.map(
+      updateEventsDto,
+      UpdateEventsDto,
+      Events,
+    );
+
+    const updatedEvent = await this.createEventRepository.update(
+      id,
+      mappedChanges,
+      user,
+    );
+
+    try {
+      const userToNotify = eventToUpdate.user_id;
+
+      const eventPayload = {
+        userIds: [userToNotify],
+        eventId: id,
+        eventName: updatedEvent.title,
+        updateMessage: `Your event details have been updated.`,
+      };
+
+      await this.kafkaProducerService.produce({
+        topic: 'event_updated',
+        messages: [{ value: JSON.stringify(eventPayload) }],
+      });
+
+      // Using logger instead of console.log
+      this.logger.log(
+        `Successfully emitted 'event_updated' event for event ${id}`,
       );
-      
-      const updatedEvent = await this.createEventRepository.update(id, mappedChanges, user);
-      
-      try {
-        const userToNotify = eventToUpdate.user_id; 
-  
-        const eventPayload = {
-          userIds: [userToNotify], 
-          eventId: id,
-          eventName: updatedEvent.title,
-          updateMessage: `Your event details have been updated.`,
-        };
-  
-        await this.kafkaProducerService.produce({
-          topic: 'event_updated',
-          messages: [{ value: JSON.stringify(eventPayload) }],
-        });
-        
-        // Using logger instead of console.log
-        this.logger.log(`Successfully emitted 'event_updated' event for event ${id}`);
-      } catch (error) {
-        this.logger.error(`Failed to emit 'event_updated' Kafka event for event ${id}`, error.stack);
-      }
-     
-      return updatedEvent;
+    } catch (error) {
+      this.logger.error(
+        `Failed to emit 'event_updated' Kafka event for event ${id}`,
+        error.stack,
+      );
+    }
+
+    return updatedEvent;
   }
 
   async findBySpecificDate(date: Date): Promise<Events[] | []> {
@@ -794,5 +842,45 @@ export class EventsService {
       updatedEvent,
       admin_id,
     );
+  }
+
+  async findParticipatedByUser(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const result = await this.createEventRepository.findParticipatedByUser(
+      userId,
+      page,
+      limit,
+    );
+
+    if (!result.events || result.events.length === 0) {
+      return result;
+    }
+
+    const organizerIds = result.events.map((event) => event.user_id);
+    let userInfoResponse = {};
+
+    try {
+      userInfoResponse = await this.userInfoService.getUserInfo(organizerIds);
+    } catch (userInfoError) {
+      console.error('Failed to fetch organizer info:', userInfoError);
+    }
+
+    const enrichedEvents = result.events.map((event) => ({
+      ...event,
+      organizerInfo: userInfoResponse[event.user_id] || null,
+    }));
+
+    return {
+      ...result,
+      events: enrichedEvents,
+    };
   }
 }

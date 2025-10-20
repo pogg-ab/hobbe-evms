@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { start } from 'repl';
@@ -21,9 +26,13 @@ export class EventRepositoryEmpl implements IEventRepository {
     public readonly createTicketsDto: CreateTicketsDto,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) { }
+  ) {}
 
-  async create(event: Events, user: any, entityManager?: EntityManager): Promise<Events> {
+  async create(
+    event: Events,
+    user: any,
+    entityManager?: EntityManager,
+  ): Promise<Events> {
     try {
       const newEvent = this.eventRepository.create(event);
       newEvent.user_id = user;
@@ -37,7 +46,6 @@ export class EventRepositoryEmpl implements IEventRepository {
       }
 
       return storedEvent;
-
     } catch (error) {
       throw new HttpException(
         `Error creating Event: ${error.message}`,
@@ -578,17 +586,19 @@ export class EventRepositoryEmpl implements IEventRepository {
 
   async findUpcomingEvents(startTime: Date, endTime: Date): Promise<Events[]> {
     try {
-        return this.eventRepository.find({
-            where: {
-                status: 'active', // Only remind for active events
-                event_start_date: Between(startTime, endTime),
-            },
-        });
+      return this.eventRepository.find({
+        where: {
+          status: 'active', // Only remind for active events
+          event_start_date: Between(startTime, endTime),
+        },
+      });
     } catch (error) {
-        // It's good practice to wrap repository calls in a try/catch
-        throw new InternalServerErrorException(`Error fetching upcoming events: ${error.message}`);
+      // It's good practice to wrap repository calls in a try/catch
+      throw new InternalServerErrorException(
+        `Error fetching upcoming events: ${error.message}`,
+      );
     }
-}
+  }
 
   // Analitics
   // async countMyEvents(user:string):Promise<any>{
@@ -889,6 +899,39 @@ export class EventRepositoryEmpl implements IEventRepository {
       soldTickets,
       availableTickets,
       byType,
+    };
+  }
+
+  async findParticipatedByUser(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    events: Events[] | null;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const queryBuilder = this.participantHasTicketRepository
+      .createQueryBuilder('pht')
+      .innerJoin('pht.booking_id', 'booking')
+      .innerJoinAndSelect('booking.event_id', 'event')
+      .where('pht.participant_id = :userId', { userId })
+      .skip((page - 1) * limit)
+      .take(limit)
+      .orderBy('event.event_start_date', 'DESC');
+
+    const [phtResults, total] = await queryBuilder.getManyAndCount();
+
+    const events = phtResults.map(
+      (pht) => (pht.booking_id as any).event_id as Events,
+    );
+
+    return {
+      events: events.length > 0 ? events : null,
+      total,
+      page,
+      limit,
     };
   }
 }
