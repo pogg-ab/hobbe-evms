@@ -79,5 +79,5 @@ export class UpdateTicketBookingDto {
   })
   @IsOptional()
   @IsUUID()
-  event_id?: string;
+  event_id?: IdValueObject;
 }
