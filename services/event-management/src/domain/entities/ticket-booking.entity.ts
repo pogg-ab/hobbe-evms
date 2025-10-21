@@ -23,12 +23,16 @@ export class TicketBooking {
   })
   booking_type: 'Regular' | 'VIP' | 'VVIP';
 
+  // @ManyToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
+  // @JoinColumn({ name: 'event_id' })
+  // event: Events;
+
+  // @Column()
+  // event_id: string;
+
   @ManyToOne(() => Events, (event) => event.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'event_id' })
-  event: Events;
-
-  @Column()
-  event_id: string;
+  event_id: IdValueObject;
 
   @OneToMany(
     () => ParticipantHasTicket,
