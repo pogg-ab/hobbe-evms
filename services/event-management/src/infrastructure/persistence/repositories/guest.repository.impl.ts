@@ -27,7 +27,7 @@ export class GuestRepositoryImpl implements IGuestRepository {
   constructor(
     @InjectRepository(ParticipantHasTicket)
     private readonly participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) {}
+  ) { }
 
   async filterGuestList(
     status: 'purchased' | 'arrived' | 'canceled' | 'gifted' | 'pending',
