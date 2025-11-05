@@ -33,7 +33,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     private readonly dataSource: DataSource,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) {}
+  ) { }
 
   async create(
     createTicketsDto: CreateTicketsDto,
@@ -417,7 +417,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         .createQueryBuilder()
         .update(Tickets)
         .set({
-          status: 'paid', // or whatever status you want to set
+          status: 'Paid',
           updated_at: new Date(),
         })
         .where('booking_id = :booking_id', { booking_id })

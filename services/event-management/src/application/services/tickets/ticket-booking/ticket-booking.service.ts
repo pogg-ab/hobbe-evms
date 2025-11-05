@@ -81,8 +81,8 @@ export class TicketBookingService {
     private readonly kafkaClient: ClientKafka,
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
-     private readonly kafkaProducerService: KafkaProducerService,
-  ) {}
+    private readonly kafkaProducerService: KafkaProducerService,
+  ) { }
 
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
@@ -398,7 +398,7 @@ export class TicketBookingService {
       try {
         const eventPayload = {
           // We use 'user' because that is the ID of the person who made the booking
-          userId: user, 
+          userId: user,
           // We can get details from the objects we already have
           transactionId: createdBooking.booking_id,
           // We can create a more user-friendly message
@@ -609,15 +609,15 @@ export class TicketBookingService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
     try {
-        await this.getTicketBookingById(bookingId);
-        await this.ticketBookingRepository.processRefund(bookingId);
-        await queryRunner.commitTransaction();
+      await this.getTicketBookingById(bookingId);
+      await this.ticketBookingRepository.processRefund(bookingId);
+      await queryRunner.commitTransaction();
     } catch (error) {
-        await queryRunner.rollbackTransaction();
-        throw error;
+      await queryRunner.rollbackTransaction();
+      throw error;
     }
     finally {
-        await queryRunner.release();
+      await queryRunner.release();
     }
   }
 
@@ -638,24 +638,24 @@ export class TicketBookingService {
       {
         eachMessage: async ({ message }) => {
           try {
-          const paymentStatus = JSON.parse(message.value.toString());
-          await this.ticketBookingRepository.updateStatus(
-            paymentStatus.booking_id,
-            paymentStatus.payment_status,
-            new Date(),
-          );
+            const paymentStatus = JSON.parse(message.value.toString());
+            await this.ticketBookingRepository.updateStatus(
+              paymentStatus.booking_id,
+              paymentStatus.payment_status,
+              new Date(),
+            );
 
-          await this.bookingHasPaymentRepository.updateStatus(
-            paymentStatus.booking_id,
-            'paid',
-          );
+            await this.bookingHasPaymentRepository.updateStatus(
+              paymentStatus.booking_id,
+              'paid',
+            );
 
-          await this.ticketRepository.updateStatusAfterPayment(
-            this.dataSource.manager,
-            paymentStatus.booking_id,
-          );
+            await this.ticketRepository.updateStatusAfterPayment(
+              this.dataSource.manager,
+              paymentStatus.booking_id,
+            );
 
-          console.log('Done updating ticket status after payment');
+            console.log('Done updating ticket status after payment');
           } catch (error) {
             this.logger.error('Error processing payment status message:', error);
           }
