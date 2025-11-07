@@ -15,7 +15,7 @@ export class Payments {
     @Column()
     booking_id: string;
 
-    @Column()
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     amount: number;
 
     @Column()
@@ -24,7 +24,7 @@ export class Payments {
     @Column()
     tx_ref: string;
 
-    @Column({nullable: true})
+    @Column({ nullable: true })
     external_reference: string;
 
     @Column()

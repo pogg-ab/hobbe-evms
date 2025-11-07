@@ -168,22 +168,30 @@ export class TicketBookingService {
 
       let calculatedPrice = pricePerTicket * ticketCount;
 
+
       const tickets =
         await this.ticketRepository.findTicketsByStatusTypeAndPromocode(
           event.id,
           ticketType,
           'New',
-          createTicketBookingDto.hasPromocode,
         );
 
       if (!tickets || tickets.length === 0) {
-        const promocodeMessage = createTicketBookingDto.hasPromocode
-          ? ' with the provided promocode'
-          : '';
+
         throw new NotFoundException(
-          `No tickets found for the event with the specified booking type${promocodeMessage}.`,
+          `No tickets found for the event with the specified booking type.`,
         );
       }
+
+      const promocode = await this.promocodeRepository.findByEventId(eventId);
+
+      if (!promocode) {
+        throw new NotFoundException(
+          `No promocode found for the event.`,
+        );
+      }
+
+
 
       if (
         event.isPaid &&
@@ -231,13 +239,14 @@ export class TicketBookingService {
             promocode.id,
           );
 
-        const existingTicketCount =
-          await this.bookingHasPromocodeRepository.countTicketsForBooking(
-            bookingIds,
-          );
+
+        const existingTicketCount = bookingIds.length
+          ? await this.bookingHasPromocodeRepository.countTicketsForBooking(bookingIds)
+          : 0;
 
         const remainingPromocodeQuantity =
           promocode.quantity - existingTicketCount;
+
 
         if (ticketCount > remainingPromocodeQuantity) {
           throw new BadRequestException(
@@ -253,6 +262,9 @@ export class TicketBookingService {
             promocode.id,
             user,
           );
+
+          promocode.used_promocode = (promocode.used_promocode || 0) + ticketCount;
+          await this.promocodeRepository.update(promocode.id, promocode);
         }
       }
 

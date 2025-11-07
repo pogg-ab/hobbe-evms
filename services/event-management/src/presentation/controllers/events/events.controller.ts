@@ -85,7 +85,7 @@ export class EventsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @ApiOperation({ description: 'Gust Get All Events' })
   @HttpCode(200)
@@ -175,15 +175,16 @@ export class EventsController {
   )
   async createEvent(
     @Body() createEventsDto: CreateEventsDto,
-    @UploadedFile() thumbnail: Express.Multer.File,
+    @UploadedFiles() thumbnails: Express.Multer.File[],
     // @UploadedFile() cover_image: Express.Multer.File,
     @CurrentUserId() user: any,
   ): Promise<{ message: string; events: Events }> {
     // createEventsDto.user_id = (user.user.user_id).toString();
 
     // If a thumbnail file is uploaded, assign its path to the DTO
-    if (thumbnail) createEventsDto.thumbnail = thumbnail.path;
-
+    if (thumbnails && thumbnails.length > 0) {
+      createEventsDto.thumbnails = thumbnails.map((file) => file.path);
+    }
     // If a cover image file is uploaded, assign its path to the DTO
     //  if (cover_image) createEventsDto.cover_image = cover_image.path;
 

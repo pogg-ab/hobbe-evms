@@ -11,10 +11,10 @@ export interface ITicketsRepository {
   create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void>;
 
   getMyTickets(
-    userId:string,
+    userId: string,
     page: number,
     limit: number,
-  ):Promise<any>
+  ): Promise<any>
   findAll(
     page: number,
     limit: number,
@@ -39,7 +39,6 @@ export interface ITicketsRepository {
     eventId: IdValueObject,
     type: string,
     status: string,
-    hasPromocode: boolean,
   ): Promise<Tickets[] | null>;
   updateStatus(
     manager: EntityManager,
@@ -113,6 +112,6 @@ export interface ITicketsRepository {
   countQrCodeScannedLogs(event_id: string): Promise<any>;
   aggregateQrCodeScannedLogs(dto: any): Promise<any>;
 
-  regenerateTicketQrCode(ticketId: string,userId): Promise<void>;
+  regenerateTicketQrCode(ticketId: string, userId): Promise<void>;
 
 }

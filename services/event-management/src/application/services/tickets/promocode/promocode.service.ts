@@ -12,7 +12,7 @@ export class PromocodeServices {
     @Inject(CREATE_PROMOCODE_TOKEN)
     private readonly createPromocodeRepository: IPromocode,
     @InjectMapper() private readonly mapper: Mapper,
-  ) {}
+  ) { }
 
   async create(createPromocodeDto: CreatePromocodeDto): Promise<Promocodes> {
     const promocode = this.mapper.map(
@@ -30,5 +30,9 @@ export class PromocodeServices {
   async update(id: string, promocode: Promocodes): Promise<Promocodes> {
     return await this.createPromocodeRepository.update(id, promocode);
   }
+
+  async findByEventId(eventId: string): Promise<Promocodes | null> {
+    return await this.createPromocodeRepository.findByEventId(eventId);
+  }
 }
-export class Promocode {}
+export class Promocode { }
