@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -12,6 +13,7 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreatePromocodeCommand } from 'src/application/commands/promocodes/create-promocode.command';
 import { UpdatePromocodeCommand } from 'src/application/commands/promocodes/updaet-promocode.command';
 import { FindOnePoromocodeQuery } from 'src/application/queries/promocodes/find-one-promocode.query';
+import { FindPromocodeByEventIdQuery } from 'src/application/queries/promocodes/find-promocode-by-eventid.query';
 import { Promocodes } from 'src/domain/entities/promocodes.entity';
 import { CreatePromocodeDto } from 'src/presentation/dtos/tickets/create-promocode.dto';
 import { UpdatePromocodeDto } from 'src/presentation/dtos/tickets/update.promocode.dto';
@@ -22,7 +24,7 @@ export class PromocodeController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @ApiBody({ type: CreatePromocodeDto })
   @ApiOperation({ description: 'Create a new PromoCode' })
@@ -48,6 +50,28 @@ export class PromocodeController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return await this.queryBus.execute(new FindOnePoromocodeQuery(id));
+  }
+
+  @ApiOperation({ summary: 'Find Promocode by Event ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active Promocode for the event retrieved successfully',
+    type: Promocodes,
+  })
+  @Get('event/:eventId')
+  @HttpCode(200)
+  async findByEventId(@Param('eventId') eventId: string): Promise<Promocodes> {
+    const promocode = await this.queryBus.execute(
+      new FindPromocodeByEventIdQuery(eventId),
+    );
+
+    if (!promocode) {
+      throw new NotFoundException(
+        `No promocode found for event ID ${eventId}`,
+      );
+    }
+
+    return promocode;
   }
 
   @ApiOperation({ description: 'Update Promocode' })

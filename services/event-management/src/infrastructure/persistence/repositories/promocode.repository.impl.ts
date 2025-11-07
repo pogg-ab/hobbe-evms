@@ -10,7 +10,7 @@ export class PromocodeRepositoryImpl implements IPromocode {
   constructor(
     @InjectRepository(Promocodes)
     private promocodeRepository: Repository<Promocodes>,
-  ) {}
+  ) { }
   async create(createPromocodeDto: CreatePromocodeDto): Promise<Promocodes> {
     try {
       const newPromocode = this.promocodeRepository.create(createPromocodeDto);
@@ -81,6 +81,24 @@ export class PromocodeRepositoryImpl implements IPromocode {
     } catch (error) {
       throw new HttpException(
         `Error Updating Promocode: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findByEventId(eventId: string): Promise<Promocodes | null> {
+    try {
+      const promocode = await this.promocodeRepository.findOne({
+        where: {
+          event_id: { id: eventId },
+        },
+        relations: ['event_id'],
+      });
+
+      return promocode;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching promocode for event ${eventId}: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

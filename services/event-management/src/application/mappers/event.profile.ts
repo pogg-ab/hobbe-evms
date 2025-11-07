@@ -25,7 +25,7 @@ export class EventsProfile extends AutomapperProfile {
 
         forMember(
           (destination) => destination.thumbnail,
-          mapFrom((src) => src.thumbnail),
+          mapFrom((src) => src.thumbnails),
         ),
         // forMember(
         //   (destination) => destination.cover_image,

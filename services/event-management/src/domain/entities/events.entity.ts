@@ -26,8 +26,8 @@ export class Events {
   @Column()
   title: string;
 
-  @Column()
-  thumbnail: string;
+  @Column('text', { array: true, nullable: true })
+  thumbnail: string[];
 
   @Column({ nullable: true })
   cover_image: string;

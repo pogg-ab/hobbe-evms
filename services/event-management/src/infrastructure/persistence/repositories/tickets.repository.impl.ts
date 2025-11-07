@@ -273,7 +273,6 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     eventId: IdValueObject,
     type: string,
     status: string,
-    hasPromocode: boolean,
   ): Promise<Tickets[] | null> {
     try {
       const tickets = await this.ticketsListRepository.find({
@@ -281,7 +280,6 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
           event_id: Equal(eventId),
           type: type,
           status: status,
-          hasPromcode: hasPromocode,
         },
       });
 

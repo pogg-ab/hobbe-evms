@@ -7,4 +7,5 @@ export interface IPromocode {
   findOne(id: string): Promise<Promocodes | null>;
   findByCode(code: string, eventId: any): Promise<Promocodes | null>;
   update(id: string, promocode: Promocodes): Promise<Promocodes>;
+  findByEventId(eventId: string): Promise<Promocodes | null>;
 }
