@@ -11,7 +11,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiProperty,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateSubAccountCommand } from 'src/application/commands/sub-account/create-sub-account.command';
 import { RemoveSubAccountCommand } from 'src/application/commands/sub-account/remove-sub-account.command';
 import { UpdateSubAccountCommand } from 'src/application/commands/sub-account/update-sub-account.command';
@@ -47,8 +55,8 @@ export class SubAccountController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-    private readonly subAccountService: SubAccountService
-  ) { }
+    private readonly subAccountService: SubAccountService,
+  ) {}
 
   @Post()
   @ApiBearerAuth('access-token')
@@ -71,13 +79,12 @@ export class SubAccountController {
     @CurrentUserId() currentUser: any,
   ): Promise<any> {
     try {
-      const userId = currentUser.user.user_id.toString()
+      const userId = currentUser.user.user_id.toString();
       const command = new CreateSubAccountCommand(createSubAccountDto, userId);
-      const subAccount = await this.commandBus.execute(command);
+      await this.commandBus.execute(command);
 
       return {
         message: 'Sub-account created successfully',
-
       };
     } catch (error) {
       console.error('Failed to create sub-account', error.stack);
@@ -120,6 +127,12 @@ export class SubAccountController {
     status: 404,
     description: 'Sub-account not found',
   })
+  @ApiParam({
+    name: 'id',
+    description: 'The unique sub account ID (UUID)',
+    example: 'f86fb35f-269a-4de2-9a3a-9777133b066e',
+    type: String,
+  })
   async findOne(@Param('id') id: SubAccountID): Promise<SubAccount | null> {
     try {
       const query = new FindSubAccountByIdQuery(id);
@@ -138,6 +151,12 @@ export class SubAccountController {
     status: 200,
     description: 'Sub-account updated successfully',
     type: SubAccount,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'The unique sub account ID (UUID)',
+    example: 'f86fb35f-269a-4de2-9a3a-9777133b066e',
+    type: String,
   })
   async update(
     @Param('id') id: SubAccountID,
@@ -171,10 +190,13 @@ export class SubAccountController {
     status: 404,
     description: 'Sub-account not found',
   })
-  async remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param('id') id: string): Promise<any> {
     try {
       const command = new RemoveSubAccountCommand(id);
       await this.commandBus.execute(command);
+      return {
+        message: 'Sub-account deleted successfully',
+      };
     } catch (error) {
       throw new BadRequestException('Failed to delete sub-account');
     }
@@ -182,16 +204,18 @@ export class SubAccountController {
 
   @MessagePattern('check-checkin-privilege')
   async handleCheckCheckinPrivilege(
-    @Payload() payload: { staffUserId: string; eventOrganizerId: string }
+    @Payload() payload: { staffUserId: string; eventOrganizerId: string },
   ) {
     try {
       if (!payload.staffUserId || !payload.eventOrganizerId) {
-        throw new BadRequestException('Staff User ID and Organizer User ID are required');
+        throw new BadRequestException(
+          'Staff User ID and Organizer User ID are required',
+        );
       }
 
       return await this.subAccountService.checkCheckinPrivilege(
         payload.staffUserId,
-        payload.eventOrganizerId
+        payload.eventOrganizerId,
       );
     } catch (error) {
       console.error('Error in checkCheckinPrivilege handler:', error);

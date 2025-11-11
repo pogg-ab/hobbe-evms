@@ -8,6 +8,7 @@ import { SubAccount } from 'src/domain/entities/sub-account.entity';
 import { User } from 'src/domain/entities/user.entity';
 import { SubAccountStatus } from 'src/domain/value-objects/sub-account-status.value-object';
 import { CreateSubAccountDto } from 'src/presentation/dtos/create-sub-account.dto';
+import { UpdateSubAccountDto } from 'src/presentation/dtos/update-sub-account.dto';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 @Injectable()
@@ -49,6 +50,33 @@ export class SubAccountProfile extends AutomapperProfile {
         forMember(
           (destination) => destination.generated_user_id,
           mapFrom(() => uuidv4()),
+        ),
+      );
+
+      createMap(
+        mapper,
+        UpdateSubAccountDto,
+        SubAccount,
+        forMember(
+          (dest) => dest.status,
+          mapFrom((src) => {
+            if (!src.status) return undefined;
+            return typeof src.status === 'string'
+              ? SubAccountStatus.create(src.status as any)
+              : src.status;
+          }),
+        ),
+        forMember(
+          (dest) => dest.privileges,
+          mapFrom((src) => src.privileges),
+        ),
+        forMember(
+          (dest) => dest.expire_date,
+          mapFrom((src) => src.expire_date),
+        ),
+        forMember(
+          (dest) => dest.updated_at,
+          mapFrom(() => new Date()),
         ),
       );
     };

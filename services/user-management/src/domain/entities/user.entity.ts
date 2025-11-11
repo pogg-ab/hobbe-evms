@@ -20,6 +20,7 @@ import { PersonalAccount } from './personal-account.entity';
 import { OAuthProvider } from './oauth-provider.entity';
 import { UserSecuritySetting } from './user-security-setting.entity';
 import { UserSession } from './user-session.entity';
+import { Exclude } from 'class-transformer';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -35,6 +36,7 @@ export class User {
   profile_name: string;
 
   @Column({ nullable: true })
+  @Exclude({ toPlainOnly: true })
   password: string;
 
   @Column({
