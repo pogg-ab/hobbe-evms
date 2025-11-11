@@ -22,7 +22,7 @@ import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-org
 import { UpdatePersonalAccountDto } from 'src/presentation/dtos/update-personal-account.dto';
 import { UpdateUserDto } from 'src/presentation/dtos/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Owner } from 'src/domain/entities/owner.entity';
 import { OWNER_REPOSITORY_TOKEN } from 'src/domain/repositories/owner.repository.token';
 import { IOwnerRepository } from 'src/domain/repositories/owner.repository';
@@ -36,6 +36,7 @@ import { SocialMediaAccountDto } from 'src/presentation/dtos/social-media-accoun
 import { SearchFilters } from 'src/presentation/dtos/search-filters.dto';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
 import { Client } from '@elastic/elasticsearch';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class UserService {
@@ -45,6 +46,8 @@ export class UserService {
   constructor(
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
     @Inject(PERSONAL_ACCOUNT_REPOSITORY_TOKEN)
     private readonly personalAccountRepository: IPersonalAccountRepository,
     @Inject(ORGANIZATIONAL_ACCOUNT_REPOSITORY_TOKEN)
@@ -139,6 +142,22 @@ export class UserService {
         `User with ID ${userId} not found`,
         HttpStatus.NOT_FOUND,
       );
+    }
+
+    if (updateUserDto.profileId) {
+      const userWithSameProfileId = await this.userRepo.findOne({
+        where: { profile_id: updateUserDto.profileId },
+      });
+
+      if (
+        userWithSameProfileId &&
+        userWithSameProfileId.user_id.toString() !== userId.toString()
+      ) {
+        throw new HttpException(
+          `Profile ID "${updateUserDto.profileId}" is already in use`,
+          HttpStatus.CONFLICT,
+        );
+      }
     }
 
     if (updateUserDto.password) {

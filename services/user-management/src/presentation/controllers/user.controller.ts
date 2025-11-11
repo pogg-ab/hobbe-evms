@@ -16,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -122,6 +123,12 @@ export class UserController {
     status: 200,
     description: 'User updated successfully',
     type: User,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'The unique user ID (UUID)',
+    example: 'f86fb35f-269a-4de2-9a3a-9777133b066e',
+    type: String,
   })
   async update(
     @Param('id') user_id: UserID,

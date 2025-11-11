@@ -5,11 +5,12 @@ import { User } from 'src/domain/entities/user.entity';
 
 @CommandHandler(UpdateUserCommand)
 export class UpdateUserCommandHandler
-    implements ICommandHandler<UpdateUserCommand> {
-    constructor(private readonly userService: UserService) { }
+  implements ICommandHandler<UpdateUserCommand>
+{
+  constructor(private readonly userService: UserService) {}
 
-    async execute(command: UpdateUserCommand): Promise<User> {
-        const { userId, updateUserDto } = command;
-        return this.userService.update(userId, updateUserDto);
-    }
+  async execute(command: UpdateUserCommand): Promise<User> {
+    const { userId, updateUserDto } = command;
+    return this.userService.update(userId, updateUserDto);
+  }
 }
