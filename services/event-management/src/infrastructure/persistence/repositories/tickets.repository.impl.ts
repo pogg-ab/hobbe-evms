@@ -33,7 +33,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
     private readonly dataSource: DataSource,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) { }
+  ) {}
 
   async create(
     createTicketsDto: CreateTicketsDto,
@@ -310,7 +310,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         return {
           success: false,
           message: `Ticket ${shortId}... not found in our system`,
-          statusCode: 404, // Not Found
+          statusCode: 404,
         };
       }
 
@@ -318,7 +318,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         return {
           success: false,
           message: `Ticket ${shortId}... was previously scanned`,
-          statusCode: 409, // Conflict
+          statusCode: 409,
         };
       }
 
@@ -342,7 +342,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         return {
           success: false,
           message: `Early scan attempt - Ticket scanning will be available starting ${oneDayBefore.toLocaleDateString()} at ${oneDayBefore.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-          statusCode: 403, // Forbidden
+          statusCode: 403,
         };
       }
 
@@ -350,7 +350,7 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
         return {
           success: false,
           message: `Scanning unavailable - The event concluded on ${event.event_end_date.toLocaleDateString()}. Please contact support for assistance.`,
-          statusCode: 403, // Forbidden
+          statusCode: 403,
         };
       }
 
@@ -363,13 +363,13 @@ export class TicketsRepositoryEmpl implements ITicketsRepository {
       return {
         success: true,
         message: `Ticket ${shortId}... successfully marked as attended`,
-        statusCode: 200, // OK
+        statusCode: 200,
       };
     } catch (error) {
       return {
         success: false,
         message: `Failed to mark ticket as attended: ${error.message}`,
-        statusCode: 500, // Internal Server Error
+        statusCode: 500,
       };
     }
   }

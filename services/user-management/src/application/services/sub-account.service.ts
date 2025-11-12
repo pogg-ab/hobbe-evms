@@ -102,12 +102,12 @@ export class SubAccountService {
     id: SubAccountID,
     updateSubAccountDto: UpdateSubAccountDto,
   ): Promise<SubAccount> {
-    const subAccount = await this.findOne(id);
     const updatedSubAccount = this.mapper.map(
       updateSubAccountDto,
       UpdateSubAccountDto,
       SubAccount,
     );
+
     await this.subAccountRepository.update(id, updatedSubAccount);
     return updatedSubAccount;
   }

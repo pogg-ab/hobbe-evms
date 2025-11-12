@@ -16,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -117,7 +118,7 @@ export class UserController {
     return filteredUsers;
   }
 
-  @Put(':id')
+ @Put(':id')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update user details' })
@@ -126,10 +127,18 @@ export class UserController {
     description: 'User updated successfully',
     type: User,
   })
+  // --- START OF RESOLVED CODE ---
+  @ApiParam({
+    name: 'id',
+    description: 'The unique user ID (UUID)',
+    example: 'f86fb35f-269a-4de2-9a3a-9777133b066e',
+    type: String,
+  })
   @AuditLog({
-  actionType: ActionType.UPDATE_USER,
-  targetEntity: 'User',
-})
+    actionType: ActionType.UPDATE_USER,
+    targetEntity: 'User',
+  })
+  // --- END OF RESOLVED CODE ---
   async update(
     @Param('id') user_id: UserID,
     @Body() updateUserDto: UpdateUserDto,
@@ -150,7 +159,6 @@ export class UserController {
 
     return this.commandBus.execute(new UpdateUserCommand(user_id, user));
   }
-
   @Get('search-organizer')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)

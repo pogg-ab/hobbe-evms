@@ -65,6 +65,14 @@ export class UserProfile extends AutomapperProfile {
           mapFrom((src: UpdateUserDto) => src.username),
         ),
         forMember(
+          (destination) => destination.profile_id,
+          mapFrom((src: UpdateUserDto) => src.profileId),
+        ),
+        forMember(
+          (destination) => destination.profile_name,
+          mapFrom((src: UpdateUserDto) => src.profileName),
+        ),
+        forMember(
           (destination) => destination.password,
           mapFrom((src: UpdateUserDto) => src.password),
         ),
