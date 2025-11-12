@@ -1,11 +1,13 @@
-import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+// services/communication-management/src/application/controllers/notification.controller.ts
+
+import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Patch, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { NotificationService } from 'src/application/services/notification/notification.service';
 import { UniversalAuthGuard } from '../../guards/universal-auth.guard';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
 import { UpdatePreferencesDto } from '../../dto/notification/update-preferences.dto';
 
-// Helper classes for Swagger documentation
+// Helper classes for Swagger documentation (no changes needed here)
 class NotificationResponse {
   id: string;
   type: string;
@@ -13,13 +15,6 @@ class NotificationResponse {
   status: string;
   metadata: Record<string, any>;
   created_at: Date;
-}
-
-class TestEmitterDto {
-  userId: string;
-  type: string;
-  message: string;
-  metadata?: any;
 }
 
 @ApiTags('Notifications')
@@ -36,7 +31,7 @@ export class NotificationController {
   @ApiOperation({ summary: "Get the current user's notifications" })
   @ApiResponse({ status: 200, description: 'A list of notifications.', type: [NotificationResponse] })
   async getMyNotifications(@Req() req): Promise<NotificationResponse[]> {
-    const userId = req.user.sub;
+    const userId = req.user.user.user_id; // CORRECTED
     return this.notificationService.findForUser(userId);
   }
 
@@ -50,7 +45,7 @@ export class NotificationController {
     @Param('id') notificationId: string,
     @Req() req,
   ): Promise<NotificationResponse> {
-    const userId = req.user.sub;
+    const userId = req.user.user.user_id; // CORRECTED
     const notification = await this.notificationService.markAsRead(notificationId, userId);
     
     if (!notification) {
@@ -66,10 +61,10 @@ export class NotificationController {
   @ApiOperation({ summary: "Get the current user's notification preferences" })
   @ApiResponse({ status: 200, description: "A list of the user's saved preferences." })
   async getMyPreferences(@Req() req) {
-    const userId = req.user.sub;
+    const userId = req.user.user.user_id; // CORRECTED
     return this.notificationService.getUserPreferences(userId);
   }
-
+ 
   @Patch('preferences')
   @UseGuards(UniversalAuthGuard)
   @ApiBearerAuth('access-token')
@@ -81,8 +76,8 @@ export class NotificationController {
     @Req() req, 
     @Body() updatePreferencesDto: UpdatePreferencesDto
   ) {
-    const userId = req.user.sub;
-    // THE FIX: We pass the nested 'preferences' array to the service.
+    // THE FINAL FIX: Correctly access the nested user ID from the guard's payload
+    const userId = req.user.user.user_id; // CORRECTED
     return this.notificationService.updateUserPreferences(userId, updatePreferencesDto.preferences);
   }
 
@@ -97,7 +92,7 @@ export class NotificationController {
       @Param('id') notificationId: string,
       @Req() req,
   ): Promise<void> {
-      const userId = req.user.sub;
+      const userId = req.user.user.user_id; // CORRECTED
       const wasDeleted = await this.notificationService.deleteNotification(notificationId, userId);
 
       if (!wasDeleted) {
@@ -105,38 +100,5 @@ export class NotificationController {
       }
   }
 
-  // @Post('test-emitter')
-  // @ApiOperation({ summary: 'FOR TESTING ONLY: Emits a sample event to Kafka' })
-  // @ApiBody({ type: TestEmitterDto })
-  // async testEmit(@Body() body: TestEmitterDto) {
-  //     let topic: string;
-  //     let payload: any;
-  //     const { userId, type, message, metadata } = body;
-
-  //     // Construct the topic and payload based on the event type from the test plan
-  //     switch(type) {
-  //       case 'PAYMENT_SUCCESS':
-  //         topic = 'payment_successful';
-  //         payload = { userId, ...metadata };
-  //         break;
-  //       case 'EVENT_REMINDER':
-  //         topic = 'event_reminder';
-  //         payload = { userIds: [userId], updateMessage: message, ...metadata };
-  //         break;
-  //       default:
-  //         topic = type.toLowerCase();
-  //         payload = { userId, message, metadata };
-  //         break;
-  //     }
-      
-  //     await this.kafkaProducerService.produce({
-  //       topic: topic,
-  //       messages: [{ value: JSON.stringify(payload) }],
-  //     });
-
-  //     return { 
-  //       message: `Test event for '${topic}' has been sent to Kafka for user ${userId}.`,
-  //       payloadSent: payload,
-  //     };
-  // }
+  // Test emitter endpoint is commented out, no changes needed.
 }

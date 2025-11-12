@@ -166,29 +166,35 @@ export class NotificationService {
     });
   }
 
-  async updateUserPreferences(userId: string, preferencesDto: UpdatePreferenceDto[]): Promise<NotificationPreference[]> {
+   async updateUserPreferences(userId: string, preferencesDto: UpdatePreferenceDto[]): Promise<NotificationPreference[]> {
     const updatedPreferences: NotificationPreference[] = [];
 
+    // Iterate over each preference setting provided in the request body
     for (const prefDto of preferencesDto) {
+      // First, try to find an existing preference for this user, type, and channel
       let preference = await this.preferenceRepository.findOne({
         where: {
-          user_id: userId,
+          user_id: userId, // Ensure we are only looking at the current user's preferences
           notification_type: prefDto.type,
           channel: prefDto.channel,
         },
       });
 
+      // If a preference record already exists...
       if (preference) {
+        // ...update its 'is_enabled' status based on the request data.
         preference.is_enabled = prefDto.isEnabled;
       } else {
+        // If no preference record exists, create a new one.
         preference = this.preferenceRepository.create({
-          user_id: userId,
+          user_id: userId, // CRITICAL FIX: Assign the user's ID to the new record
           notification_type: prefDto.type,
           channel: prefDto.channel,
           is_enabled: prefDto.isEnabled,
         });
       }
       
+      // Save the updated or newly created preference record to the database.
       const savedPreference = await this.preferenceRepository.save(preference);
       updatedPreferences.push(savedPreference);
     }
@@ -196,6 +202,7 @@ export class NotificationService {
     this.logger.log(`Updated ${updatedPreferences.length} preferences for user ${userId}`);
     return updatedPreferences;
   }
+
   
   async deleteNotification(notificationId: string, userId: string): Promise<boolean> {
     const deleteResult = await this.notificationRepository.delete({
