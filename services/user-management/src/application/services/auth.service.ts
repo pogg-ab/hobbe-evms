@@ -31,6 +31,7 @@ import { UserSecuritySetting } from 'src/domain/entities/user-security-setting.e
 import { UserSession } from 'src/domain/entities/user-session.entity';
 import { AdminUserSession } from 'src/domain/entities/admin-user-session.entity';
 import { SystemSetting } from 'src/domain/entities/system-setting.entity';
+import { ActionType, ActionResult } from 'src/domain/entities/audit-log.entity';
 import * as otplib from 'otplib';
 import { Request } from 'express';
 import { ParamsDictionary } from 'express-serve-static-core';
@@ -72,8 +73,9 @@ export class AuthService {
     private readonly userWithAccountRepository: IUserRepository,
     private readonly messageProducerService: MessageProducerService,
     private readonly notificationConfigService: NotificationConfigService,
-  ) {}
+  ) { }
 
+  // FIND this existing method in your file
   async validateUser(user_name: string, password: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
     if (user) {
@@ -81,14 +83,6 @@ export class AuthService {
 
       if (passwordMatch) {
         if (!user.is_active) {
-          await this.auditLogService.logAction({
-            user_id: user.user_id.toString(),
-            action: 'USER_LOGIN_FAILURE',
-            module: 'AuthService',
-            serviceName: 'user-management',
-            details: { reason: 'Inactive account' },
-          });
-
           return {
             statusCode: HttpStatus.FORBIDDEN,
             success: false,
@@ -103,13 +97,6 @@ export class AuthService {
           user: user,
         };
       } else {
-        await this.auditLogService.logAction({
-          user_id: user.user_id.toString(),
-          action: 'USER_LOGIN_FAILURE',
-          module: 'AuthService',
-          serviceName: 'user-management',
-          details: { reason: 'Invalid password' },
-        });
         return {
           statusCode: HttpStatus.UNAUTHORIZED,
           success: false,
@@ -118,12 +105,6 @@ export class AuthService {
         };
       }
     }
-    await this.auditLogService.logAction({
-      action: 'USER_LOGIN_FAILURE',
-      module: 'AuthService',
-      serviceName: 'user-management',
-      details: { reason: 'User not found', attemptedUsername: user_name },
-    });
     return {
       statusCode: HttpStatus.NOT_FOUND,
       success: false,
@@ -131,6 +112,7 @@ export class AuthService {
     };
   }
 
+  // FIND this existing method in your file
   async validateAdminUser(user_name: string, password: string): Promise<any> {
     const user = await this.adminUserRepository.findOne({
       where: { user_name },
@@ -140,13 +122,6 @@ export class AuthService {
 
       if (passwordMatch) {
         if (!user.is_active) {
-          await this.auditLogService.logAction({
-            user_id: user.admin_user_id.toString(),
-            action: 'ADMIN_LOGIN_FAILURE',
-            module: 'AuthService',
-            serviceName: 'user-management',
-            details: { reason: 'Inactive account' },
-          });
           return {
             statusCode: HttpStatus.FORBIDDEN,
             success: false,
@@ -160,13 +135,6 @@ export class AuthService {
           user: user,
         };
       } else {
-        await this.auditLogService.logAction({
-          user_id: user.admin_user_id.toString(),
-          action: 'ADMIN_LOGIN_FAILURE',
-          module: 'AuthService',
-          serviceName: 'user-management',
-          details: { reason: 'Invalid password' },
-        });
         return {
           statusCode: HttpStatus.UNAUTHORIZED,
           success: false,
@@ -175,17 +143,28 @@ export class AuthService {
         };
       }
     }
-    await this.auditLogService.logAction({
-      action: 'ADMIN_LOGIN_FAILURE',
-      module: 'AuthService',
-      serviceName: 'user-management',
-      details: { reason: 'User not found', attemptedUsername: user_name },
-    });
     return {
       statusCode: HttpStatus.NOT_FOUND,
       success: false,
       message: 'User not found. Please check your username.',
     };
+  }
+
+  public async logFailedLoginAttempt(username: string, ipAddress: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { user_name: username } });
+await this.auditLogService.create({
+      serviceName: 'user-management',
+      actorId: user ? user.user_id.toString() : null,
+      actorType: user ? 'user' : 'unknown',
+      actionType: ActionType.LOGIN_FAILED,
+      targetEntity: 'UserSession',
+      result: ActionResult.FAILURE,
+      ipAddress: ipAddress,
+      details: {
+        reason: 'Invalid credentials provided',
+        providedUsername: username,
+      },
+    });
   }
 
   async login(req: Request, user: any, rememberMe: boolean) {
@@ -224,22 +203,31 @@ export class AuthService {
   async requestPasswordReset(user_name: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
     if (!user) {
-      await this.auditLogService.logAction({
-        action: 'PASSWORD_RESET_REQUEST_FAILURE',
-        module: 'AuthService',
-        serviceName: 'user-management',
-        details: { reason: 'User not found', attemptedUsername: user_name },
+      await this.auditLogService.create({
+        serviceName: 'user-management', // --- FIX --- Added serviceName
+        actorId: null, // --- FIX --- Pass null for unknown user, not username
+        actorType: 'unknown',
+        actionType: ActionType.UPDATE_USER,
+        targetEntity: 'UserPassword',
+        result: ActionResult.FAILURE,
+        details: {
+          reason: 'Password reset requested for a user that does not exist',
+          providedUsername: user_name,
+        },
       });
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
-
-    if (!user.is_active) {
-      await this.auditLogService.logAction({
-        user_id: user.user_id.toString(),
-        action: 'PASSWORD_RESET_REQUEST_FAILURE',
-        module: 'AuthService',
-        serviceName: 'user-management',
-        details: { reason: 'Inactive account' },
+     if (!user.is_active) {
+      await this.auditLogService.create({
+        serviceName: 'user-management', 
+        actorId: user.user_id.toString(),
+        actorType: 'user',
+        actionType: ActionType.UPDATE_USER,
+        targetEntity: 'UserPassword',
+        result: ActionResult.FAILURE,
+        details: {
+          reason: 'Password reset requested for an inactive account',
+        },
       });
       throw new HttpException(
         'Your account is not active. Please contact support.',
@@ -270,12 +258,18 @@ export class AuthService {
     user.password_reset_token_expiry = resetTokenExpiry;
 
     await this.userRepository.save(user);
-
-    await this.auditLogService.logAction({
-      user_id: user.user_id.toString(),
-      action: 'PASSWORD_RESET_REQUEST_SUCCESS',
-      module: 'AuthService',
+await this.auditLogService.create({
+      serviceName: 'user-management', 
+      actorId: user.user_id.toString(),
+      actorType: 'user',
+      actionType: ActionType.UPDATE_USER,
+      targetEntity: 'UserPassword',
+      result: ActionResult.SUCCESS,
+      details: {
+        change: 'User successfully requested a password reset',
+      },
     });
+
 
     const emailPayload = this.createPasswordResetEmail(
       user.user_name,
@@ -744,17 +738,19 @@ export class AuthService {
           securitySettings.mfa_secret,
         );
       }
-
-      if (!isMfaCodeValid) {
-        await this.auditLogService.logAction({
-          user_id: userId,
-          action: payload.isAdmin ? 'ADMIN_MFA_FAILURE' : 'USER_MFA_FAILURE',
-          module: 'AuthService',
-          serviceName: 'user-management',
-          details: { reason: 'Invalid MFA code' },
+if (!isMfaCodeValid) {
+        await this.auditLogService.create({
+          serviceName: 'user-management', // --- FIX --- Added serviceName
+          actorId: userId,
+          actorType: payload.isAdmin ? 'admin' : 'user',
+          actionType: ActionType.LOGIN_FAILED,
+          targetEntity: payload.isAdmin ? 'AdminSession' : 'UserSession',
+          result: ActionResult.FAILURE,
+          details: { reason: 'Invalid MFA code provided' },
         });
+  
         throw new HttpException('Invalid MFA code.', HttpStatus.UNAUTHORIZED);
-      }
+    }
 
       if (payload.isAdmin) {
         const adminUser = await this.adminUserRepository.findOneBy({
@@ -894,6 +890,7 @@ export class AuthService {
     return { message: 'You have been successfully logged out.' };
   }
 
+
   async adminLogout(sessionId: string): Promise<{ message: string }> {
     const session = await this.adminSessionRepository.findOneBy({
       session_id: sessionId,
@@ -901,12 +898,15 @@ export class AuthService {
     if (session) {
       session.is_active = false;
       await this.adminSessionRepository.save(session);
-      await this.auditLogService.logAction({
-        user_id: session.admin_user_id.toString(),
-        action: 'ADMIN_LOGOUT',
-        module: 'AuthService',
-        serviceName: 'user-management',
-        details: { sessionId: sessionId },
+     await this.auditLogService.create({
+        serviceName: 'user-management', 
+        actorId: session.admin_user_id.toString(),
+        actorType: 'admin',
+        actionType: ActionType.LOGOUT,
+        targetEntity: 'AdminSession',
+        targetEntityId: sessionId,
+        result: ActionResult.SUCCESS,
+        details: { reason: 'Admin user initiated logout.' },
       });
     }
     return { message: 'You have been successfully logged out.' };
@@ -932,14 +932,16 @@ export class AuthService {
     securitySettings.mfa_temp_secret = null;
     await this.adminSecuritySettingRepository.save(securitySettings);
 
-    await this.auditLogService.logAction({
-      user_id: performedByAdminId,
-      action: 'ADMIN_MFA_RESET',
-      module: 'AuthService',
-      serviceName: 'user-management',
-      details: { targetUserId: adminUserIdToReset },
+    await this.auditLogService.create({
+      serviceName: 'user-management', 
+      actorId: performedByAdminId,
+      actorType: 'admin',
+      actionType: ActionType.UPDATE_ADMIN,
+      targetEntity: 'AdminUserSecuritySetting',
+      targetEntityId: adminUserIdToReset,
+      result: ActionResult.SUCCESS,
+      details: { change: 'Admin MFA settings were successfully reset' },
     });
-
     return { message: `MFA has been successfully reset for the user.` };
   }
 
@@ -963,31 +965,34 @@ export class AuthService {
     });
 
     if (!adminUser || adminUser.ssoProviderId) {
-      await this.auditLogService.logAction({
-        action: 'ADMIN_SSO_LOGIN_FAILURE',
-        module: 'AuthService',
-        serviceName: 'user-management',
+      await this.auditLogService.create({
+        serviceName: 'user-management', 
+        actorId: null, 
+        actorType: 'unknown',
+        actionType: ActionType.LOGIN_FAILED,
+        targetEntity: 'AdminSession',
+        result: ActionResult.FAILURE,
         details: {
-          reason: 'Unauthorized SSO attempt for email',
-          email: profile.email,
+          reason: 'Unauthorized SSO attempt for admin email',
           provider: profile.provider,
+          providedEmail: profile.email,
         },
       });
-      throw new ForbiddenException(
-        'This account is not authorized for Admin SSO access.',
-      );
+      throw new ForbiddenException('This account is not authorized for Admin SSO access.');
     }
 
     adminUser.ssoProvider = profile.provider;
     adminUser.ssoProviderId = profile.id;
     const updatedAdmin = await this.adminUserRepository.save(adminUser);
-
-    await this.auditLogService.logAction({
-      user_id: updatedAdmin.admin_user_id.toString(),
-      action: 'ADMIN_SSO_LINK_SUCCESS',
-      module: 'AuthService',
-      serviceName: 'user-management',
-      details: { provider: profile.provider },
+    await this.auditLogService.create({
+      serviceName: 'user-management', 
+      actorId: updatedAdmin.admin_user_id.toString(),
+      actorType: 'admin',
+      actionType: ActionType.UPDATE_ADMIN,
+      targetEntity: 'AdminUser',
+      targetEntityId: updatedAdmin.admin_user_id.toString(),
+      result: ActionResult.SUCCESS,
+      details: { change: `Linked SSO provider: ${profile.provider}` },
     });
 
     return this.issueAdminTokens(req, updatedAdmin);

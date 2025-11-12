@@ -1,24 +1,19 @@
-// in user-management/src/audit-log.module.ts
-
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuditLogService } from 'src/application/services/audit-log.service';
-import { AuditLog } from 'src/domain/entities/audit-log.entity';
-import { AUDIT_LOG_REPOSITORY_TOKEN } from 'src/domain/repositories/audit-log.repository.token';
-import { AuditLogRepositoryImpl } from 'src/infrastructure/persistence/repositories/audit-log.repository.impl';
-import { AuditLogController } from 'src/presentation/controllers/audit-log.controller';
-import { AuthModule } from '../auth/auth.module';
+import { AuditLog } from '../../domain/entities/audit-log.entity';
+import { AuditLogService } from '../../application/services/audit-log.service';
+import { AuditLogController } from '../../presentation/controllers/audit-log.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AuditLog]), forwardRef(() => AuthModule)],
-  controllers: [AuditLogController],
-  providers: [
-    AuditLogService,
-    {
-      provide: AUDIT_LOG_REPOSITORY_TOKEN,
-      useClass: AuditLogRepositoryImpl,
-    },
+  imports: [
+    // Make the AuditLog entity and its repository available for injection
+    TypeOrmModule.forFeature([AuditLog]),
   ],
+  // The controller will handle API requests for viewing logs
+  controllers: [AuditLogController],
+  // The service contains the business logic for creating/finding logs
+  providers: [AuditLogService],
+  // IMPORTANT: Export the service so other modules (like AuthModule, UserModule) can inject it and create logs.
   exports: [AuditLogService],
 })
 export class AuditLogModule {}

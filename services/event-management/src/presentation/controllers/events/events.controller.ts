@@ -78,6 +78,8 @@ import {
 import { AdminUpdateEventCommand } from 'src/application/commands/admin-update-event.command';
 import { AdminUpdateEventsDto } from 'src/presentation/dtos/events/admin-update-events.dto';
 import { GetParticipatedEventsQuery } from 'src/application/queries/events/get-participated-events.query';
+import { AuditLog } from 'src/presentation/decorators/audit-log.decorator';
+import { ActionType } from 'src/domain/entities/audit-log.entity';
 
 @ApiTags('Events')
 @Controller('events')
@@ -159,7 +161,6 @@ export class EventsController {
 
   @ApiBody({ type: CreateEventsDto })
   @ApiOperation({ description: 'Create a new event' })
-  @UseInterceptors(AuditLogInterceptor)
   @HttpCode(200)
   @ApiResponse({
     type: CreateEventsDto,
@@ -173,6 +174,10 @@ export class EventsController {
     FileInterceptor('thumbnail', multerConfig('thumbnail')),
     // FileInterceptor('cover_image', multerConfig('cover_image'))  // For 'cover_image' field, allows 1 file only
   )
+  @AuditLog({
+    actionType: ActionType.CREATE_EVENT,
+    targetEntity: 'Event',
+  })
   async createEvent(
     @Body() createEventsDto: CreateEventsDto,
     @UploadedFiles() thumbnails: Express.Multer.File[],
@@ -303,6 +308,10 @@ export class EventsController {
   @Patch(':id')
   @UseInterceptors(AuditLogInterceptor)
   @UseGuards(JwtAuthGuard, RolesGuard)
+   @AuditLog({
+    actionType: ActionType.UPDATE_EVENT,
+    targetEntity: 'Event',
+  })
   async update(
     @Param('id') id: string,
     @Body() updateEventsDto: UpdateEventsDto,
@@ -326,6 +335,10 @@ export class EventsController {
   @Delete(':id')
   @UseInterceptors(AuditLogInterceptor)
   @UseGuards(JwtAuthGuard, RolesGuard)
+   @AuditLog({
+    actionType: ActionType.DELETE_EVENT,
+    targetEntity: 'Event',
+  })
   async remove(@Param('id') id: string): Promise<void> {
     const event = await this.queryBus.execute(new GetEventsByIdQuery(id));
     if (!event) throw new Error('Event not found');
@@ -432,6 +445,10 @@ export class EventsController {
   @Permissions('view:Event')
   @UseGuards(UniversalAuthGuard, PermissionsGuard)
   @Post(':id/approve')
+  @AuditLog({
+    actionType: ActionType.APPROVE_EVENT,
+    targetEntity: 'Event',
+  })
   async approveEvent(
     @Param('id') eventId: string,
     @Body() approveEventDto: ApproveEventDto,

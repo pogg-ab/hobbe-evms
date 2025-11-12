@@ -1,10 +1,9 @@
 import { Controller, Get, Post, Param, Body, HttpCode, UseInterceptors } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import { WiseService } from 'src/application/services/payment-methods/wise/wise.service';
-import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+
 
 @Controller('wise')
-@UseInterceptors(AuditLogInterceptor) 
 export class WiseController {
   constructor(private readonly wiseService: WiseService) {}
 

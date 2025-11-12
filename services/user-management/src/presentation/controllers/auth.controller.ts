@@ -52,6 +52,8 @@ import { Public } from '../decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { MfaLoginDto } from '../dtos/mfa-login.dto';
 import { AdminAuthGuard } from '../guards/admin-auth.guard';
+import { AuditLog } from '../decorators/audit-log.decorator';
+import { ActionType } from '../../domain/entities/audit-log.entity';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -345,6 +347,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Authenticate a user' })
   @ApiBody({ type: AuthDto })
   @HttpCode(200)
+  @AuditLog({
+  actionType: ActionType.LOGIN,
+  targetEntity: 'UserSession',
+})
   async login(@Req() req: Request, @Body() authDto: AuthDto) {
     const user = await this.authService.validateUser(
       authDto.username,
@@ -375,6 +381,10 @@ export class AuthController {
   @UseGuards(UniversalAuthGuard, SessionGuard)
   @ApiBearerAuth('access-token')
   @HttpCode(200)
+  @AuditLog({
+  actionType: ActionType.LOGOUT,
+  targetEntity: 'UserSession',
+})
   @ApiOperation({ summary: 'Log out a regular user' })
   async userLogout(@Req() req) {
     const sessionId = req.user.jti;
@@ -425,6 +435,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Authenticate an admin user' })
   @ApiBody({ type: AuthDto })
   @HttpCode(200)
+  @AuditLog({
+  actionType: ActionType.LOGIN,
+  targetEntity: 'AdminSession', 
+})
   async adminLogin(@Req() req: Request, @Body() authDto: AdminUserAuthDto) {
     const adminUser = await this.authService.validateAdminUser(
       authDto.username,

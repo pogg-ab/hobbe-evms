@@ -30,6 +30,8 @@ import { AdminAuthGuard } from '../guards/admin-auth.guard'; // Assuming this is
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { Permissions } from '../decorators/permissions.decorator';
 import { MessagePattern, Payload } from '@nestjs/microservices';
+import { AuditLog } from '../decorators/audit-log.decorator';
+import { ActionType } from 'src/domain/entities/audit-log.entity';
 
 @ApiTags('Role and Permission')
 @Controller('role-permission')
@@ -63,6 +65,10 @@ export class AdminController {
   @Permissions('update:role:RBAC')
   @ApiOperation({ summary: 'Update an existing role' })
   @ApiBody({ type: UpdateRoleDto })
+  @AuditLog({
+  actionType: ActionType.UPDATE_ROLE,
+  targetEntity: 'Role',
+})
   async updateRole(
     @Param('id') id: string,
     @Body() updateRoleDto: UpdateRoleDto,
@@ -80,6 +86,10 @@ export class AdminController {
   @Delete('roles/:id')
   @Permissions('delete:role:RBAC')
   @ApiOperation({ summary: 'Delete a role by ID' })
+  @AuditLog({
+  actionType: ActionType.DELETE_ROLE,
+  targetEntity: 'Role',
+})
   async deleteRole(@Param('id') id: string): Promise<void> {
     return this.adminService.deleteRole(id);
   }
@@ -89,6 +99,10 @@ export class AdminController {
   @Permissions('create:permission:RBAC')
   @ApiOperation({ summary: 'Create a new permission' })
   @ApiBody({ type: CreatePermissionDto })
+  @AuditLog({
+  actionType: ActionType.UPDATE_USER,
+  targetEntity: 'User',
+})
   async addPermission(
     @Body() createPermissionDto: CreatePermissionDto,
   ): Promise<Permission> {
@@ -115,6 +129,10 @@ export class AdminController {
   @Permissions('update:permission:RBAC')
   @ApiOperation({ summary: 'Update an existing permission' })
   @ApiBody({ type: UpdatePermissionDto })
+  @AuditLog({
+  actionType: ActionType.UPDATE_PERMISSION,
+  targetEntity: 'Permission',
+})
   async updatePermission(
     @Param('id') id: string,
     @Body() updatePermissionDto: UpdatePermissionDto,
@@ -125,6 +143,10 @@ export class AdminController {
   @Delete('permissions/:id')
   @Permissions('delete:permission:RBAC')
   @ApiOperation({ summary: 'Delete a permission by ID' })
+  @AuditLog({
+    actionType: ActionType.DELETE_ROLE, 
+    targetEntity: 'Permission',
+})
   async deletePermission(@Param('id') id: string): Promise<void> {
     return this.adminService.deletePermission(id);
   }

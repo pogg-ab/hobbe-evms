@@ -14,19 +14,17 @@ import { FindOneBankAccountHandler } from 'src/application/handlers/bank-account
 import { FindBankAccountByEventQueryHandler } from 'src/application/handlers/bank-account/find-by-event.handler';
 import { UpdateBankAccountHandler } from 'src/application/handlers/bank-account/update.bank-account.handler';
 import { DeleteBankAccountHandler } from 'src/application/handlers/bank-account/delete.bank-accout.handler';
-import { AuditLogModule } from '../audit-log/audit-log.module';
-import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+
 
 @Module({
   imports: [
     AutomapperModule,
     TypeOrmModule.forFeature([BankAccounts]),
     CqrsModule,
-    AuditLogModule,
-    // --- 2. THIS IS THE FIX ---
+    
     ClientsModule.register([
       {
-        name: 'KAFKA_PRODUCER', // Must match the @Inject() token
+        name: 'KAFKA_PRODUCER', 
         transport: Transport.KAFKA,
         options: {
           client: {
@@ -46,7 +44,7 @@ import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.int
     FindBankAccountByEventQueryHandler,
     UpdateBankAccountHandler,
     DeleteBankAccountHandler,
-    AuditLogInterceptor,
+    
     {
       provide: CREATE_BANK_ACCOUNT_TOKEN,
       useClass: BankAccountRepositoryImpl,

@@ -37,9 +37,14 @@ import { SuspendUserCommand } from 'src/application/commands/user/suspend-user.c
 import { ReactivateUserCommand } from 'src/application/commands/user/reactivate-user.command';
 import { AdminAuthGuard } from '../guards/admin-auth.guard';
 import { SearchAllUsersQuery } from 'src/application/queries/user/search-all-users.query';
+import { UseInterceptors } from '@nestjs/common';
+import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
+import { AuditLog } from '../decorators/audit-log.decorator';
+import { ActionType } from 'src/domain/entities/audit-log.entity';
 
 @ApiTags('Users')
 @Controller('users')
+@UseInterceptors(AuditLogInterceptor)
 export class UserController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -74,8 +79,6 @@ export class UserController {
   }
 
   @Get()
-  // @ApiBearerAuth('access-token')
-  // @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({
     status: 200,
@@ -123,6 +126,10 @@ export class UserController {
     description: 'User updated successfully',
     type: User,
   })
+  @AuditLog({
+  actionType: ActionType.UPDATE_USER,
+  targetEntity: 'User',
+})
   async update(
     @Param('id') user_id: UserID,
     @Body() updateUserDto: UpdateUserDto,
@@ -231,6 +238,10 @@ export class UserController {
     status: 400,
     description: 'User not found',
   })
+  @AuditLog({
+    actionType: ActionType.UPDATE_USER,
+    targetEntity: 'User',
+})
   async suspendUser(@Param('id') userId: string): Promise<User> {
     return this.commandBus.execute(new SuspendUserCommand(userId));
   }

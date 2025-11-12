@@ -5,15 +5,13 @@ import { ClientsModule, Transport } from '@nestjs/microservices'; // <-- 1. IMPO
 import { StripeService } from 'src/application/services/payment-methods/stripe/stripe.service';
 import { PaymentsModule } from '../payments/payments.module';
 import { StripeController } from 'src/presentation/controllers/payment-methods/stripe/stripe.controller';
-import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
-import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+
 
 @Module({
   imports: [
     ConfigModule,
     ScheduleModule.forRoot(),
     PaymentsModule,
-    AuditLogModule,
     ClientsModule.register([
       {
         name: 'KAFKA_PRODUCER', // Must match the @Inject() token
@@ -28,7 +26,7 @@ import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.int
     ]),
   ],
   controllers: [StripeController],
-  providers: [StripeService, AuditLogInterceptor],
+  providers: [StripeService, ],
   exports: [StripeService],
 })
 export class StripeModule {}
