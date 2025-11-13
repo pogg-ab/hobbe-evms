@@ -1,5 +1,3 @@
-// src/audit-log/audit-log.entity.ts
-
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,27 +5,17 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
-// --- ENUMS for Type-Safety and Standardization ---
 
-/**
- * Defines the possible outcomes of a logged action.
- */
 export enum ActionResult {
   SUCCESS = 'SUCCESS',
   FAILURE = 'FAILURE',
 }
 
-/**
- * Defines who or what performed the action.
- */
 export enum ActorType {
   USER = 'USER',
   SYSTEM = 'SYSTEM',
 }
 
-/**
- * Defines the specific actions relevant to the payment-management service.
- */
 export enum ActionType {
   // Payment Actions
   CREATE_PAYMENT_INTENT = 'CREATE_PAYMENT_INTENT',
@@ -43,10 +31,9 @@ export enum ActionType {
   // Administrative / Query Actions
   VIEW_TRANSACTION_HISTORY = 'VIEW_TRANSACTION_HISTORY',
   VIEW_PAYMENT_DETAILS = 'VIEW_PAYMENT_DETAILS',
-  EXPORT_PAYMENT_LOGS = 'EXPORT_PAYMENT_LOGS', // For when we log the export action itself
+  EXPORT_PAYMENT_LOGS = 'EXPORT_PAYMENT_LOGS',
 }
 
-// --- The Refactored AuditLog Entity ---
 
 @Entity({ name: 'payment_audit_logs' })
 export class AuditLog {
@@ -54,8 +41,7 @@ export class AuditLog {
   id: string;
 
   @Column({ type: 'uuid', nullable: true })
-  actorId: string; // Standardized to camelCase, nullable for anonymous/system actions
-
+  actorId: string;
   @Column({
     type: 'enum',
     enum: ActorType,
@@ -77,17 +63,17 @@ export class AuditLog {
   result: ActionResult;
 
   @Column({ nullable: true })
-  targetEntity: string; // e.g., 'Transaction', 'Refund'
+  targetEntity: string;
 
   @Column({ nullable: true })
-  targetId: string; // The ID of the specific transaction or refund
+  targetId: string;
 
   @Column({ type: 'jsonb', nullable: true })
   details: object;
 
   @Column()
-  serviceName: string; // e.g., 'payment-management'
+  serviceName: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date; // Standardized to camelCase
+  createdAt: Date;
 }
