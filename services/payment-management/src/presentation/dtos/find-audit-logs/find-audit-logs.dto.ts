@@ -1,5 +1,3 @@
-// src/audit-log/dto/find-audit-logs.dto.ts
-
 import {
   IsOptional,
   IsString,
@@ -13,10 +11,6 @@ import {
 import { Transform } from 'class-transformer';
 import { ActionType, ActionResult } from '../../../domain/entities/audit-log.entity';
 
-/**
- * Defines and validates the query parameters for finding and filtering payment audit logs.
- * This is used by the AuditLogController's GET endpoints.
- */
 export class FindAuditLogsDto {
   @IsOptional()
   @IsUUID()
@@ -54,8 +48,7 @@ export class FindAuditLogsDto {
   @Min(1)
   @Max(100)
   limit?: number = 10;
-  
-  // Columns for sorting
+
   @IsOptional()
   @IsString()
   sortBy?: string = 'createdAt';

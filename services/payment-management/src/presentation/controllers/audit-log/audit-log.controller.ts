@@ -1,10 +1,8 @@
-// src/presentation/controllers/audit-log/audit-log.controller.ts
-
 import {
   Controller,
   Get,
   Query,
-  UseGuards, // <-- Make sure this is imported
+  UseGuards,
   Res,
   Header,
   Delete,
@@ -18,21 +16,19 @@ import { AuditLogService } from '../../../application/services/audit-log/audit-l
 import { FindAuditLogsDto } from '../../dtos/find-audit-logs/find-audit-logs.dto';
 import { AuditLog } from '../../../domain/entities/audit-log.entity';
 
-// --- ADD THESE IMPORTS ---
-// (Adjust paths if they are different in this service)
 import { AdminAuthGuard } from '../../guards/admin-auth.guard';
 import { PermissionsGuard } from '../../guards/permissions.guard';
 import { Permissions } from '../../decorators/permissions.decorator';
 
-@ApiTags('Admin: Audit Log (Payments)') // <-- Customized Tag
+@ApiTags('Admin: Audit Log (Payments)')
 @Controller('admin/audit-logs')
 @ApiBearerAuth('access-token')
-@UseGuards(AdminAuthGuard, PermissionsGuard) // <-- APPLY GUARDS AT CONTROLLER LEVEL
+@UseGuards(AdminAuthGuard, PermissionsGuard)
 export class AuditLogController {
-  constructor(private readonly auditLogService: AuditLogService) {}
+  constructor(private readonly auditLogService: AuditLogService) { }
 
   @Get()
-  @Permissions('view:audit_log:System') // <-- ADD PERMISSION
+  @Permissions('view:audit_log:System')
   @ApiOperation({
     summary: 'Retrieve paginated and filterable audit logs for Payment Management',
   })
@@ -43,7 +39,7 @@ export class AuditLogController {
   }
 
   @Get('export')
-  @Permissions('view:audit_log:System') // <-- ADD PERMISSION
+  @Permissions('view:audit_log:System')
   @ApiOperation({
     summary: 'Export filtered audit logs from Payment Management to a CSV file',
   })
@@ -60,7 +56,7 @@ export class AuditLogController {
   }
 
   @Delete('all')
-  @Permissions('view:audit_log:System') // <-- ADD PERMISSION
+  @Permissions('view:audit_log:System')
   @ApiOperation({
     summary: '!!! DANGEROUS !!! Delete all audit logs for Payment Management.',
   })
@@ -70,17 +66,17 @@ export class AuditLogController {
   }
 
   @Delete(':id')
-  @Permissions('view:audit_log:System') // <-- ADD PERMISSION
+  @Permissions('view:audit_log:System')
   @ApiOperation({ summary: 'Delete a specific audit log entry by ID' })
   @HttpCode(204)
   async delete(@Param('id') id: string): Promise<void> {
     try {
-        await this.auditLogService.delete(id);
+      await this.auditLogService.delete(id);
     } catch (error) {
-        if (error instanceof NotFoundException) {
-            throw new NotFoundException(error.message);
-        }
-        throw error;
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw error;
     }
   }
 }

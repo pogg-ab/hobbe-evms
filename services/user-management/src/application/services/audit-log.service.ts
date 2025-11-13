@@ -11,7 +11,7 @@ import Papa from 'papaparse';
 
 export interface CreateLogParams {
   serviceName: string;
-  actorId: string | null; // <-- CHANGE THIS from 'string' to 'string | null'
+  actorId: string | null;
   actorType: string;
   actionType: ActionType;
   targetEntity: string;
@@ -23,12 +23,12 @@ export interface CreateLogParams {
 @Injectable()
 export class AuditLogService {
   private readonly logger = new Logger(AuditLogService.name);
-  private readonly serviceName = 'user-management'; // <-- ADDED
+  private readonly serviceName = 'user-management';
 
   constructor(
     @InjectRepository(AuditLog)
     private readonly auditLogRepository: Repository<AuditLog>,
-  ) {}
+  ) { }
 
   async create(params: CreateLogParams): Promise<AuditLog> {
     try {
@@ -45,7 +45,6 @@ export class AuditLogService {
 
     const queryBuilder = this.auditLogRepository.createQueryBuilder('log');
 
-    // --- CRITICAL FILTER FOR DATA ISOLATION ---
     queryBuilder.where('log.serviceName = :serviceName', { serviceName: this.serviceName });
 
     if (actorId) {
@@ -73,14 +72,13 @@ export class AuditLogService {
       .take(limit);
 
     const [data, total] = await queryBuilder.getManyAndCount();
-    
+
     return { data, total };
   }
 
   async exportToCsv(filterDto: FindAuditLogsDto): Promise<string> {
     const queryBuilder = this.auditLogRepository.createQueryBuilder('log');
 
-    // --- CRITICAL FILTER FOR DATA ISOLATION ---
     queryBuilder.where('log.serviceName = :serviceName', { serviceName: this.serviceName });
 
     const { actorId, actionType, targetEntity, fromDate, toDate, result } = filterDto;
@@ -88,8 +86,7 @@ export class AuditLogService {
     if (actorId) {
       queryBuilder.andWhere('log.actorId = :actorId', { actorId });
     }
-    // ... rest of filters
-    
+
     const logs = await queryBuilder.orderBy('log.timestamp', 'DESC').getMany();
 
     if (logs.length === 0) {
@@ -99,7 +96,7 @@ export class AuditLogService {
     const formattedLogs = logs.map(log => ({
       id: log.id,
       timestamp: log.timestamp.toISOString(),
-      serviceName: log.serviceName, // <-- ADDED
+      serviceName: log.serviceName,
       actorId: log.actorId,
       actorType: log.actorType,
       ipAddress: log.ipAddress,
