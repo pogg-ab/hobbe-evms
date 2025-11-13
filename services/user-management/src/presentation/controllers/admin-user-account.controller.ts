@@ -36,6 +36,8 @@ import { AdminAuthGuard } from '../guards/admin-auth.guard';
 import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
 import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { FindAllAdminUsersQuery } from 'src/application/queries/admin-user-account/find-all-admin-users.query';
+import { AuditLog } from '../decorators/audit-log.decorator';
+import { ActionType } from 'src/domain/entities/audit-log.entity';
 
 @ApiTags('Admin User Account')
 @Controller('admin-user-account')
@@ -60,6 +62,10 @@ export class AdminUserAccountController {
     description: 'Admin user account created successfully',
     type: AdminUserAccount,
   })
+  @AuditLog({
+  actionType: ActionType.CREATE_ADMIN,
+  targetEntity: 'AdminUserAccount',
+})
   async create(
     @Body() createAdminUserAccountDto: CreateAdminUserAccountDto,
   ): Promise<{ message: string; account: AdminUserAccount }> {
@@ -80,6 +86,10 @@ export class AdminUserAccountController {
   })
   @ApiResponse({ status: 201, description: 'Role assigned successfully.' })
   @ApiBody({ type: AssignRoleDto })
+  @AuditLog({
+  actionType: ActionType.ASSIGN_ROLE,
+  targetEntity: 'AdminUserRole',
+})
   async assignRole(
     @Param('userId') userId: string,
     @Body() assignRoleDto: AssignRoleDto,
@@ -134,6 +144,10 @@ export class AdminUserAccountController {
     description: 'Admin user account updated successfully',
     type: AdminUserAccount,
   })
+  @AuditLog({
+  actionType: ActionType.UPDATE_ADMIN,
+  targetEntity: 'AdminUserAccount',
+})
   async update(
     @Param('id') id: string,
     @Body() updateAdminUserAccountDto: UpdateAdminUserAccountDto,
@@ -156,6 +170,10 @@ export class AdminUserAccountController {
     name: 'id',
     description: 'The ID of the admin user account to delete',
   })
+  @AuditLog({
+  actionType: ActionType.DELETE_ADMIN,
+  targetEntity: 'AdminUserAccount',
+})
   async remove(@Param('id') id: string): Promise<void> {
     return this.commandBus.execute(new RemoveAdminUserAccountCommand(id));
   }

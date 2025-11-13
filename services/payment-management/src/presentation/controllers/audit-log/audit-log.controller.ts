@@ -1,34 +1,86 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { AuditLogService } from 'src/application/services/audit-log/audit-log.service';
-import { AuditLog } from 'src/domain/entities/audit-log.entity';
+// src/presentation/controllers/audit-log/audit-log.controller.ts
 
-// --- Import our Admin security components from their correct locations ---
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards, // <-- Make sure this is imported
+  Res,
+  Header,
+  Delete,
+  Param,
+  HttpCode,
+  NotFoundException,
+} from '@nestjs/common';
+import { ApiOperation, ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { Response } from 'express';
+import { AuditLogService } from '../../../application/services/audit-log/audit-log.service';
+import { FindAuditLogsDto } from '../../dtos/find-audit-logs/find-audit-logs.dto';
+import { AuditLog } from '../../../domain/entities/audit-log.entity';
+
+// --- ADD THESE IMPORTS ---
+// (Adjust paths if they are different in this service)
+import { AdminAuthGuard } from '../../guards/admin-auth.guard';
 import { PermissionsGuard } from '../../guards/permissions.guard';
 import { Permissions } from '../../decorators/permissions.decorator';
 
-// Define a reusable constant for the admin authentication guard
-const AdminAuthGuard = AuthGuard('admin-jwt');
-
-@ApiTags('Admin: Audit Log (Events)')
+@ApiTags('Admin: Audit Log (Payments)') // <-- Customized Tag
+@Controller('admin/audit-logs')
 @ApiBearerAuth('access-token')
-@Controller('audit-logs') // A dedicated, secure route for this service's logs
+@UseGuards(AdminAuthGuard, PermissionsGuard) // <-- APPLY GUARDS AT CONTROLLER LEVEL
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
-  /**
-   * This endpoint retrieves all audit logs specific to the event-management service.
-   * It is protected and requires the 'view:audit_log' permission from the Admin's JWT.
-   */
   @Get()
-  @UseGuards(AdminAuthGuard, PermissionsGuard)
-  @Permissions('view:audit_log:System') // Use the permission name consistent with user-management
-  @ApiOperation({ summary: 'Retrieve all audit logs for the Event Management service' })
-  @ApiResponse({ status: 200, description: 'List of event service audit logs', type: [AuditLog] })
-  async findAll(): Promise<AuditLog[]> {
-    // This calls the findAll method in the event-management AuditLogService,
-    // which we previously configured to only return its own logs.
-    return this.auditLogService.findAll(); 
+  @Permissions('view:audit_log:System') // <-- ADD PERMISSION
+  @ApiOperation({
+    summary: 'Retrieve paginated and filterable audit logs for Payment Management',
+  })
+  async find(
+    @Query() filterDto: FindAuditLogsDto,
+  ): Promise<{ data: AuditLog[]; total: number }> {
+    return this.auditLogService.find(filterDto);
+  }
+
+  @Get('export')
+  @Permissions('view:audit_log:System') // <-- ADD PERMISSION
+  @ApiOperation({
+    summary: 'Export filtered audit logs from Payment Management to a CSV file',
+  })
+  @Header('Content-Type', 'text/csv')
+  async export(
+    @Query() filterDto: FindAuditLogsDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const date = new Date().toISOString().split('T')[0];
+    const fileName = `payment-management-audit-logs-${date}.csv`;
+    res.header('Content-Disposition', `attachment; filename=${fileName}`);
+    const csvData = await this.auditLogService.exportToCsv(filterDto);
+    res.send(csvData);
+  }
+
+  @Delete('all')
+  @Permissions('view:audit_log:System') // <-- ADD PERMISSION
+  @ApiOperation({
+    summary: '!!! DANGEROUS !!! Delete all audit logs for Payment Management.',
+  })
+  async deleteAll(): Promise<{ message: string }> {
+    await this.auditLogService.deleteAll();
+    return { message: 'All payment management audit logs have been deleted.' };
+  }
+
+  @Delete(':id')
+  @Permissions('view:audit_log:System') // <-- ADD PERMISSION
+  @ApiOperation({ summary: 'Delete a specific audit log entry by ID' })
+  @HttpCode(204)
+  async delete(@Param('id') id: string): Promise<void> {
+    try {
+        await this.auditLogService.delete(id);
+    } catch (error) {
+        if (error instanceof NotFoundException) {
+            throw new NotFoundException(error.message);
+        }
+        throw error;
+    }
   }
 }

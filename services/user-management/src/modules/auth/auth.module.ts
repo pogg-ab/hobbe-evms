@@ -1,4 +1,4 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { forwardRef, Module, Global } from '@nestjs/common'; // CHANGED
 import { JwtModule } from '@nestjs/jwt';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
@@ -61,6 +61,8 @@ import { AdminAlertSubscription } from 'src/domain/entities/admin-alert-subscrip
 import { KafkaProducerModule } from 'src/infrastructure/kafka/kafka-producer.module';
 import { UserAlertSubscription } from 'src/domain/entities/user-alert-subscription.entity';
 import { Role } from 'src/domain/entities/role.entity';
+
+@Global() // ADDED
 @Module({
   imports: [
     CqrsModule,
@@ -161,6 +163,7 @@ import { Role } from 'src/domain/entities/role.entity';
     SystemSettingsService,
     AdminAuthGuard,
     UniversalAuthGuard,
+    JwtModule, // ADDED
   ],
 })
 export class AuthModule {}

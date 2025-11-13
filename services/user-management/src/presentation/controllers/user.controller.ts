@@ -38,9 +38,14 @@ import { SuspendUserCommand } from 'src/application/commands/user/suspend-user.c
 import { ReactivateUserCommand } from 'src/application/commands/user/reactivate-user.command';
 import { AdminAuthGuard } from '../guards/admin-auth.guard';
 import { SearchAllUsersQuery } from 'src/application/queries/user/search-all-users.query';
+import { UseInterceptors } from '@nestjs/common';
+import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
+import { AuditLog } from '../decorators/audit-log.decorator';
+import { ActionType } from 'src/domain/entities/audit-log.entity';
 
 @ApiTags('Users')
 @Controller('users')
+@UseInterceptors(AuditLogInterceptor)
 export class UserController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -75,8 +80,6 @@ export class UserController {
   }
 
   @Get()
-  // @ApiBearerAuth('access-token')
-  // @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({
     status: 200,
@@ -115,7 +118,7 @@ export class UserController {
     return filteredUsers;
   }
 
-  @Put(':id')
+ @Put(':id')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update user details' })
@@ -124,12 +127,18 @@ export class UserController {
     description: 'User updated successfully',
     type: User,
   })
+  // --- START OF RESOLVED CODE ---
   @ApiParam({
     name: 'id',
     description: 'The unique user ID (UUID)',
     example: 'f86fb35f-269a-4de2-9a3a-9777133b066e',
     type: String,
   })
+  @AuditLog({
+    actionType: ActionType.UPDATE_USER,
+    targetEntity: 'User',
+  })
+  // --- END OF RESOLVED CODE ---
   async update(
     @Param('id') user_id: UserID,
     @Body() updateUserDto: UpdateUserDto,
@@ -150,7 +159,6 @@ export class UserController {
 
     return this.commandBus.execute(new UpdateUserCommand(user_id, user));
   }
-
   @Get('search-organizer')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
@@ -238,6 +246,10 @@ export class UserController {
     status: 400,
     description: 'User not found',
   })
+  @AuditLog({
+    actionType: ActionType.UPDATE_USER,
+    targetEntity: 'User',
+})
   async suspendUser(@Param('id') userId: string): Promise<User> {
     return this.commandBus.execute(new SuspendUserCommand(userId));
   }

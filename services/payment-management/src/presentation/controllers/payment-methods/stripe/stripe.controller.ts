@@ -15,11 +15,10 @@ import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.
 import { ChapaSDKService } from 'src/application/services/payment-methods/chapa/chapa-sdk.service';
 import { StripeService } from 'src/application/services/payment-methods/stripe/stripe.service';
 import { CreateStripePayDto } from 'src/presentation/dtos/stripe/create-stripe-pay.dto';
-import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+
 
 @Controller('stripe')
 @ApiTags('Stripe')
-@UseInterceptors(AuditLogInterceptor)
 export class StripeController {
   constructor(
     private readonly stripeService: StripeService,

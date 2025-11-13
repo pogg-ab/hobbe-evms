@@ -12,7 +12,6 @@ import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create-bank-acounts.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
-import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
 
 @Controller('bank-accounts')
 @ApiTags('Bank Accounts')
@@ -31,7 +30,7 @@ export class BankAccountsController {
     @Post(':event_id')
     // @Roles('User')
     // @UseGuards(JwtAuthGuard, RolesGuard)
-    @UseInterceptors(AuditLogInterceptor)
+  
     async createNewBankAccount(
       @Param('event_id') event_id: string,
       @Body() createBankAccountDto: CreateBankAccountDto,
@@ -64,7 +63,7 @@ export class BankAccountsController {
     @Patch(':id')
     // @Roles('User')
     // @UseGuards(JwtAuthGuard, RolesGuard)
-    @UseInterceptors(AuditLogInterceptor)
+    
     async updateBankAccount(
       @Param('id') id: string,
       @Body() createBankAccountDto: CreateBankAccountDto,
@@ -80,7 +79,7 @@ export class BankAccountsController {
     @Delete(':id')
     // @Roles('User')
     // @UseGuards(JwtAuthGuard, RolesGuard)
-    @UseInterceptors(AuditLogInterceptor)
+    
     async delete(
       @Param('id') id: string,
     ): Promise<{ message: string; }> {

@@ -35,6 +35,9 @@ import { ReactivateUserCommand } from 'src/application/commands/user/reactivate-
 import { ReactivateUserCommandHandler } from 'src/application/handlers/user/reactivate-user.command-handler';
 import { SearchAllUsersQueryHandler } from 'src/application/handlers/user/search-all-users-query.handler';
 
+// --- 1. IMPORT THE AUDIT LOG MODULE ---
+import { AuditLogModule } from '../audit-log/audit-log.module';
+
 @Module({
   imports: [
     AutomapperModule,
@@ -48,6 +51,7 @@ import { SearchAllUsersQueryHandler } from 'src/application/handlers/user/search
       KYC,
     ]),
     CqrsModule,
+    AuditLogModule, // <-- 2. ADD THE MODULE TO THE IMPORTS ARRAY
   ],
   controllers: [UserController],
   providers: [

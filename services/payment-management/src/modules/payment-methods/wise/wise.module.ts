@@ -4,7 +4,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices'; // <-- 1. IMPO
 import { WiseService } from 'src/application/services/payment-methods/wise/wise.service';
 import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
 import { WiseController } from 'src/presentation/controllers/payment-methods/wise/wise.controller';
-import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+
 
 @Module({
   imports: [
@@ -28,6 +28,6 @@ import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.int
     // A module should not import itself.
   ],
   controllers: [WiseController],
-  providers: [WiseService, AuditLogInterceptor],
+  providers: [WiseService,],
 })
 export class WiseModule {}

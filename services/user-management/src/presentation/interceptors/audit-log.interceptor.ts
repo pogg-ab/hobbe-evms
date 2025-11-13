@@ -3,51 +3,129 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  Inject, // <-- IMPORT Inject
+  Logger, // <-- ADDED
 } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices'; // <-- IMPORT ClientKafka
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { AuditLogService } from 'src/application/services/audit-log.service';
+import { Reflector } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
+import { Observable, throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import {
+  AuditLogService,
+  CreateLogParams,
+} from '../../application/services/audit-log.service';
+import { ActionResult, ActionType } from '../../domain/entities/audit-log.entity';
+import {
+  AUDIT_LOG_METADATA_KEY,
+  AuditLogMetadata,
+} from '../decorators/audit-log.decorator';
 
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(AuditLogInterceptor.name); // <-- ADDED
+  private readonly serviceName = 'user-management';
+
   constructor(
+    private readonly reflector: Reflector,
     private readonly auditLogService: AuditLogService,
-    // --- INJECT THE KAFKA CLIENT ---
-    // Make sure 'KAFKA_PRODUCER' is provided in the module where this interceptor is used.
-    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
-  ) { }
+    private readonly jwtService: JwtService,
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const metadata = this.reflector.get<AuditLogMetadata>(
+      AUDIT_LOG_METADATA_KEY,
+      context.getHandler(),
+    );
+
+    if (!metadata) {
+      return next.handle();
+    }
+
     const request = context.switchToHttp().getRequest();
-    const { method, url, params, body, user } = request;
+    const { user, ip, body, params } = request;
+    const actorId = user?.id || user?.sub || null;
+    const actorType = user?.role || (actorId ? 'user' : 'guest');
 
     return next.handle().pipe(
-      tap(async () => {
-        if (method !== 'GET') {
-          const safeUrl = url ? url.split('?')[0] : '';
-          const logData = {
-            user_id: user?.admin_user_id || user?.user_id,
-            action: `${method} ${safeUrl}`,
-            module: context.getClass().name,
+      tap(async (data) => {
+        // --- RESILIENCY FIX ---
+        try {
+          let finalActorId = actorId;
+          let finalActorType = actorType;
 
-            // --- ADD THE SERVICE NAME ---
-            serviceName: 'user-management', // This is hardcoded for this service
+          // --- KEEP THIS SPECIAL LOGIN LOGIC ---
+          if (metadata.actionType === ActionType.LOGIN && data?.access_token) {
+            try {
+              const decodedToken: any = this.jwtService.decode(data.access_token);
+              if (decodedToken && decodedToken.sub) {
+                finalActorId = decodedToken.sub;
+                finalActorType = decodedToken.isAdmin ? 'admin' : 'user';
+              }
+            } catch (e) {
+              console.error('Failed to decode token for audit log:', e);
+            }
+          }
 
-            target_id: params?.id,
-            details: { body: body },
-            ip_address: request.ip,
+          const logParams: CreateLogParams = {
+            serviceName: this.serviceName,
+            actorId: finalActorId,
+            actorType: finalActorType,
+            ipAddress: ip,
+            actionType: metadata.actionType,
+            targetEntity: metadata.targetEntity,
+            targetEntityId: params?.id || data?.id,
+            result: ActionResult.SUCCESS,
+            details: {
+              requestBody: this.sanitizeBody(body),
+              responseBody: data,
+            },
           };
-
-          // 1. Log the action locally (your existing, working logic)
-          const createdLog = await this.auditLogService.logAction(logData);
-
-          // 2. Emit the created log to Kafka for centralization
-          // We send the full log object so the central service has all the data.
-          this.kafkaClient.emit('audit_log_created', createdLog);
+          await this.auditLogService.create(logParams);
+        } catch (logError) {
+          this.logger.error('Failed to create SUCCESS audit log.', logError.stack);
         }
       }),
+      catchError(async (err) => {
+        // --- RESILIENCY FIX ---
+        try {
+          const logParams: CreateLogParams = {
+            serviceName: this.serviceName,
+            actorId,
+            actorType,
+            ipAddress: ip,
+            actionType: metadata.actionType,
+            targetEntity: metadata.targetEntity,
+            targetEntityId: params?.id,
+            result: ActionResult.FAILURE,
+            details: {
+              requestBody: this.sanitizeBody(body),
+              error: {
+                name: err.name,
+                message: err.message,
+                statusCode: err.status,
+              },
+            },
+          };
+          await this.auditLogService.create(logParams);
+        } catch (logError) {
+          this.logger.error('Failed to create FAILURE audit log.', logError.stack);
+        }
+
+        return throwError(() => err);
+      }),
     );
+  }
+
+  private sanitizeBody(body: any): any {
+    if (!body || typeof body !== 'object') {
+      return body;
+    }
+    const sanitizedBody = { ...body };
+    const sensitiveKeys = ['password', 'confirmPassword', 'token', 'accessToken'];
+    for (const key of sensitiveKeys) {
+      if (sanitizedBody[key]) {
+        sanitizedBody[key] = '[REDACTED]';
+      }
+    }
+    return sanitizedBody;
   }
 }

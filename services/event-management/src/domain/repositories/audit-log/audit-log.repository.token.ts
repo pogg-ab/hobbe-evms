@@ -1,1 +1,0 @@
-export const AUDIT_LOG_REPOSITORY_TOKEN = 'AuditLogRepositoryToken';

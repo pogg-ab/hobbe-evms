@@ -168,7 +168,6 @@ import { GetParticipatedEventsQueryHandler } from 'src/application/handlers/even
     PermissionCheckingService,
     JwtStrategy,
     SocketIo,
-    AuditLogInterceptor,
     AdminJwtStrategy,
     AdminAuthGuard,
     {

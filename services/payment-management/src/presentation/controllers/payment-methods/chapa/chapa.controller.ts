@@ -26,6 +26,8 @@ import { ChapaRefundDto } from 'src/presentation/dtos/chapa/chapa-refund.dto';
 import { ChapaCancelEventRefundDto } from 'src/presentation/dtos/chapa/chapa-cancel-event.refund.dto';
 import { ChapaGetRefundByDateRangeDto } from 'src/presentation/dtos/chapa/chapa-get-refund-by-date-range.dto';
 import { Response } from 'express';
+import { AuditLog } from '../../../decorators/audit-log.decorator';
+import { ActionType } from '../../../../domain/entities/audit-log.entity';
 
 @Controller('chapa')
 @ApiTags('Chapa')
@@ -40,6 +42,7 @@ export class ChapaController {
   @HttpCode(200)
   
   @Post('initialize')
+  @AuditLog({ actionType: ActionType.CREATE_PAYMENT_INTENT, targetEntity: 'Payment' })
   async initializePayment(@Body() chapaPayDto:CreateChapaPayDto):Promise<any>{
     return  await this.chapaSdkService.paymentInit(chapaPayDto);
   }
@@ -51,6 +54,7 @@ export class ChapaController {
     type: Object, // You can define a specific response DTO for payment status if needed
   })
   @Get('verify/:txRef')
+  @AuditLog({ actionType: ActionType.CONFIRM_PAYMENT, targetEntity: 'Payment' })
   async verify(@Param('txRef') txRef: string,@Res() res: any) {
     try {
       const result = await this.chapaSdkService.verifyPayment(txRef);
@@ -108,6 +112,7 @@ export class ChapaController {
     type: Array, 
   })
   @Get('transactions')
+  @AuditLog({ actionType: ActionType.VIEW_TRANSACTION_HISTORY, targetEntity: 'Transaction' }) 
   async getTransactions(@Query() getTransactionDto: GetTransactionDto) {
     return await this.chapaSdkService.getTransactions(
       getTransactionDto.from,
@@ -140,6 +145,7 @@ export class ChapaController {
   // lets do refund
 
   @Post('refund')
+   @AuditLog({ actionType: ActionType.PROCESS_REFUND, targetEntity: 'Refund' })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Initiate a refund via Chapa API' })
