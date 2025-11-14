@@ -1,4 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
@@ -6,12 +11,17 @@ import { IGuestRepository } from 'src/domain/repositories/guests/guest.repositor
 import { GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/guests/guest.repository.token';
 import { FilterGuestListDto } from 'src/presentation/dtos/guest/filter-guest-list.dto';
 import { UserInfoService } from '../user-info/user-info.service';
+import { BlockedGuest } from 'src/domain/entities/blocked-guest.entity';
+import { BLOCKED_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/guests/blocked-guest.repository.token';
+import { IBlockedGuestRepository } from 'src/domain/repositories/guests/blocked-guest.repository';
 
 @Injectable()
 export class GuestsService {
   constructor(
     @Inject(GUEST_REPOSITORY_TOKEN)
     private readonly guestRepository: IGuestRepository,
+    @Inject(BLOCKED_GUEST_REPOSITORY_TOKEN)
+    private readonly blockedGuestRepository: IBlockedGuestRepository,
     @InjectMapper() private readonly mapper: Mapper,
     private readonly userInfoService: UserInfoService,
   ) {}
@@ -93,5 +103,45 @@ export class GuestsService {
       const comparison = nameA.localeCompare(nameB);
       return sortOrder === 'asc' ? comparison : -comparison;
     });
+  }
+
+  async blockGuest(
+    ticketId: string,
+    organizerId: string,
+    eventId: string,
+    reason?: string,
+  ): Promise<BlockedGuest> {
+    const participant = await this.guestRepository.findByIdAndEvent(ticketId);
+    if (!participant) throw new NotFoundException('Ticket not found');
+
+    const participantEventId =
+      (participant as any)?.ticket_id?.event_id?.id ?? null;
+
+    console.log('Participant Event ID:', participantEventId);
+    console.log(
+      'Full Event JSON:',
+      JSON.stringify((participant as any)?.ticket_id?.event_id, null, 2),
+    );
+
+    if (!participantEventId || participantEventId !== eventId) {
+      throw new ForbiddenException(
+        'Guest does not belong to the specified event',
+      );
+    }
+
+    const blockedGuest = this.blockedGuestRepository.create({
+      participant,
+      event_id: participantEventId,
+      reason: reason ?? null,
+      blocked_by: organizerId,
+    });
+
+    return this.blockedGuestRepository.save(blockedGuest);
+  }
+
+  async getBlockedGuestsByOrganizer(organizerId: string): Promise<any[]> {
+    return this.blockedGuestRepository.findBlockedGuestsByOrganizer(
+      organizerId,
+    );
   }
 }
