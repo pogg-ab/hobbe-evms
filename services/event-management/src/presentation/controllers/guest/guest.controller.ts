@@ -1,12 +1,15 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   HttpCode,
+  Param,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -21,11 +24,17 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
 import { FilterGuestListQuery } from 'src/application/queries/guest/filter-guest-list.query';
 import { FilterGuestListDto } from 'src/presentation/dtos/guest/filter-guest-list.dto';
 import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorater';
+import { BlockGuestCommand } from 'src/application/commands/guest/block-guest.command';
+import { BlockGuestDto } from 'src/presentation/dtos/guest/block-guest.dto';
+import { GetBlockedGuestsQuery } from 'src/application/queries/guest/get-blocked-guests.query';
 
 @ApiTags('Guests')
 @Controller('guests')
 export class GuestController {
-  constructor(private readonly queryBus: QueryBus) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   @ApiOperation({
     summary: 'Retrieve guests with pending tickets',
@@ -244,5 +253,47 @@ export class GuestController {
     return this.queryBus.execute(
       new FilterGuestListQuery('gifted', query, organizerId, page, limit),
     );
+  }
+  @Post('/:ticketId/block')
+  @ApiOperation({
+    summary: 'Block a ticket from attending the event',
+    description:
+      'Prevents a guest from attending by marking their ticket as blocked.',
+  })
+  @ApiResponse({ status: 200, description: 'Ticket successfully blocked.' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async blockGuest(
+    @CurrentUserId() user: any,
+    @Param('ticketId') ticketId: string,
+    @Body() blockGuestDto: BlockGuestDto,
+  ): Promise<{ message: string }> {
+    const organizerId = user.user.user_id.toString();
+
+    await this.commandBus.execute(
+      new BlockGuestCommand(
+        ticketId,
+        organizerId,
+        blockGuestDto.eventId,
+        blockGuestDto.reason,
+      ),
+    );
+
+    return { message: 'Ticket successfully blocked.' };
+  }
+
+  @Get('/blocked')
+  @ApiOperation({
+    summary: 'Get all blocked guests for the organizer',
+  })
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getBlockedGuests(@CurrentUserId() user: any): Promise<any[]> {
+    const organizerId = user.user.user_id.toString();
+
+    return this.queryBus.execute(new GetBlockedGuestsQuery(organizerId));
   }
 }

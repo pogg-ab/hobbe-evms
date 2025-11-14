@@ -56,6 +56,9 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
 import { EventsModule } from '../event/events.module';
 import { TicketsModule } from './tickets.module';
 import { GetMyTicketBookingQueryHandler } from 'src/application/handlers/tickets/get-my-ticket-booking.handler';
+import { BlockedGuest } from 'src/domain/entities/blocked-guest.entity';
+import { BLOCKED_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/guests/blocked-guest.repository.token';
+import { BlockedGuestRepositoryImpl } from 'src/infrastructure/persistence/repositories/blocked-guest.repository.impl';
 
 @Module({
   imports: [
@@ -71,6 +74,7 @@ import { GetMyTicketBookingQueryHandler } from 'src/application/handlers/tickets
       ParticipantHasTicket,
       Partnership,
       Promocodes,
+      BlockedGuest,
     ]),
     ClientsModule.registerAsync([
       {
@@ -146,9 +150,11 @@ import { GetMyTicketBookingQueryHandler } from 'src/application/handlers/tickets
       provide: CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN,
       useClass: BookingHasPaymentRepositoryImpl,
     },
+    {
+      provide: BLOCKED_GUEST_REPOSITORY_TOKEN,
+      useClass: BlockedGuestRepositoryImpl,
+    },
   ],
-  exports: [
-    CREATE_TICKET_BOOKING_REPOSITORY_TOKEN
-  ]
+  exports: [CREATE_TICKET_BOOKING_REPOSITORY_TOKEN],
 })
-export class TicketBookingModule { }
+export class TicketBookingModule {}

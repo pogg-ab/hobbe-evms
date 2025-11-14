@@ -27,7 +27,7 @@ export class GuestRepositoryImpl implements IGuestRepository {
   constructor(
     @InjectRepository(ParticipantHasTicket)
     private readonly participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) { }
+  ) {}
 
   async filterGuestList(
     status: 'purchased' | 'arrived' | 'canceled' | 'gifted' | 'pending',
@@ -88,6 +88,24 @@ export class GuestRepositoryImpl implements IGuestRepository {
         `Error filtering guest list: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  async findByIdAndEvent(
+    ticketId: string,
+  ): Promise<ParticipantHasTicket | null> {
+    try {
+      const guest = await this.participantHasTicketRepository
+        .createQueryBuilder('participant')
+        .leftJoinAndSelect('participant.booking_id', 'booking')
+        .leftJoinAndSelect('participant.ticket_id', 'ticket')
+        .leftJoinAndSelect('ticket.event_id', 'event')
+        .where('ticket.id = :ticketId', { ticketId })
+        .getOne();
+
+      return guest;
+    } catch (error) {
+      throw new Error(`Failed to find ticket: ${error.message}`);
     }
   }
 }

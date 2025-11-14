@@ -7,11 +7,6 @@ import { TicketBooking } from 'src/domain/entities/ticket-booking.entity';
 import { Events } from 'src/domain/entities/events.entity';
 import { GuestController } from 'src/presentation/controllers/guest/guest.controller';
 import { GuestsService } from 'src/application/services/guests/guests.service';
-// import { GuestsProfile } from 'src/application/mappers/guests.profile';
-import { CREATE_PARTICIPANT_HAS_TICKET_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/participant-has-ticket.repository';
-import { ParticipantHasTicketRepositoryImpl } from 'src/infrastructure/persistence/repositories/participant-has-ticket.repository.impl';
-import { CREATE_EVENT_REPOSITORY_TOKEN } from 'src/domain/repositories/events/event.repository.token';
-import { EventRepositoryEmpl } from 'src/infrastructure/persistence/repositories/event.repository.impl';
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { FilterGuestListQueryHandler } from 'src/application/handlers/guest/filter-guest-list-query.handler';
@@ -20,6 +15,11 @@ import { GuestRepositoryImpl } from 'src/infrastructure/persistence/repositories
 import { UserInfoService } from 'src/application/services/user-info/user-info.service';
 import { ClientsModule } from '@nestjs/microservices';
 import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
+import { BlockGuestCommandHandler } from 'src/application/handlers/guest/block-guest-command.handler';
+import { BlockedGuestRepositoryImpl } from 'src/infrastructure/persistence/repositories/blocked-guest.repository.impl';
+import { BLOCKED_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/guests/blocked-guest.repository.token';
+import { BlockedGuest } from 'src/domain/entities/blocked-guest.entity';
+import { GetBlockedGuestsQueryHandler } from 'src/application/handlers/guest/get-blocked-guests-query.handler';
 
 @Module({
   imports: [
@@ -29,6 +29,7 @@ import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.co
       TicketBooking,
       Events,
       Tickets,
+      BlockedGuest,
     ]),
     CqrsModule,
     ClientsModule.registerAsync([
@@ -47,9 +48,15 @@ import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.co
     GuestsService,
     UserInfoService,
     FilterGuestListQueryHandler,
+    BlockGuestCommandHandler,
+    GetBlockedGuestsQueryHandler,
     {
       provide: GUEST_REPOSITORY_TOKEN,
       useClass: GuestRepositoryImpl,
+    },
+    {
+      provide: BLOCKED_GUEST_REPOSITORY_TOKEN,
+      useClass: BlockedGuestRepositoryImpl,
     },
   ],
   exports: [],

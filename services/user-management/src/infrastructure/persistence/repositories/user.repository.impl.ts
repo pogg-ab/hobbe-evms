@@ -11,10 +11,7 @@ import { IUserRepository } from 'src/domain/repositories/user.repository';
 import { EntityManager, IsNull, Repository } from 'typeorm';
 import { Client } from '@elastic/elasticsearch';
 import { ElasticsearchConfig } from 'src/infrastructure/elasticsearch/elasticsearch.config';
-import {
-  AccountStatus,
-  Status,
-} from 'src/domain/value-objects/account-status.value-object';
+import { Status } from 'src/domain/value-objects/account-status.value-object';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity';
 import { OrganizationalAccount } from 'src/domain/entities/organizational-account.entity';
 import { Connection } from 'typeorm';
@@ -23,7 +20,8 @@ import { SearchFilters } from 'src/presentation/dtos/search-filters.dto';
 
 @Injectable()
 export class UserRepositoryImpl
-  implements IUserRepository, OnApplicationBootstrap {
+  implements IUserRepository, OnApplicationBootstrap
+{
   private readonly client: Client;
   constructor(
     @InjectRepository(User)
@@ -109,6 +107,7 @@ export class UserRepositoryImpl
         account_type: user.account_type,
         profile_id: user.profile_id,
         profile_name: user.profile_name,
+        is_primary_account: user.is_primary_account,
         account_info:
           user.account_type === 'personal'
             ? user.personal_account
@@ -159,6 +158,7 @@ export class UserRepositoryImpl
         account_type: user.account_type,
         profile_id: user.profile_id,
         profile_name: user.profile_name,
+        is_primary_account: user.is_primary_account,
         account_info:
           user.account_type === 'personal'
             ? user.personal_account
@@ -243,6 +243,7 @@ export class UserRepositoryImpl
             profile_id: user.profile_id,
             profile_name: user.profile_name,
             is_active: user.is_active,
+            is_primary_account: user.is_primary_account,
             account_info:
               user.account_type === 'personal'
                 ? user.personal_account
@@ -355,6 +356,7 @@ export class UserRepositoryImpl
             profile_id: user.profile_id,
             profile_name: user.profile_name,
             is_active: user.is_active,
+            is_primary_account: user.is_primary_account,
             account_info:
               user.account_type === 'personal'
                 ? user.personal_account
@@ -522,6 +524,7 @@ export class UserRepositoryImpl
             account_type: user.account_type,
             profile_id: user.profile_id,
             profile_name: user.profile_name,
+            is_primary_account: user.is_primary_account,
             account_info:
               user.account_type === 'personal'
                 ? user.personal_account
@@ -732,7 +735,6 @@ export class UserRepositoryImpl
           'User reactivated but Elasticsearch sync failed.',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-
       }
 
       return {

@@ -46,7 +46,8 @@ import { firstValueFrom } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientKafka } from '@nestjs/microservices';
 import { Events } from 'src/domain/entities/events.entity';
-
+import { BLOCKED_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/guests/blocked-guest.repository.token';
+import { IBlockedGuestRepository } from 'src/domain/repositories/guests/blocked-guest.repository';
 
 @Injectable()
 export class TicketBookingService {
@@ -70,6 +71,8 @@ export class TicketBookingService {
     private readonly promocodeRepository: IPromocode,
     @Inject(CREATE_BOOKING_HAS_PROMOCODE_REPOSITORY_TOKEN)
     private readonly bookingHasPromocodeRepository: IBookingHasPromocodeRepository,
+    @Inject(BLOCKED_GUEST_REPOSITORY_TOKEN)
+    private readonly blockedGuestRepository: IBlockedGuestRepository,
     @Inject(CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN)
     private readonly bookingHasPaymentRepository: IBookingHasPaymentRepository,
     @InjectMapper() private readonly mapper: Mapper,
@@ -82,7 +85,7 @@ export class TicketBookingService {
     @InjectRepository(Tickets)
     private ticketsListRepository: Repository<Tickets>,
     private readonly kafkaProducerService: KafkaProducerService,
-  ) { }
+  ) {}
 
   async create(
     createTicketBookingDto: CreateTicketBookingDto,
@@ -168,7 +171,6 @@ export class TicketBookingService {
 
       let calculatedPrice = pricePerTicket * ticketCount;
 
-
       const tickets =
         await this.ticketRepository.findTicketsByStatusTypeAndPromocode(
           event.id,
@@ -177,7 +179,6 @@ export class TicketBookingService {
         );
 
       if (!tickets || tickets.length === 0) {
-
         throw new NotFoundException(
           `No tickets found for the event with the specified booking type.`,
         );
@@ -186,12 +187,8 @@ export class TicketBookingService {
       const promocode = await this.promocodeRepository.findByEventId(eventId);
 
       if (!promocode) {
-        throw new NotFoundException(
-          `No promocode found for the event.`,
-        );
+        throw new NotFoundException(`No promocode found for the event.`);
       }
-
-
 
       if (
         event.isPaid &&
@@ -239,14 +236,14 @@ export class TicketBookingService {
             promocode.id,
           );
 
-
         const existingTicketCount = bookingIds.length
-          ? await this.bookingHasPromocodeRepository.countTicketsForBooking(bookingIds)
+          ? await this.bookingHasPromocodeRepository.countTicketsForBooking(
+              bookingIds,
+            )
           : 0;
 
         const remainingPromocodeQuantity =
           promocode.quantity - existingTicketCount;
-
 
         if (ticketCount > remainingPromocodeQuantity) {
           throw new BadRequestException(
@@ -263,7 +260,8 @@ export class TicketBookingService {
             user,
           );
 
-          promocode.used_promocode = (promocode.used_promocode || 0) + ticketCount;
+          promocode.used_promocode =
+            (promocode.used_promocode || 0) + ticketCount;
           await this.promocodeRepository.update(promocode.id, promocode);
         }
       }
@@ -420,7 +418,7 @@ export class TicketBookingService {
             eventName: event.title,
             bookingId: createdBooking.booking_id,
             ticketsBooked: ticketCount,
-          }
+          },
         };
 
         // We need a KafkaProducerService. Let's assume it's injected.
@@ -430,9 +428,14 @@ export class TicketBookingService {
           messages: [{ value: JSON.stringify(eventPayload) }],
         });
 
-        this.logger.log(`Emitted 'ticket_purchased' event for booking ${createdBooking.booking_id}`);
+        this.logger.log(
+          `Emitted 'ticket_purchased' event for booking ${createdBooking.booking_id}`,
+        );
       } catch (error) {
-        this.logger.error(`Failed to emit 'ticket_purchased' Kafka event for booking`, error.stack);
+        this.logger.error(
+          `Failed to emit 'ticket_purchased' Kafka event for booking`,
+          error.stack,
+        );
         // We do not re-throw the error. The booking was successful.
       }
       return {
@@ -547,6 +550,15 @@ export class TicketBookingService {
       if (!ticket) {
         throw new NotFoundException(`Ticket with ID ${ticketNumber} not found`);
       }
+
+      const blocked = await this.blockedGuestRepository.findByTicketId(
+        ticket.id.toString(),
+      );
+      if (blocked) {
+        throw new ForbiddenException(
+          'This ticket is blocked and cannot be checked in',
+        );
+      }
       const eventJson: Events = JSON.parse(JSON.stringify(ticket.event_id));
 
       const privilegeCheck = await this.checkCheckinPrivilege({
@@ -616,7 +628,6 @@ export class TicketBookingService {
     }
   }
 
-
   async processRefund(bookingId: string): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.startTransaction();
@@ -627,8 +638,7 @@ export class TicketBookingService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
-    }
-    finally {
+    } finally {
       await queryRunner.release();
     }
   }
@@ -669,12 +679,13 @@ export class TicketBookingService {
 
             console.log('Done updating ticket status after payment');
           } catch (error) {
-            this.logger.error('Error processing payment status message:', error);
+            this.logger.error(
+              'Error processing payment status message:',
+              error,
+            );
           }
         },
       },
     );
   }
-
-
 }
