@@ -12,5 +12,5 @@ export interface IGuestRepository {
     guests: ParticipantHasTicket[] | [];
     total: number;
   }>;
-  findByIdAndEvent(ticketId: string): Promise<ParticipantHasTicket | null>;
+  findByTicketId(ticketId: string): Promise<ParticipantHasTicket | null>;
 }

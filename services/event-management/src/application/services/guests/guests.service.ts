@@ -24,7 +24,7 @@ export class GuestsService {
     private readonly blockedGuestRepository: IBlockedGuestRepository,
     @InjectMapper() private readonly mapper: Mapper,
     private readonly userInfoService: UserInfoService,
-  ) {}
+  ) { }
 
   async filterGuestList(
     status: 'purchased' | 'arrived' | 'canceled' | 'gifted' | 'pending',
@@ -111,17 +111,11 @@ export class GuestsService {
     eventId: string,
     reason?: string,
   ): Promise<BlockedGuest> {
-    const participant = await this.guestRepository.findByIdAndEvent(ticketId);
+    const participant = await this.guestRepository.findByTicketId(ticketId);
     if (!participant) throw new NotFoundException('Ticket not found');
 
     const participantEventId =
       (participant as any)?.ticket_id?.event_id?.id ?? null;
-
-    console.log('Participant Event ID:', participantEventId);
-    console.log(
-      'Full Event JSON:',
-      JSON.stringify((participant as any)?.ticket_id?.event_id, null, 2),
-    );
 
     if (!participantEventId || participantEventId !== eventId) {
       throw new ForbiddenException(
@@ -137,6 +131,39 @@ export class GuestsService {
     });
 
     return this.blockedGuestRepository.save(blockedGuest);
+  }
+
+  async unblockGuest(
+    ticketId: string,
+    organizerId: string,
+    eventId: string,
+  ): Promise<BlockedGuest | null> {
+    const participant = await this.guestRepository.findByTicketId(ticketId);
+    if (!participant) throw new NotFoundException('Ticket not found');
+
+    const participantEventId =
+      (participant as any)?.ticket_id?.event_id?.id ?? null;
+
+    if (!participantEventId || participantEventId !== eventId) {
+      throw new ForbiddenException(
+        'Guest does not belong to the specified event',
+      );
+    }
+
+    const existingBlock = await this.blockedGuestRepository.findByTicketId(
+      ticketId,
+    );
+
+    if (!existingBlock) {
+      throw new NotFoundException('Guest is not currently blocked');
+    }
+
+    if (existingBlock.blocked_by !== organizerId) {
+      throw new ForbiddenException('You are not authorized to unblock this guest');
+    }
+
+    await this.blockedGuestRepository.remove(existingBlock);
+    return null;
   }
 
   async getBlockedGuestsByOrganizer(organizerId: string): Promise<any[]> {
