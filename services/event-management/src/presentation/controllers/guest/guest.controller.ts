@@ -27,6 +27,8 @@ import { CurrentUserId } from 'src/presentation/decorators/currentUserId.decorat
 import { BlockGuestCommand } from 'src/application/commands/guest/block-guest.command';
 import { BlockGuestDto } from 'src/presentation/dtos/guest/block-guest.dto';
 import { GetBlockedGuestsQuery } from 'src/application/queries/guest/get-blocked-guests.query';
+import { UnblockGuestCommand } from 'src/application/commands/guest/unblock-guest.command';
+import { UnblockGuestDto } from 'src/presentation/dtos/guest/unblock-guest.dto';
 
 @ApiTags('Guests')
 @Controller('guests')
@@ -34,7 +36,7 @@ export class GuestController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+  ) { }
 
   @ApiOperation({
     summary: 'Retrieve guests with pending tickets',
@@ -282,6 +284,30 @@ export class GuestController {
     );
 
     return { message: 'Ticket successfully blocked.' };
+  }
+
+  @Post('/:ticketId/unblock')
+  @ApiOperation({
+    summary: 'Unblock a ticket',
+    description:
+      'Allows a previously blocked guest to attend again by removing the block status from their ticket.',
+  })
+  @ApiResponse({ status: 200, description: 'Ticket successfully unblocked.' })
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles('User')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async unblockGuest(
+    @CurrentUserId() user: any,
+    @Param('ticketId') ticketId: string,
+    @Body() unblockGuestDto: UnblockGuestDto,
+  ): Promise<{ message: string }> {
+    const organizerId = user.user.user_id.toString();
+
+    await this.commandBus.execute(
+      new UnblockGuestCommand(ticketId, organizerId, unblockGuestDto.eventId),
+    );
+    return { message: 'Ticket successfully unblocked.' };
   }
 
   @Get('/blocked')

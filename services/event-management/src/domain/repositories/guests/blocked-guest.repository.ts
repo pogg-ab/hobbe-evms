@@ -6,4 +6,5 @@ export interface IBlockedGuestRepository {
   findById(blockId: string): Promise<BlockedGuest | null>;
   findBlockedGuestsByOrganizer(organizerId: string): Promise<BlockedGuest[]>;
   findByTicketId(ticketId: string): Promise<BlockedGuest | null>;
+  remove(blockedGuest: BlockedGuest): Promise<void>;
 }

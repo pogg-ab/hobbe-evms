@@ -20,6 +20,7 @@ import { BlockedGuestRepositoryImpl } from 'src/infrastructure/persistence/repos
 import { BLOCKED_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/guests/blocked-guest.repository.token';
 import { BlockedGuest } from 'src/domain/entities/blocked-guest.entity';
 import { GetBlockedGuestsQueryHandler } from 'src/application/handlers/guest/get-blocked-guests-query.handler';
+import { UnblockGuestCommandHandler } from 'src/application/handlers/guest/unblock-guest-command.handler';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { GetBlockedGuestsQueryHandler } from 'src/application/handlers/guest/get
     FilterGuestListQueryHandler,
     BlockGuestCommandHandler,
     GetBlockedGuestsQueryHandler,
+    UnblockGuestCommandHandler,
     {
       provide: GUEST_REPOSITORY_TOKEN,
       useClass: GuestRepositoryImpl,
@@ -61,4 +63,4 @@ import { GetBlockedGuestsQueryHandler } from 'src/application/handlers/guest/get
   ],
   exports: [],
 })
-export class GuestsModule {}
+export class GuestsModule { }

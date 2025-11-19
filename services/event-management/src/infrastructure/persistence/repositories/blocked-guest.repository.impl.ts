@@ -9,7 +9,7 @@ export class BlockedGuestRepositoryImpl implements IBlockedGuestRepository {
   constructor(
     @InjectRepository(BlockedGuest)
     private readonly repository: Repository<BlockedGuest>,
-  ) {}
+  ) { }
 
   create(data: Partial<BlockedGuest>): BlockedGuest {
     return this.repository.create(data);
@@ -43,5 +43,9 @@ export class BlockedGuestRepositoryImpl implements IBlockedGuestRepository {
       .leftJoinAndSelect('blocked.participant', 'participant')
       .where('participant.ticket_id = :ticketId', { ticketId })
       .getOne();
+  }
+
+  async remove(blockedGuest: BlockedGuest): Promise<void> {
+    await this.repository.remove(blockedGuest);
   }
 }
