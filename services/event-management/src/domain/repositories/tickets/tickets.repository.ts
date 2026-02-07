@@ -2,11 +2,19 @@ import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket
 import { Tickets } from 'src/domain/entities/tickets.entity';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { ParticipantHasTicketRepositoryImpl } from 'src/infrastructure/persistence/repositories/participant-has-ticket.repository.impl';
+import { QrCodeActionAfterScannedDto } from 'src/presentation/dtos/qr-code/qr-code-action-after-scanned.dto';
+import { QrAfterScannedActionsAggregateDto } from 'src/presentation/dtos/qr-code/qr-scaned-after-scanned-action-aggregate.dto';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
 import { EntityManager } from 'typeorm';
 
 export interface ITicketsRepository {
-  create(createTicketsDto: CreateTicketsDto): Promise<void>;
+  create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void>;
+
+  getMyTickets(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<any>
   findAll(
     page: number,
     limit: number,
@@ -31,7 +39,6 @@ export interface ITicketsRepository {
     eventId: IdValueObject,
     type: string,
     status: string,
-    hasPromocode: boolean,
   ): Promise<Tickets[] | null>;
   updateStatus(
     manager: EntityManager,
@@ -53,6 +60,11 @@ export interface ITicketsRepository {
   updateStatusAfterPayment(
     manager: EntityManager,
     booking_id: string,
+  ): Promise<void>;
+
+
+  ticketRefundProcess(
+    ticketId: string,
   ): Promise<void>;
 
 
@@ -81,8 +93,25 @@ export interface ITicketsRepository {
     eventId: string,
   ): Promise<number>;
 
+  findTicketsByBookingId(bookingId: string): Promise<Tickets[]>;
+
   qrCodeScannedLog(
     ticket_id: string,
     metadata: string,
   ): Promise<void>;
+
+  qrCodeLogAfterScanned(
+    dto: QrCodeActionAfterScannedDto
+  ): Promise<void>;
+
+  qrCodeActionsAfterScanned(
+    dto: QrAfterScannedActionsAggregateDto
+  ): Promise<any>;
+
+
+  countQrCodeScannedLogs(event_id: string): Promise<any>;
+  aggregateQrCodeScannedLogs(dto: any): Promise<any>;
+
+  regenerateTicketQrCode(ticketId: string, userId): Promise<void>;
+
 }

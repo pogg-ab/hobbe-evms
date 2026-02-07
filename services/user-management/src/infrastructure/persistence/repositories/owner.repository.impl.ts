@@ -9,10 +9,20 @@ export class OwnerRepositoryImpl implements IOwnerRepository {
   constructor(
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
-  ) { }
+  ) {}
 
   async create(manager: EntityManager, owner: Owner): Promise<Owner> {
     try {
+      const existing = await this.ownerRepository.findOne({
+        where: { owner_email: owner.owner_email },
+      });
+      if (existing) {
+        throw new HttpException(
+          `Owner with email ${owner.owner_email} already exists.`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const newOwner = this.ownerRepository.create(owner);
       return await manager.save(newOwner);
     } catch (error) {
@@ -43,7 +53,10 @@ export class OwnerRepositoryImpl implements IOwnerRepository {
           where: { owner_email: owner.owner_email },
         });
 
-        if (existingWithEmail && existingWithEmail.owner_id.toString() !== ownerId) {
+        if (
+          existingWithEmail &&
+          existingWithEmail.owner_id.toString() !== ownerId
+        ) {
           throw new HttpException(
             `Email ${owner.owner_email} is already in use.`,
             HttpStatus.BAD_REQUEST,

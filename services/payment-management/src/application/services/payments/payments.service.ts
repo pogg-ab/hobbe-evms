@@ -1,8 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Payments } from 'src/domain/entities/payments.entity';
 import { IPaymentsRepository } from 'src/domain/repositories/payments/payments.repository';
 import { CREATE_PAYMENT_TOKEN } from 'src/domain/repositories/payments/payments.repository.token';
-import { CreateChapaPayDto } from 'src/presentation/dtos/chapa/create-chapa-pay.dto';
 import { CreatePaymentDto } from 'src/presentation/dtos/payments/create-payments.dto';
+import { GetPaymentsDto } from 'src/presentation/dtos/payments/get-payments.dto';
+import { AggregatedTransactionVolumeDto } from 'src/presentation/dtos/reports/aggregated-transaction-volume.dto';
+import { TransactionsVolumeByDateRangeDto } from 'src/presentation/dtos/reports/trasaction-volume.dto';
 
 @Injectable()
 export class PaymentsService {
@@ -14,6 +17,11 @@ export class PaymentsService {
         return this.paymentRepository.create(createPaymentDto);
     }
 
+
+    async getPayments(dto?:GetPaymentsDto): Promise<Payments[]> {
+        return await this.paymentRepository.getPayments(dto);
+    }
+    
 
     async getMonthlyAndTodaySummary() {
         const [monthly, lastMonth] = await Promise.all([
@@ -51,4 +59,25 @@ export class PaymentsService {
         if (!previous || previous === 0) return current > 0 ? 100 : 0;
         return +(((current - previous) / previous) * 100).toFixed(2);
       }
+
+
+    async getTransactionVolumeByDateRange(daterange: TransactionsVolumeByDateRangeDto): Promise<any> {
+        if (!daterange || !daterange.startDate || !daterange.endDate) {
+            throw new Error('Start date and end date are required');
+        }
+        return this.paymentRepository.getTransactionVolumeByDateRange(daterange);
+    }
+
+
+    async getAggregatedTransactionVolume(aggregatedTransactionVolumeDto:AggregatedTransactionVolumeDto): Promise<any> {
+        if (!aggregatedTransactionVolumeDto || !aggregatedTransactionVolumeDto.startDate || !aggregatedTransactionVolumeDto.endDate) {
+            throw new Error('Start date and end date are required');
+        }
+        return this.paymentRepository.getAggregatedTransactionVolume(aggregatedTransactionVolumeDto);
+    }
+
+
+    async getAmountsOwedToOrganizersQuery(userId: string): Promise<any> {
+        return this.paymentRepository.getAmountsOwedToOrganizers(userId);
+    }
 }

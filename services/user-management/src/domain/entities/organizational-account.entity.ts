@@ -4,16 +4,21 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { AccountStatus } from '../value-objects/account-status.value-object';
+import {
+  AccountStatus,
+  Status,
+} from '../value-objects/account-status.value-object';
 import { KYCID } from '../value-objects/kyc-id.value-object';
 import { OrganizationalAccountID } from '../value-objects/organizational-account-id.value-object';
 import { OwnerID } from '../value-objects/owner-id.value-object';
 import { KYC } from './kyc.entity';
 import { Owner } from './owner.entity';
+import { VerificationRequest } from './verification-request.entity';
 
 @Entity()
 export class OrganizationalAccount {
@@ -49,8 +54,12 @@ export class OrganizationalAccount {
   @JoinColumn({ name: 'owner_id' })
   owner: OwnerID;
 
-  @Column(() => AccountStatus)
-  status: AccountStatus;
+  @Column({
+    type: 'enum',
+    enum: Status,
+    default: Status.ACTIVE,
+  })
+  status: Status;
 
   @Column({ default: false })
   is_verified: boolean;
@@ -87,4 +96,11 @@ export class OrganizationalAccount {
 
   @UpdateDateColumn()
   updated_date: Date;
+
+  @OneToMany(() => VerificationRequest, (vr) => vr.organizational_account, {
+    cascade: true,
+    nullable: true,
+    eager: false,
+  })
+  verification_request?: VerificationRequest | null;
 }

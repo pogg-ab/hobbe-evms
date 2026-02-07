@@ -4,13 +4,13 @@ import { TicketsService } from "src/application/services/tickets/tickets.service
 
 
 @CommandHandler(CreateTicketsCommand)
-export class CreateTicketsCommandHandler implements ICommandHandler<CreateTicketsCommand>{
+export class CreateTicketsCommandHandler implements ICommandHandler<CreateTicketsCommand> {
     constructor(
         private readonly ticketsService: TicketsService,
         // private readonly ticket_id: IdValueObject,
-    ) {}
-   async execute(command: CreateTicketsCommand): Promise<void> {
-       const { createTicketsDto } = command;
-       return this.ticketsService.create(createTicketsDto);
+    ) { }
+    async execute(command: CreateTicketsCommand): Promise<void> {
+        const { createTicketsDto, entityManager } = command;
+        return this.ticketsService.create(createTicketsDto, entityManager);
     }
 }

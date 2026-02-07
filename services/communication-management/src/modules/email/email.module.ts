@@ -40,6 +40,6 @@ import { EmailSenderService } from '../../infrastructure/email/email-sender.serv
     SendEmailHandler,
     EmailRepositoryImpl,
   ],
-  exports: [EMAIL_REPOSITORY_TOKEN, EmailRepositoryImpl, EmailSenderService],
+  exports: [EMAIL_REPOSITORY_TOKEN, EmailRepositoryImpl, EmailSenderService, EmailService],
 })
 export class EmailModule {}

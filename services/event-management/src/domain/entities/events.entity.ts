@@ -26,8 +26,8 @@ export class Events {
   @Column()
   title: string;
 
-  @Column()
-  thumbnail: string;
+  @Column('text', { array: true, nullable: true })
+  thumbnail: string[];
 
   @Column({ nullable: true })
   cover_image: string;
@@ -75,6 +75,9 @@ export class Events {
   @Column({ type: 'timestamptz' })
   event_end_date: Date;
 
+  @Column({ type: 'text', nullable: true })
+  feedback: string;
+
   // @Column({ nullable: true })
   // category: string;
 
@@ -111,26 +114,23 @@ export class Events {
   })
   promocodes: Promocodes[];
 
-
   @OneToMany(() => Like, (like) => like.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
   likes: Like[];
 
-
   @OneToMany(() => FavoriteEvent, (favorite) => favorite.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
   favorites: FavoriteEvent[];
-  
+
   @OneToMany(() => EventShare, (share) => share.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
   shares: EventShare[];
-
 
   @OneToMany(() => Comments, (comment) => comment.event_id, {
     cascade: true,
@@ -138,13 +138,9 @@ export class Events {
   })
   comments: Comments[];
 
-
   @OneToMany(() => TicketBooking, (booking) => booking.event_id, {
     cascade: true,
     onDelete: 'CASCADE',
   })
   bookings: TicketBooking[];
-
-  
-
 }

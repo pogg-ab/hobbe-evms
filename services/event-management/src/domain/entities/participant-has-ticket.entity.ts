@@ -24,6 +24,12 @@ export class ParticipantHasTicket {
   @Column({ type: 'varchar', nullable: false })
   participant_id: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  status?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  block_reason?: string;
+
   @Column({ nullable: true })
   created_by: string;
 

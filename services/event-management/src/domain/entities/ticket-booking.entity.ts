@@ -27,12 +27,15 @@ export class TicketBooking {
   @JoinColumn({ name: 'event_id' })
   event_id: IdValueObject;
 
-
-   @OneToMany(() => ParticipantHasTicket, (participant) => participant.booking_id,{
+  @OneToMany(
+    () => ParticipantHasTicket,
+    (participant) => participant.booking_id,
+    {
       cascade: true,
       onDelete: 'CASCADE',
-    })
-    participants: ParticipantHasTicket[];
+    },
+  )
+  participants: ParticipantHasTicket[];
 
   @Column({ type: 'numeric' })
   total_amount: number;
@@ -42,6 +45,9 @@ export class TicketBooking {
 
   @Column({ type: 'varchar', default: 'pending' })
   booking_status: string;
+
+  @Column({ nullable: true })
+  external_refrence: string;
 
   @Column({ type: 'boolean', default: false })
   hasGift: boolean;
@@ -67,4 +73,6 @@ export class TicketBooking {
   @Column({ type: 'timestamp' })
   updated_at: Date;
 
+  @OneToMany(() => Tickets, (tickets) => tickets.booking_id, { cascade: true })
+  tickets: Tickets[];
 }

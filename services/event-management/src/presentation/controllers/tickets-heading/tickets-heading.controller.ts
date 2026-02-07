@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import {  ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UpdatedTicketHeadingCommand } from 'src/application/commands/ticket/update-ticket-heading.command';
 import { FindTicketHeadingByIdQuery } from 'src/application/queries/tickets/find-tickets-heading-by-id.query';
 import { GetAllTicketsHeadingQuery } from 'src/application/queries/tickets/get-all-tickets-heading.query';
@@ -57,27 +57,30 @@ export class TicketsHeadingController {
     return await this.queryBus.execute(new FindTicketHeadingByIdQuery(id));
   }
 
-
-  
   @ApiOperation({ description: 'Activate Tickets By Heading' })
   @HttpCode(200)
   // @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/change-status/:id/:status')
   async activateTickets(
-    @Param('id') id: string, 
-    @Param('status') 
+    @Param('id') id: string,
+    @Param('status')
     status: string,
-    @CurrentUserId() user: any, 
-  ):Promise<{ticket:TicketsHeading, message:string}> {
-    if (!Object.values(TicketHeadingStatus).includes(status as TicketHeadingStatus)) {
+    @CurrentUserId() user: any,
+  ): Promise<{ ticket: TicketsHeading; message: string }> {
+    if (
+      !Object.values(TicketHeadingStatus).includes(
+        status as TicketHeadingStatus,
+      )
+    ) {
       throw new BadRequestException(
-        `Invalid status: ${status}. Allowed values are: ${Object.values(TicketHeadingStatus).join(', ')}`
+        `Invalid status: ${status}. Allowed values are: ${Object.values(TicketHeadingStatus).join(', ')}`,
       );
     }
-    const ticket =  await this.commandBus.execute(new ActivateTicketsByHeadingCommand(id,status,user));
-    return { ticket:ticket, message:"Ticket Activated..."}
+    const ticket = await this.commandBus.execute(
+      new ActivateTicketsByHeadingCommand(id, status, user),
+    );
+    return { ticket: ticket, message: 'Ticket Activated...' };
   }
-
 
   @ApiOperation({ description: 'Update Tickets Heading' })
   // @ApiParam({type : CreateTicketsHeadingDto})
@@ -87,7 +90,7 @@ export class TicketsHeadingController {
   async update(
     @Param('id') id: string,
     @Body() updateTicketsHeadingDto: UpdateTicketsHeadingDto,
-    @CurrentUserId() user: any, // This decorator will automatically fetch the user ID from the request context
+    @CurrentUserId() user: any,
   ): Promise<TicketsHeading> {
     const ticket = await this.queryBus.execute(
       new FindTicketHeadingByIdQuery(id),

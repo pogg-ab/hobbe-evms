@@ -2,45 +2,48 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "t
 import { IdValueObject } from "../value-objects/event-id.value-object";
 
 @Entity()
-export class Payments{
+export class Payments {
     @PrimaryGeneratedColumn('uuid')
     id: IdValueObject;
 
-    @Column()
+    @Column({ type: 'uuid' })
     user_id: string;
 
-    @Column()
+    @Column({ type: 'uuid' })
     event_id: string;
 
     @Column()
     booking_id: string;
 
-    @Column()
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     amount: number;
-    
+
     @Column()
     currency: string;
 
     @Column()
     tx_ref: string;
 
+    @Column({ nullable: true })
+    external_reference: string;
+
     @Column()
     payment_method: string;
 
-    @Column({ default:'Pending'})
+    @Column({ default: 'Pending' })
     payment_status: string;
 
-    @Column({nullable:true, default:0})
+    @Column({ nullable: true, default: 0 })
     charge: string;
 
-    @Column({ type: 'timestamptz', default:new Date()})
+    @Column({ type: 'timestamptz', default: new Date() })
     created_at: Date;
 
-    @Column({ type: 'timestamptz',nullable:true})
+    @Column({ type: 'timestamptz', nullable: true })
     verified_at: Date;
-  
-    @Column({nullable:true })
+
+    @Column({ nullable: true })
     bank_name: string;
 
-  
+
 }

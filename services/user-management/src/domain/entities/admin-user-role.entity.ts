@@ -1,4 +1,5 @@
 import {
+  Column, // <-- Make sure Column is imported
   CreateDateColumn,
   Entity,
   JoinColumn,
@@ -10,6 +11,11 @@ import { AdminUserID } from '../value-objects/admin-user-id.value-object';
 import { AdminUserRoleID } from '../value-objects/admin-user-role-id.value-object';
 import { AdminUser } from './admin-user.entity';
 import { Role } from './role.entity';
+
+export enum GroupMembershipRole {
+  MEMBER = 'MEMBER',
+  GROUP_ADMIN = 'GROUP_ADMIN',
+}
 
 @Entity()
 export class AdminUserRole {
@@ -23,6 +29,15 @@ export class AdminUserRole {
   @ManyToOne(() => Role, { cascade: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'role_id' })
   role: Role;
+
+  // --- THIS IS THE NEW PROPERTY YOU ARE ADDING ---
+  @Column({
+    type: 'enum',
+    enum: GroupMembershipRole,
+    default: GroupMembershipRole.MEMBER, // By default, new users are just members
+  })
+  membershipRole: GroupMembershipRole;
+  // --- END OF NEW PROPERTY ---
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

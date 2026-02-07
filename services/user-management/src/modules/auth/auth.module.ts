@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module, Global } from '@nestjs/common'; // CHANGED
 import { JwtModule } from '@nestjs/jwt';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
@@ -30,6 +30,39 @@ import { FacebookStrategy } from './strategies/facebook.strategy';
 import { LoginWithOAuthHandler } from 'src/application/handlers/sso/LoginWithOAuthHandler';
 import { OAuthProvider } from 'src/domain/entities/oauth-provider.entity';
 import { GithubStrategy } from './strategies/github.strategy';
+
+import { AdminJwtStrategy } from './admin-jwt.strategy';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { PermissionsGuard } from 'src/presentation/guards/permissions.guard';
+import { UserSecuritySetting } from 'src/domain/entities/user-security-setting.entity';
+import { AdminUserSecuritySetting } from 'src/domain/entities/admin-user-security-setting.entity';
+import { SessionGuard } from 'src/presentation/guards/session.guard';
+import { UserSession } from 'src/domain/entities/user-session.entity';
+import { AdminUserSession } from 'src/domain/entities/admin-user-session.entity';
+
+import { GuestSession } from 'src/domain/entities/guest-session.entity';
+import { GuestUserService } from 'src/application/services/guest-user.service';
+import { ConfigModule } from '@nestjs/config';
+import { MfaService } from 'src/application/services/mfa.service';
+import { MfaController } from 'src/presentation/controllers/mfa.controller';
+import { SystemSettingsService } from 'src/application/services/system-settings.service';
+import { SystemSettingsController } from 'src/presentation/controllers/system-settings.controller';
+import { SystemSetting } from 'src/domain/entities/system-setting.entity';
+import { UniversalAuthGuard } from 'src/presentation/guards/universal-auth.guard';
+import { AdminGoogleStrategy } from './strategies/admin-google.strategy';
+import { AdminFacebookStrategy } from './strategies/admin-facebook.strategy';
+import { AdminGitHubStrategy } from './strategies/admin-github.strategy';
+import { AdminAuthGuard } from 'src/presentation/guards/admin-auth.guard';
+import { AdminAlertsController } from 'src/presentation/controllers/admin-alerts.controller';
+import { AdminAlertsService } from 'src/application/services/admin-alerts.service';
+import { AdminAlert } from 'src/domain/entities/admin-alert.entity';
+import { AdminAlertLog } from 'src/domain/entities/admin-alert-log.entity';
+import { AdminAlertSubscription } from 'src/domain/entities/admin-alert-subscription.entity';
+import { KafkaProducerModule } from 'src/infrastructure/kafka/kafka-producer.module';
+import { UserAlertSubscription } from 'src/domain/entities/user-alert-subscription.entity';
+import { Role } from 'src/domain/entities/role.entity';
+
+@Global() // ADDED
 @Module({
   imports: [
     CqrsModule,
@@ -37,13 +70,25 @@ import { GithubStrategy } from './strategies/github.strategy';
       User,
       AdminUser,
       UserRole,
+      Role,
       AdminUserRole,
       Auth,
       OAuthProvider,
       AdminUserAuth,
       PersonalAccount,
       OrganizationalAccount,
-      Follower
+      Follower,
+      UserSecuritySetting,
+      AdminUserSecuritySetting,
+      UserSession,
+      AdminUserSession,
+      GuestSession,
+      ConfigModule,
+      SystemSetting,
+      AdminAlert,
+      AdminAlertLog,
+      AdminAlertSubscription,
+      UserAlertSubscription,
     ]),
     PassportModule,
     JwtModule.register({
@@ -57,18 +102,31 @@ import { GithubStrategy } from './strategies/github.strategy';
         options: kafkaProducerConfig.options,
       },
     ]),
+    forwardRef(() => AuditLogModule),
   ],
   providers: [
     AuthService,
     ElasticsearchConfig,
     JwtStrategy,
+    AdminJwtStrategy,
     GoogleStrategy,
     FacebookStrategy,
     GithubStrategy,
     MessageProducerService,
     NotificationConfigService,
-
+    GuestUserService,
     LoginWithOAuthHandler,
+    PermissionsGuard,
+    SessionGuard,
+    MfaService,
+    SystemSettingsService,
+    UniversalAuthGuard,
+    AdminGoogleStrategy,
+    AdminFacebookStrategy,
+    AdminGitHubStrategy,
+    AdminAuthGuard,
+    AdminAlertsService,
+    KafkaProducerModule,
     {
       provide: USER_REPOSITORY_TOKEN,
       useClass: UserRepositoryImpl,
@@ -91,6 +149,21 @@ import { GithubStrategy } from './strategies/github.strategy';
       },
     },
   ],
-  controllers: [AuthController],
+  controllers: [
+    AuthController,
+    MfaController,
+    SystemSettingsController,
+    AdminAlertsController,
+  ],
+  exports: [
+    AuthService,
+    PermissionsGuard,
+    SessionGuard,
+    MfaService,
+    SystemSettingsService,
+    AdminAuthGuard,
+    UniversalAuthGuard,
+    JwtModule, // ADDED
+  ],
 })
-export class AuthModule { }
+export class AuthModule {}

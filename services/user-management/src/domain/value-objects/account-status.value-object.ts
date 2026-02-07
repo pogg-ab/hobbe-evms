@@ -1,5 +1,9 @@
-type Status = 'active' | 'inactive' | 'suspended' | 'pending';
-
+export enum Status {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
+  PENDING = 'pending',
+}
 export class AccountStatus {
   private readonly status: Status;
 
@@ -10,11 +14,35 @@ export class AccountStatus {
     this.status = status;
   }
 
-  private isValid(status: Status): boolean {
-    return ['active', 'inactive', 'suspended', 'pending'].includes(status);
+  private isValid(status: string): boolean {
+    return Object.values(Status).includes(status as Status);
   }
 
   toString(): string {
     return this.status;
+  }
+
+  valueOf(): string {
+    return this.status;
+  }
+
+  get value(): Status {
+    return this.status;
+  }
+
+  static active(): AccountStatus {
+    return new AccountStatus(Status.ACTIVE);
+  }
+
+  static inactive(): AccountStatus {
+    return new AccountStatus(Status.INACTIVE);
+  }
+
+  static suspended(): AccountStatus {
+    return new AccountStatus(Status.SUSPENDED);
+  }
+
+  static pending(): AccountStatus {
+    return new AccountStatus(Status.PENDING);
   }
 }

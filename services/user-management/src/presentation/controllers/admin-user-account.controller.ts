@@ -8,21 +8,42 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { AssignRoleToUserCommand } from 'src/application/commands/admin-user-account/assign-role-to-user.command';
 import { CreateAdminUserAccountCommand } from 'src/application/commands/admin-user-account/create-admin-user-account.command';
 import { RemoveAdminUserAccountCommand } from 'src/application/commands/admin-user-account/remove-admin-user-account.command';
 import { UpdateAdminUserAccountCommand } from 'src/application/commands/admin-user-account/update-admin-user-account.command';
 import { FindAdminUserAccountByIdQuery } from 'src/application/queries/admin-user-account/find-admin-user-account-by-id.query';
 import { FindAllAdminUserAccountsQuery } from 'src/application/queries/admin-user-account/find-all-admin-user-accounts.query';
 import { AdminUserAccount } from 'src/domain/entities/admin-user-account.entity';
-import { AdminUserAccountID } from 'src/domain/value-objects/admin-user-account-id.value-object';
+import { AssignRoleDto } from '../dtos/assign-role.dto';
 import { CreateAdminUserAccountDto } from '../dtos/create-admin-user-account.dto';
 import { UpdateAdminUserAccountDto } from '../dtos/update-admin-user-account.dto';
+import { Permissions } from '../decorators/permissions.decorator';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { AdminAuthGuard } from '../guards/admin-auth.guard';
+import { AuditLogInterceptor } from '../interceptors/audit-log.interceptor';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
+import { FindAllAdminUsersQuery } from 'src/application/queries/admin-user-account/find-all-admin-users.query';
+import { AuditLog } from '../decorators/audit-log.decorator';
+import { ActionType } from 'src/domain/entities/audit-log.entity';
 
 @ApiTags('Admin User Account')
 @Controller('admin-user-account')
+@UseInterceptors(AuditLogInterceptor)
+@ApiBearerAuth('access-token')
+@UseGuards(AdminAuthGuard, PermissionsGuard)
 export class AdminUserAccountController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -30,7 +51,10 @@ export class AdminUserAccountController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new admin user account' })
+  @Permissions('create:admin_user:AdminUsers')
+  @ApiOperation({
+    summary: 'Create a new admin user account (Super Admin only)',
+  })
   @ApiBody({ type: CreateAdminUserAccountDto })
   @HttpCode(201)
   @ApiResponse({
@@ -38,6 +62,10 @@ export class AdminUserAccountController {
     description: 'Admin user account created successfully',
     type: AdminUserAccount,
   })
+  @AuditLog({
+  actionType: ActionType.CREATE_ADMIN,
+  targetEntity: 'AdminUserAccount',
+})
   async create(
     @Body() createAdminUserAccountDto: CreateAdminUserAccountDto,
   ): Promise<{ message: string; account: AdminUserAccount }> {
@@ -45,16 +73,34 @@ export class AdminUserAccountController {
       createAdminUserAccountDto,
     );
     const createdAccount = await this.commandBus.execute(command);
-
     return {
       message: 'Admin user account created successfully',
       account: createdAccount,
     };
   }
 
+  @Post(':userId/roles')
+  @Permissions('assign:role:AdminUsers')
+  @ApiOperation({
+    summary: 'Assign a new role to an admin user (Super Admin only)',
+  })
+  @ApiResponse({ status: 201, description: 'Role assigned successfully.' })
+  @ApiBody({ type: AssignRoleDto })
+  @AuditLog({
+  actionType: ActionType.ASSIGN_ROLE,
+  targetEntity: 'AdminUserRole',
+})
+  async assignRole(
+    @Param('userId') userId: string,
+    @Body() assignRoleDto: AssignRoleDto,
+  ): Promise<void> {
+    return this.commandBus.execute(
+      new AssignRoleToUserCommand(userId, assignRoleDto),
+    );
+  }
+
   @Get()
-  // @Roles('Admin')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
+  @Permissions('view:admin_users:AdminUsers')
   @ApiOperation({ summary: 'Get all admin user accounts' })
   @ApiResponse({
     status: 200,
@@ -65,20 +111,32 @@ export class AdminUserAccountController {
     return this.queryBus.execute(new FindAllAdminUserAccountsQuery());
   }
 
+  @Get('admin-user')
+  @Permissions('view:admin_users:AdminUsers')
+  @ApiOperation({ summary: 'Get all admin users' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of admin users',
+    type: [AdminUser],
+  })
+  async findAllAdminUsers(): Promise<AdminUserAccount[]> {
+    return this.queryBus.execute(new FindAllAdminUsersQuery());
+  }
+
   @Get(':id')
+  @Permissions('view:admin_users:AdminUsers')
   @ApiOperation({ summary: 'Get a single admin user account by ID' })
   @ApiResponse({
     status: 200,
     description: 'Admin user account details',
     type: AdminUserAccount,
   })
-  async findOne(
-    @Param('id') id: AdminUserAccountID,
-  ): Promise<AdminUserAccount | null> {
+  async findOne(@Param('id') id: string): Promise<AdminUserAccount | null> {
     return this.queryBus.execute(new FindAdminUserAccountByIdQuery(id));
   }
 
   @Put(':id')
+  @Permissions('update:admin_user:AdminUsers')
   @ApiOperation({ summary: 'Update an admin user account' })
   @ApiBody({ type: UpdateAdminUserAccountDto })
   @ApiResponse({
@@ -86,27 +144,37 @@ export class AdminUserAccountController {
     description: 'Admin user account updated successfully',
     type: AdminUserAccount,
   })
+  @AuditLog({
+  actionType: ActionType.UPDATE_ADMIN,
+  targetEntity: 'AdminUserAccount',
+})
   async update(
-    @Param('id') id: AdminUserAccountID,
+    @Param('id') id: string,
     @Body() updateAdminUserAccountDto: UpdateAdminUserAccountDto,
   ): Promise<AdminUserAccount> {
-    const account = await this.queryBus.execute(
-      new FindAdminUserAccountByIdQuery(id),
+    const command = new UpdateAdminUserAccountCommand(
+      id,
+      updateAdminUserAccountDto,
     );
-    if (!account) throw new BadRequestException('Account not found');
-    Object.assign(account, updateAdminUserAccountDto);
-    return this.commandBus.execute(
-      new UpdateAdminUserAccountCommand(id, account),
-    );
+    return this.commandBus.execute(command);
   }
 
   @Delete(':id')
+  @Permissions('delete:admin_user:AdminUsers')
   @ApiOperation({ summary: 'Delete an admin user account' })
   @ApiResponse({
     status: 200,
     description: 'Admin user account deleted successfully',
   })
-  async remove(@Param('id') id: AdminUserAccountID): Promise<void> {
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the admin user account to delete',
+  })
+  @AuditLog({
+  actionType: ActionType.DELETE_ADMIN,
+  targetEntity: 'AdminUserAccount',
+})
+  async remove(@Param('id') id: string): Promise<void> {
     return this.commandBus.execute(new RemoveAdminUserAccountCommand(id));
   }
 }

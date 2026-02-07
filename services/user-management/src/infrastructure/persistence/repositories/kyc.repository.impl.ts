@@ -9,7 +9,7 @@ export class KYCRepositoryImpl implements IKYCRepository {
   constructor(
     @InjectRepository(KYC)
     private readonly kycRepository: Repository<KYC>,
-  ) { }
+  ) {}
 
   async create(manager: EntityManager, kyc: KYC): Promise<KYC> {
     try {

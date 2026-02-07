@@ -9,12 +9,32 @@ import { PushNotificationModule } from './modules/push-notification/push-notific
 import { SmsModule } from './modules/sms/sms.module';
 import { StreamModule } from './modules/live-stream/stream.module';
 import { HobbeChatModule } from './modules/hobbe-chat/hobbe-chat.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { FaqModule } from './modules/faq/faq.module';
+import { SupportModule } from './modules/support/support.module';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ClientsModule.register([
+      {
+        name: 'USER_MANAGEMENT_SERVICE',
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            clientId: 'comm-user-producer',
+            brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
+          },
+          consumer: {
+            groupId: 'comm-user-consumer-group',
+          },
+        },
+      },
+    ]),
     AutomapperModule.forRoot([
       {
         name: 'default',
@@ -23,13 +43,16 @@ import { HobbeChatModule } from './modules/hobbe-chat/hobbe-chat.module';
     ]),
     DatabaseModule,
     CqrsModule,
-    // ChatModule,
-    // MessageModule,
     EmailModule,
     SmsModule,
     PushNotificationModule,
     StreamModule,
-    HobbeChatModule
+    HobbeChatModule,
+    NotificationModule, 
+    AuthModule, 
+    FaqModule,
+    SupportModule
   ],
+  exports: [ClientsModule],
 })
 export class AppModule { }

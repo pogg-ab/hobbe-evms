@@ -13,7 +13,10 @@ export class CreateEventSponsorDto {
 
   @ApiProperty({
     description: 'Array of sponsor user IDs',
-    example: ['bb616810-b518-4028-8f9b-b1f2a4e5861b', 'c2d7f125-29d7-47e7-bfdb-2bc7cc5c9653'],
+    example: [
+      'bb616810-b518-4028-8f9b-b1f2a4e5861b',
+      'c2d7f125-29d7-47e7-bfdb-2bc7cc5c9653',
+    ],
   })
   @IsNotEmpty()
   @IsArray()

@@ -8,6 +8,9 @@ import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { TICKETS_LIST_REPOSITORY_TOKEN } from 'src/domain/repositories/tickets/ticketslist.repository.token';
 import { ParticipantHasTicket } from 'src/domain/entities/participant-has-ticket.entity';
 import { group } from 'console';
+import { QrCodeActionAfterScannedDto } from 'src/presentation/dtos/qr-code/qr-code-action-after-scanned.dto';
+import { QrAfterScannedActionsAggregateDto } from 'src/presentation/dtos/qr-code/qr-scaned-after-scanned-action-aggregate.dto';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class TicketsService {
@@ -17,17 +20,30 @@ export class TicketsService {
     @InjectMapper() private readonly mapper: Mapper,
   ) { }
 
-  async create(createTicketsDto: CreateTicketsDto): Promise<void> {
+  async create(createTicketsDto: CreateTicketsDto, entityManager?: EntityManager): Promise<void> {
     const tickets = this.mapper.map(
       createTicketsDto,
       CreateTicketsDto,
       Tickets,
     );
-    await this.createTicketsRepository.create(tickets);
+    await this.createTicketsRepository.create(tickets, entityManager);
   }
 
   async getEventsAllTicketsList(ticket_id: IdValueObject) {
     return this.createTicketsRepository.getEventsAllTicketsList(ticket_id);
+  }
+
+  async getMyTickets(
+    userId:string,
+    page: number,
+    limit: number,
+  ):Promise<any>{
+
+    return await this.createTicketsRepository.getMyTickets(
+      userId,
+      page,
+      limit
+    )
   }
 
   async findAll(
@@ -195,7 +211,53 @@ export class TicketsService {
 
   async qrCodeScannedLog(ticket_id: string, metadata: string): Promise<void> {
     return await this.createTicketsRepository.qrCodeScannedLog(ticket_id, metadata);
-  
+  }
+
+  async qrCodeLogAfterScanned(
+    dto: QrCodeActionAfterScannedDto
+  ): Promise<void> {
+    return await this.createTicketsRepository.qrCodeLogAfterScanned(dto);
+  }
+
+
+  async countQrCodeScannedLogs(event_id: string): Promise<any> {
+    // Assuming you have a method in your repository to count scanned logs
+
+    const data = await this.createTicketsRepository.countQrCodeScannedLogs(event_id);
+
+    return data;
+  }
+
+  async qrAfterScannedActionsAggregate(dto: QrAfterScannedActionsAggregateDto): Promise<any> {
+    // Assuming you have a method in your repository to handle actions after scanned
+    const actions = await this.createTicketsRepository.qrCodeActionsAfterScanned(dto);
+
+    return actions;
+  }
+
+  async aggregateQrCodeScannedLogs(dto: any): Promise<any> {
+    // Assuming you have a method in your repository to aggregate scanned logs
+    const aggregatedLogs = await this.createTicketsRepository.aggregateQrCodeScannedLogs(dto);
+
+    return aggregatedLogs;
+  }
+
+  async findTicketsByBookingId(bookingId: string): Promise<Tickets[]> {
+    const tickets = await this.createTicketsRepository.findTicketsByBookingId(bookingId);
+    if (!tickets || tickets.length === 0) {
+      throw new NotFoundException(`No tickets found for booking ID ${bookingId}.`);
+    }
+    return tickets;
+  }
+
+
+  async ticketRefundProcess(ticketId: string): Promise<void> {
+    await this.createTicketsRepository.ticketRefundProcess(ticketId);
+  }
+
+  async regenerateTicketQrCode(ticketId: string,userId:string): Promise<void> {
+    const newQrCode = await this.createTicketsRepository.regenerateTicketQrCode(ticketId,userId);
+    return newQrCode;
   }
 
 

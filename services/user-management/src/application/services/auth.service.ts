@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -19,9 +25,22 @@ import { MessageProducerService } from 'src/infrastructure/kafka/message.produce
 import { NotificationConfigService } from 'src/infrastructure/notification-config.service';
 import { MessageType } from 'src/presentation/dtos/create-sms.dto';
 import { Repository } from 'typeorm';
+import { AuditLogService } from './audit-log.service';
+import { AdminUserSecuritySetting } from 'src/domain/entities/admin-user-security-setting.entity';
+import { UserSecuritySetting } from 'src/domain/entities/user-security-setting.entity';
+import { UserSession } from 'src/domain/entities/user-session.entity';
+import { AdminUserSession } from 'src/domain/entities/admin-user-session.entity';
+import { SystemSetting } from 'src/domain/entities/system-setting.entity';
+import { ActionType, ActionResult } from 'src/domain/entities/audit-log.entity';
+import * as otplib from 'otplib';
+import { Request } from 'express';
+import { ParamsDictionary } from 'express-serve-static-core';
+import { ParsedQs } from 'qs';
+
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly auditLogService: AuditLogService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(PersonalAccount)
@@ -35,16 +54,28 @@ export class AuthService {
     private readonly userRoleRepository: Repository<UserRole>,
     @InjectRepository(AdminUser)
     private readonly adminUserRepository: Repository<AdminUser>,
+    @InjectRepository(UserSession)
+    private readonly userSessionRepository: Repository<UserSession>,
+    @InjectRepository(AdminUserSession)
+    private readonly adminSessionRepository: Repository<AdminUserSession>,
     @InjectRepository(AdminUserAuth)
     private readonly adminUserAuthRepository: Repository<AdminUserAuth>,
     @InjectRepository(AdminUserRole)
     private readonly adminUserRoleRepository: Repository<AdminUserRole>,
+    @InjectRepository(SystemSetting)
+    private readonly systemSettingRepository: Repository<SystemSetting>,
+
+    @InjectRepository(UserSecuritySetting)
+    private readonly userSecuritySettingRepository: Repository<UserSecuritySetting>,
+    @InjectRepository(AdminUserSecuritySetting)
+    private readonly adminSecuritySettingRepository: Repository<AdminUserSecuritySetting>,
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userWithAccountRepository: IUserRepository,
     private readonly messageProducerService: MessageProducerService,
     private readonly notificationConfigService: NotificationConfigService,
   ) { }
 
+  // FIND this existing method in your file
   async validateUser(user_name: string, password: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
     if (user) {
@@ -81,6 +112,7 @@ export class AuthService {
     };
   }
 
+  // FIND this existing method in your file
   async validateAdminUser(user_name: string, password: string): Promise<any> {
     const user = await this.adminUserRepository.findOne({
       where: { user_name },
@@ -118,64 +150,85 @@ export class AuthService {
     };
   }
 
-  async login(user: any, rememberMe: boolean) {
-    const payload = { username: user.user.user_name, sub: user.user.user_id };
-    const access_token = new AccessToken(
-      this.jwtService.sign(payload, {
-        secret: process.env.JWT_SECRET,
-        expiresIn: '1d',
-      }),
-    );
-    let refresh_token: string | null = null;
-    if (rememberMe) {
-      const refreshPayload = { username: user.user_name, sub: user.user_id };
-      refresh_token = this.jwtService.sign(refreshPayload, {
-        secret: process.env.JWT_SECRET,
-        expiresIn: '30d',
-      });
-    }
-    const token_expires_at = rememberMe
-      ? new Date(new Date().getTime() + 30 * 86400000) // 1 month expiration for refresh token
-      : new Date(new Date().getTime() + 86400000);
-
-    let auth = await this.authRepository.findOne({
-      where: { user_id: user.user.user_id },
+  public async logFailedLoginAttempt(username: string, ipAddress: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { user_name: username } });
+await this.auditLogService.create({
+      serviceName: 'user-management',
+      actorId: user ? user.user_id.toString() : null,
+      actorType: user ? 'user' : 'unknown',
+      actionType: ActionType.LOGIN_FAILED,
+      targetEntity: 'UserSession',
+      result: ActionResult.FAILURE,
+      ipAddress: ipAddress,
+      details: {
+        reason: 'Invalid credentials provided',
+        providedUsername: username,
+      },
     });
-
-    if (auth) {
-      auth.user_id = user.user.user_id;
-      auth.access_token = access_token.toString();
-      auth.refresh_token = refresh_token ? refresh_token.toString() : '';
-      auth.token_expires_at = token_expires_at;
-      auth.last_login = new Date();
-
-      await this.authRepository.save(auth);
-    } else {
-      auth = new Auth();
-      auth.user_id = user.user.user_id;
-      auth.access_token = access_token.toString();
-      auth.refresh_token = refresh_token ? refresh_token.toString() : '';
-      auth.token_expires_at = token_expires_at;
-      auth.last_login = new Date();
-
-      await this.authRepository.save(auth);
-    }
-    return {
-      access_token: access_token.toString(),
-      ...(refresh_token && { refresh_token: refresh_token.toString() }),
-    };
   }
 
-  
+  async login(req: Request, user: any, rememberMe: boolean) {
+    const validatedUser: User = user.user;
+    const mfaRequiredSetting = await this.systemSettingRepository.findOne({
+      where: { key: 'MFA_REQUIRED' },
+    });
+    const isMfaRequiredBySystem = mfaRequiredSetting?.value === 'true';
+    const userSecurity = await this.userSecuritySettingRepository.findOne({
+      where: { user_id: validatedUser.user_id.toString() },
+    });
 
+    if (isMfaRequiredBySystem) {
+      if (userSecurity?.mfa_secret) {
+        const payload = {
+          sub: validatedUser.user_id.toString(),
+          purpose: 'mfa-verification',
+          isAdmin: false,
+        };
+        const interimToken = this.jwtService.sign(payload, { expiresIn: '5m' });
+        return { mfaRequired: true, interimToken: interimToken };
+      } else {
+        const payload = {
+          sub: validatedUser.user_id.toString(),
+          purpose: 'mfa-setup',
+          isAdmin: false,
+        };
+        const setupToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+        return { mfaSetupRequired: true, setupToken: setupToken };
+      }
+    } else {
+      return this.issueUserTokens(req, validatedUser, rememberMe);
+    }
+  }
 
   async requestPasswordReset(user_name: string): Promise<any> {
     const user = await this.userRepository.findOne({ where: { user_name } });
     if (!user) {
+      await this.auditLogService.create({
+        serviceName: 'user-management', // --- FIX --- Added serviceName
+        actorId: null, // --- FIX --- Pass null for unknown user, not username
+        actorType: 'unknown',
+        actionType: ActionType.UPDATE_USER,
+        targetEntity: 'UserPassword',
+        result: ActionResult.FAILURE,
+        details: {
+          reason: 'Password reset requested for a user that does not exist',
+          providedUsername: user_name,
+        },
+      });
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
-
-    if (!user.is_active) {
+     if (!user.is_active) {
+      await this.auditLogService.create({
+        serviceName: 'user-management', 
+        actorId: user.user_id.toString(),
+        actorType: 'user',
+        actionType: ActionType.UPDATE_USER,
+        targetEntity: 'UserPassword',
+        result: ActionResult.FAILURE,
+        details: {
+          reason: 'Password reset requested for an inactive account',
+        },
+      });
       throw new HttpException(
         'Your account is not active. Please contact support.',
         HttpStatus.FORBIDDEN,
@@ -205,6 +258,18 @@ export class AuthService {
     user.password_reset_token_expiry = resetTokenExpiry;
 
     await this.userRepository.save(user);
+await this.auditLogService.create({
+      serviceName: 'user-management', 
+      actorId: user.user_id.toString(),
+      actorType: 'user',
+      actionType: ActionType.UPDATE_USER,
+      targetEntity: 'UserPassword',
+      result: ActionResult.SUCCESS,
+      details: {
+        change: 'User successfully requested a password reset',
+      },
+    });
+
 
     const emailPayload = this.createPasswordResetEmail(
       user.user_name,
@@ -350,7 +415,7 @@ export class AuthService {
       const now = new Date();
       if (now > auth.token_expires_at) {
         const newRefreshToken = this.generateRefreshToken();
-        const newExpiryDate = new Date(now.getTime() + 30 * 86400000); // New expiry for the refresh token (e.g., 1 month)
+        const newExpiryDate = new Date(now.getTime() + 30 * 86400000);
 
         auth.refresh_token = newRefreshToken;
         auth.token_expires_at = newExpiryDate;
@@ -376,7 +441,7 @@ export class AuthService {
       const newAccessToken = new AccessToken(
         this.jwtService.sign(payload, {
           secret: process.env.JWT_SECRET,
-          expiresIn: '1d', // Access token expiry: 1 day
+          expiresIn: '1d',
         }),
       );
       auth.access_token = newAccessToken.toString();
@@ -419,42 +484,60 @@ export class AuthService {
     return userAccountInfo;
   }
 
-  async adminUserLogin(user: any) {
-    const payload = { username: user.user_name, sub: user.user_id };
-    const access_token = new AccessToken(
-      this.jwtService.sign(payload, {
-        secret: process.env.JWT_SECRET,
-        expiresIn: '1d',
-      }),
-    );
-    const refresh_token = new RefreshToken(this.generateRefreshToken());
-    const token_expires_at = new Date(new Date().getTime() + 86400000); // 1 hour expiration
-    let auth = await this.adminUserAuthRepository.findOne({
-      where: { admin_user_id: user.user.admin_user_id },
+  async adminUserLogin(req: Request, user: any) {
+    const adminUser: AdminUser = user.user;
+    const mfaRequiredSetting = await this.systemSettingRepository.findOne({
+      where: { key: 'MFA_REQUIRED' },
+    });
+    const isMfaRequiredBySystem = mfaRequiredSetting?.value === 'true';
+    const securitySettings = await this.adminSecuritySettingRepository.findOne({
+      where: { admin_user_id: adminUser.admin_user_id.toString() },
     });
 
-    if (auth) {
-      auth.admin_user_id = user.user.admin_user_id;
-      auth.access_token = access_token.toString();
-      auth.refresh_token = refresh_token.toString();
-      auth.token_expires_at = token_expires_at;
-      auth.last_login = new Date();
-
-      await this.adminUserAuthRepository.save(auth);
+    if (isMfaRequiredBySystem) {
+      if (securitySettings?.mfa_secret) {
+        const payload = {
+          sub: adminUser.admin_user_id.toString(),
+          purpose: 'mfa-verification',
+          isAdmin: true,
+        };
+        const interimToken = this.jwtService.sign(payload, { expiresIn: '5m' });
+        return { mfaRequired: true, interimToken: interimToken };
+      } else {
+        const payload = {
+          sub: adminUser.admin_user_id.toString(),
+          purpose: 'mfa-setup',
+          isAdmin: true,
+        };
+        const setupToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+        return { mfaSetupRequired: true, setupToken: setupToken };
+      }
     } else {
-      auth = new AdminUserAuth();
-      auth.admin_user_id = user.user.admin_user_id;
-      auth.access_token = access_token.toString();
-      auth.refresh_token = refresh_token.toString();
-      auth.token_expires_at = token_expires_at;
-      auth.last_login = new Date();
-
-      await this.adminUserAuthRepository.save(auth);
+      return this.issueAdminTokens(req, adminUser);
     }
-    return {
-      access_token: access_token.toString(),
-      refresh_token: refresh_token.toString(),
-    };
+  }
+
+  private async getAdminPermissions(adminUserId: string): Promise<string[]> {
+    const userRoles = await this.adminUserRoleRepository.find({
+      where: {
+        admin_user_id: adminUserId as any,
+      },
+      relations: {
+        role: {
+          rolePermissions: {
+            permission: true,
+          },
+        },
+      },
+    });
+
+    const permissions = userRoles.flatMap((userRole) =>
+      (userRole.role.rolePermissions || []).map(
+        (link) => `${link.permission.action}:${link.permission.resource}`,
+      ),
+    );
+
+    return [...new Set(permissions)];
   }
 
   private generateRefreshToken(): string {
@@ -602,5 +685,316 @@ export class AuthService {
 
     const roles = userRoles.map((userRole) => userRole.role.name);
     return { success: true, user, roles };
+  }
+  async verifyMfaAndLogin(req: Request, interimToken: string, mfaCode: string) {
+    try {
+      const payload = this.jwtService.verify(interimToken, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      if (payload.purpose !== 'mfa-verification') {
+        throw new Error('Invalid token purpose');
+      }
+
+      const userId = payload.sub;
+      let isMfaCodeValid = false;
+
+      if (payload.isAdmin) {
+        const securitySettings =
+          await this.adminSecuritySettingRepository.findOneBy({
+            admin_user_id: userId,
+          });
+        if (
+          !securitySettings ||
+          !securitySettings.mfa_enabled ||
+          !securitySettings.mfa_secret
+        ) {
+          throw new HttpException(
+            'MFA is not configured for this admin.',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        isMfaCodeValid = otplib.authenticator.check(
+          mfaCode,
+          securitySettings.mfa_secret,
+        );
+      } else {
+        const securitySettings =
+          await this.userSecuritySettingRepository.findOneBy({
+            user_id: userId,
+          });
+        if (
+          !securitySettings ||
+          !securitySettings.mfa_enabled ||
+          !securitySettings.mfa_secret
+        ) {
+          throw new HttpException(
+            'MFA is not configured for this user.',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        isMfaCodeValid = otplib.authenticator.check(
+          mfaCode,
+          securitySettings.mfa_secret,
+        );
+      }
+if (!isMfaCodeValid) {
+        await this.auditLogService.create({
+          serviceName: 'user-management', // --- FIX --- Added serviceName
+          actorId: userId,
+          actorType: payload.isAdmin ? 'admin' : 'user',
+          actionType: ActionType.LOGIN_FAILED,
+          targetEntity: payload.isAdmin ? 'AdminSession' : 'UserSession',
+          result: ActionResult.FAILURE,
+          details: { reason: 'Invalid MFA code provided' },
+        });
+  
+        throw new HttpException('Invalid MFA code.', HttpStatus.UNAUTHORIZED);
+    }
+
+      if (payload.isAdmin) {
+        const adminUser = await this.adminUserRepository.findOneBy({
+          admin_user_id: userId,
+        });
+        if (!adminUser)
+          throw new HttpException('Admin user not found', HttpStatus.NOT_FOUND);
+        return this.issueAdminTokens(req, adminUser);
+      } else {
+        const user = await this.userRepository.findOneBy({ user_id: userId });
+        if (!user)
+          throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        return this.issueUserTokens(req, user, false);
+      }
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        'Invalid or expired MFA session token.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+  }
+
+  public async issueUserTokens(req: Request, user: User, rememberMe: boolean) {
+    const session = this.userSessionRepository.create({
+      user_id: user.user_id.toString(),
+      last_activity: new Date(),
+      ip_address: req.ip,
+      user_agent: req.headers['user-agent'] || '',
+    });
+    const savedSession = await this.userSessionRepository.save(session);
+
+    const payload = {
+      username: user.user_name,
+      sub: user.user_id,
+      jti: savedSession.session_id,
+    };
+
+    const access_token = new AccessToken(
+      this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1d',
+      }),
+    );
+
+    let refresh_token: string | null = null;
+    if (rememberMe) {
+      refresh_token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '30d',
+      });
+    }
+
+    const token_expires_at = rememberMe
+      ? new Date(new Date().getTime() + 30 * 86400000)
+      : new Date(new Date().getTime() + 86400000);
+
+    let auth = await this.authRepository.findOne({
+      where: { user_id: user.user_id },
+    });
+    if (auth) {
+      auth.access_token = access_token.toString();
+      auth.refresh_token = refresh_token ? refresh_token.toString() : '';
+      auth.token_expires_at = token_expires_at;
+      auth.last_login = new Date();
+      await this.authRepository.save(auth);
+    } else {
+      auth = new Auth();
+      auth.user_id = user.user_id;
+      auth.access_token = access_token.toString();
+      auth.refresh_token = refresh_token ? refresh_token.toString() : '';
+      auth.token_expires_at = token_expires_at;
+      auth.last_login = new Date();
+      await this.authRepository.save(auth);
+    }
+
+    return {
+      access_token: access_token.toString(),
+      ...(refresh_token && { refresh_token: refresh_token.toString() }),
+    };
+  }
+
+  public async issueAdminTokens(req: Request, adminUser: AdminUser) {
+    const adminIdString = adminUser.admin_user_id.toString();
+    const session = this.adminSessionRepository.create({
+      admin_user_id: adminUser.admin_user_id.toString(),
+      last_activity: new Date(),
+      ip_address: req.ip,
+      user_agent: req.headers['user-agent'] || '',
+    });
+    const savedSession = await this.adminSessionRepository.save(session);
+    const permissions = await this.getAdminPermissions(adminIdString);
+    const payload = {
+      username: adminUser.user_name,
+      sub: adminIdString,
+      jti: savedSession.session_id,
+      permissions: permissions,
+      isAdmin: true,
+    };
+
+    const access_token = new AccessToken(
+      this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1d',
+      }),
+    );
+    const refresh_token = new RefreshToken(this.generateRefreshToken());
+    const token_expires_at = new Date(Date.now() + 86400000);
+
+    let auth = await this.adminUserAuthRepository.findOne({
+      where: { admin_user_id: adminUser.admin_user_id },
+    });
+    if (!auth) {
+      auth = new AdminUserAuth();
+      auth.admin_user_id = adminUser.admin_user_id;
+    }
+    auth.access_token = access_token.toString();
+    auth.refresh_token = refresh_token.toString();
+    auth.token_expires_at = token_expires_at;
+    auth.last_login = new Date();
+    await this.adminUserAuthRepository.save(auth);
+
+    return {
+      access_token: access_token.toString(),
+      refresh_token: refresh_token.toString(),
+    };
+  }
+
+  async userLogout(sessionId: string): Promise<{ message: string }> {
+    const session = await this.userSessionRepository.findOneBy({
+      session_id: sessionId,
+    });
+    if (session) {
+      session.is_active = false;
+      await this.userSessionRepository.save(session);
+    }
+    return { message: 'You have been successfully logged out.' };
+  }
+
+
+  async adminLogout(sessionId: string): Promise<{ message: string }> {
+    const session = await this.adminSessionRepository.findOneBy({
+      session_id: sessionId,
+    });
+    if (session) {
+      session.is_active = false;
+      await this.adminSessionRepository.save(session);
+     await this.auditLogService.create({
+        serviceName: 'user-management', 
+        actorId: session.admin_user_id.toString(),
+        actorType: 'admin',
+        actionType: ActionType.LOGOUT,
+        targetEntity: 'AdminSession',
+        targetEntityId: sessionId,
+        result: ActionResult.SUCCESS,
+        details: { reason: 'Admin user initiated logout.' },
+      });
+    }
+    return { message: 'You have been successfully logged out.' };
+  }
+
+  async resetAdminMfa(
+    adminUserIdToReset: string,
+    performedByAdminId: string,
+  ): Promise<{ message: string }> {
+    const securitySettings =
+      await this.adminSecuritySettingRepository.findOneBy({
+        admin_user_id: adminUserIdToReset,
+      });
+
+    if (!securitySettings || !securitySettings.mfa_secret) {
+      return {
+        message: 'MFA was not configured for this user. No action taken.',
+      };
+    }
+
+    securitySettings.mfa_enabled = false;
+    securitySettings.mfa_secret = null;
+    securitySettings.mfa_temp_secret = null;
+    await this.adminSecuritySettingRepository.save(securitySettings);
+
+    await this.auditLogService.create({
+      serviceName: 'user-management', 
+      actorId: performedByAdminId,
+      actorType: 'admin',
+      actionType: ActionType.UPDATE_ADMIN,
+      targetEntity: 'AdminUserSecuritySetting',
+      targetEntityId: adminUserIdToReset,
+      result: ActionResult.SUCCESS,
+      details: { change: 'Admin MFA settings were successfully reset' },
+    });
+    return { message: `MFA has been successfully reset for the user.` };
+  }
+
+  async validateAndLoginAdminWithSso(
+    req: Request,
+    profile: { provider: string; id: string; email: string },
+  ) {
+    let adminUser = await this.adminUserRepository.findOne({
+      where: {
+        ssoProvider: profile.provider,
+        ssoProviderId: profile.id,
+      },
+    });
+
+    if (adminUser) {
+      return this.issueAdminTokens(req, adminUser);
+    }
+
+    adminUser = await this.adminUserRepository.findOne({
+      where: { user_name: profile.email },
+    });
+
+    if (!adminUser || adminUser.ssoProviderId) {
+      await this.auditLogService.create({
+        serviceName: 'user-management', 
+        actorId: null, 
+        actorType: 'unknown',
+        actionType: ActionType.LOGIN_FAILED,
+        targetEntity: 'AdminSession',
+        result: ActionResult.FAILURE,
+        details: {
+          reason: 'Unauthorized SSO attempt for admin email',
+          provider: profile.provider,
+          providedEmail: profile.email,
+        },
+      });
+      throw new ForbiddenException('This account is not authorized for Admin SSO access.');
+    }
+
+    adminUser.ssoProvider = profile.provider;
+    adminUser.ssoProviderId = profile.id;
+    const updatedAdmin = await this.adminUserRepository.save(adminUser);
+    await this.auditLogService.create({
+      serviceName: 'user-management', 
+      actorId: updatedAdmin.admin_user_id.toString(),
+      actorType: 'admin',
+      actionType: ActionType.UPDATE_ADMIN,
+      targetEntity: 'AdminUser',
+      targetEntityId: updatedAdmin.admin_user_id.toString(),
+      result: ActionResult.SUCCESS,
+      details: { change: `Linked SSO provider: ${profile.provider}` },
+    });
+
+    return this.issueAdminTokens(req, updatedAdmin);
   }
 }

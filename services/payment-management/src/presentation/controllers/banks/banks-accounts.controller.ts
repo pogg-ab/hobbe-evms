@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateBankAccountCommand } from 'src/application/commands/bank-accounts/create.bank-account.command';
@@ -30,6 +30,7 @@ export class BankAccountsController {
     @Post(':event_id')
     // @Roles('User')
     // @UseGuards(JwtAuthGuard, RolesGuard)
+  
     async createNewBankAccount(
       @Param('event_id') event_id: string,
       @Body() createBankAccountDto: CreateBankAccountDto,
@@ -62,6 +63,7 @@ export class BankAccountsController {
     @Patch(':id')
     // @Roles('User')
     // @UseGuards(JwtAuthGuard, RolesGuard)
+    
     async updateBankAccount(
       @Param('id') id: string,
       @Body() createBankAccountDto: CreateBankAccountDto,
@@ -77,6 +79,7 @@ export class BankAccountsController {
     @Delete(':id')
     // @Roles('User')
     // @UseGuards(JwtAuthGuard, RolesGuard)
+    
     async delete(
       @Param('id') id: string,
     ): Promise<{ message: string; }> {

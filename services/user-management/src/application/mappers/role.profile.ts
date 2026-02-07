@@ -3,6 +3,7 @@ import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { Injectable } from '@nestjs/common';
 import { Role } from 'src/domain/entities/role.entity';
 import { CreateRoleDto } from 'src/presentation/dtos/create-role.dto';
+import { UpdateRoleDto } from 'src/presentation/dtos/update-role.dto'; // <-- 1. IMPORT THIS
 
 @Injectable()
 export class RoleProfile extends AutomapperProfile {
@@ -23,6 +24,20 @@ export class RoleProfile extends AutomapperProfile {
         forMember(
           (destination) => destination.description,
           mapFrom((src: CreateRoleDto) => src.description),
+        ),
+      );
+
+      createMap(
+        mapper,
+        UpdateRoleDto,
+        Role,
+        forMember(
+          (destination) => destination.name,
+          mapFrom((src: UpdateRoleDto) => src.name),
+        ),
+        forMember(
+          (destination) => destination.description,
+          mapFrom((src: UpdateRoleDto) => src.description),
         ),
       );
     };

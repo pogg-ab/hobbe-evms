@@ -18,6 +18,9 @@ import { UserID } from '../value-objects/user-id.value-object';
 import { OrganizationalAccount } from './organizational-account.entity';
 import { PersonalAccount } from './personal-account.entity';
 import { OAuthProvider } from './oauth-provider.entity';
+import { UserSecuritySetting } from './user-security-setting.entity';
+import { UserSession } from './user-session.entity';
+import { Exclude } from 'class-transformer';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -32,7 +35,8 @@ export class User {
   @Column({ nullable: true })
   profile_name: string;
 
-  @Column({ nullable: true})
+  @Column({ nullable: true })
+  @Exclude({ toPlainOnly: true })
   password: string;
 
   @Column({
@@ -57,6 +61,9 @@ export class User {
   })
   @JoinColumn({ name: 'organizational_account_id' })
   organizational_account: OrganizationalAccountID;
+
+  @Column({ type: 'boolean', default: true })
+  is_primary_account: boolean;
 
   @Column({
     type: 'varchar',
@@ -102,8 +109,17 @@ export class User {
   @UpdateDateColumn()
   updated_date: Date;
 
-  @OneToMany(() => OAuthProvider, provider => provider.user)
+  @OneToMany(() => OAuthProvider, (provider) => provider.user)
   providers: OAuthProvider[];
+
+  @OneToOne(() => UserSecuritySetting, (settings) => settings.user, {
+    cascade: true,
+    eager: true,
+  })
+  securitySettings: UserSecuritySetting;
+
+  @OneToMany(() => UserSession, (session) => session.user, { cascade: false })
+  sessions: UserSession[];
 
   @AfterLoad()
   @AfterInsert()
@@ -119,7 +135,9 @@ export class User {
       throw new Error('User ID is required to generate profile details');
     }
 
-    const userIdPrefix = this.user_id.toString().substring(0, 3).toLowerCase();
+    const userIdPrefix =
+      this.user_id.toString().toLowerCase().substring(0, 3) +
+      this.user_id.toString().toLowerCase().slice(-2);
     if (this.account_type === AccountType.PERSONAL && this.personal_account) {
       const personalAccount = this
         .personal_account as unknown as PersonalAccount;

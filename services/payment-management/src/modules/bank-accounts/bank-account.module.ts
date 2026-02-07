@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
 import { AutomapperModule } from '@automapper/nestjs';
 import { CqrsModule } from '@nestjs/cqrs';
+import { ClientsModule, Transport } from '@nestjs/microservices'; // <-- 1. IMPORT
 import { BankAccounts } from 'src/domain/entities/bank_accounts.entity';
 import { BankAccountsController } from 'src/presentation/controllers/banks/banks-accounts.controller';
 import { BankAccountsServices } from 'src/application/services/bank-accounts/bank-accounts.service';
@@ -11,33 +11,45 @@ import { CreateBankAccountHandler } from 'src/application/handlers/bank-account/
 import { CREATE_BANK_ACCOUNT_TOKEN } from 'src/domain/repositories/bank-accouts/bank-accout.repository.token';
 import { BankAccountRepositoryImpl } from 'src/infrastructure/persistence/repositories/bank-account.repository.impl';
 import { FindOneBankAccountHandler } from 'src/application/handlers/bank-account/find-one.bank-account.handler';
-import { FindBankAccountByEventQuery } from 'src/application/queries/bank-accounts/find-by-event.query';
 import { FindBankAccountByEventQueryHandler } from 'src/application/handlers/bank-account/find-by-event.handler';
 import { UpdateBankAccountHandler } from 'src/application/handlers/bank-account/update.bank-account.handler';
 import { DeleteBankAccountHandler } from 'src/application/handlers/bank-account/delete.bank-accout.handler';
 
+
 @Module({
-  
-    imports: [
-      AutomapperModule,
-      TypeOrmModule.forFeature([BankAccounts]),
-      CqrsModule,
-    ],
-    controllers: [BankAccountsController],
-    providers: [
-      BankAccountsServices,
-      BankAccountProfile,
-      CreateBankAccountHandler,
-      FindOneBankAccountHandler,
-      FindBankAccountByEventQueryHandler,
-      UpdateBankAccountHandler,
-      DeleteBankAccountHandler,
+  imports: [
+    AutomapperModule,
+    TypeOrmModule.forFeature([BankAccounts]),
+    CqrsModule,
+    
+    ClientsModule.register([
       {
-        provide: CREATE_BANK_ACCOUNT_TOKEN,
-        useClass: BankAccountRepositoryImpl,
+        name: 'KAFKA_PRODUCER', 
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            clientId: 'payment-management-producer',
+            brokers: [process.env.KAFKA_BROKER],
+          },
+        },
       },
-    ],
-    exports: [CREATE_BANK_ACCOUNT_TOKEN], // Export for use in other modules
-  })
-  export class BankAccountsModule {}
-  
+    ]),
+  ],
+  controllers: [BankAccountsController],
+  providers: [
+    BankAccountsServices,
+    BankAccountProfile,
+    CreateBankAccountHandler,
+    FindOneBankAccountHandler,
+    FindBankAccountByEventQueryHandler,
+    UpdateBankAccountHandler,
+    DeleteBankAccountHandler,
+    
+    {
+      provide: CREATE_BANK_ACCOUNT_TOKEN,
+      useClass: BankAccountRepositoryImpl,
+    },
+  ],
+  exports: [CREATE_BANK_ACCOUNT_TOKEN],
+})
+export class BankAccountsModule {}

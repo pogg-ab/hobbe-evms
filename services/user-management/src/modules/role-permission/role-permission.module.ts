@@ -1,12 +1,15 @@
-import { AutomapperModule } from '@automapper/nestjs';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ClientsModule } from '@nestjs/microservices';
+import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.producer.config';
+
+import { AdminUserRole } from 'src/domain/entities/admin-user-role.entity';
+import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { CreatePermissionCommandHandler } from 'src/application/handlers/role-permission/create-permission.command-handler';
 import { CreateRoleCommandHandler } from 'src/application/handlers/role-permission/create-role.command-handler';
 import { GetAllPermissionQueryHandler } from 'src/application/handlers/role-permission/get-all-permissions.query-handler';
 import { GetAllRolesQueryHandler } from 'src/application/handlers/role-permission/get-all-roles.query-handler';
-import { AdminRoleProfile } from 'src/application/mappers/admin-role-profile';
 import { AdminService } from 'src/application/services/admin.service';
 import { Permission } from 'src/domain/entities/permission.entity';
 import { RolePermission } from 'src/domain/entities/role-permission.entity';
@@ -14,21 +17,44 @@ import { Role } from 'src/domain/entities/role.entity';
 import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
 import { RoleRepositoryImpl } from 'src/infrastructure/persistence/repositories/role.repository.impl';
 import { AdminController } from 'src/presentation/controllers/admin.controller';
+import { GetPermissionByIdQueryHandler } from '../../application/handlers/role-permission/get-permission-by-id.query-handler';
+import { GetRoleByIdQueryHandler } from '../../application/handlers/role-permission/get-role-by-id.query-handler';
+import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { AssignPermissionToSuperAdminHandler } from 'src/application/handlers/role-permission/assign-permission-to-super-admin.handler';
+import { RoleProfile } from 'src/application/mapping/role.profile';
 
 @Module({
   imports: [
-    AutomapperModule,
-    TypeOrmModule.forFeature([Role, Permission, RolePermission]),
+    TypeOrmModule.forFeature([
+      Role,
+      Permission,
+      RolePermission,
+      AdminUser,
+      AdminUserRole,
+    ]),
     CqrsModule,
+    AuditLogModule,
+    ClientsModule.register([
+      {
+        name: 'KAFKA_PRODUCER',
+        transport: kafkaProducerConfig.transport,
+        options: kafkaProducerConfig.options,
+      },
+    ]),
   ],
   controllers: [AdminController],
   providers: [
     AdminService,
-    AdminRoleProfile,
     CreateRoleCommandHandler,
     CreatePermissionCommandHandler,
     GetAllRolesQueryHandler,
     GetAllPermissionQueryHandler,
+    GetPermissionByIdQueryHandler,
+    GetRoleByIdQueryHandler,
+    AuditLogInterceptor,
+    AssignPermissionToSuperAdminHandler,
+    RoleProfile,
     {
       provide: ROLE_REPOSITORY_TOKEN,
       useClass: RoleRepositoryImpl,

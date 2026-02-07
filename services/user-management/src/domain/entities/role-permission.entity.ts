@@ -4,23 +4,25 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
+  Unique,
 } from 'typeorm';
-import { PermissionID } from '../value-objects/permission-id.value-object';
-import { RoleID } from '../value-objects/role-id.value-object';
-import { RolePermissionID } from '../value-objects/role-permission-id.value-object';
 import { Permission } from './permission.entity';
 import { Role } from './role.entity';
 
-@Entity()
+@Entity({ name: 'role_permission' })
+@Unique(['role', 'permission'])
 export class RolePermission {
   @PrimaryGeneratedColumn('uuid')
-  role_permission_id: RolePermissionID;
+  role_permission_id: string;
 
-  @ManyToOne(() => Role, { cascade: true, onDelete: 'CASCADE' })
-  role: RoleID;
+  @ManyToOne(() => Role, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'roleId' })
+  role: Role;
 
-  @ManyToOne(() => Permission, { cascade: true, onDelete: 'CASCADE' })
-  permission: PermissionID;
+  @ManyToOne(() => Permission, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'permissionId' })
+  permission: Permission;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

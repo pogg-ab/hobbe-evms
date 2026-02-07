@@ -2,6 +2,7 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import {
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Inject,
@@ -33,8 +34,18 @@ import { SendEmailVerificationDto } from 'src/presentation/dtos/send-email-verif
 import { UpdateOrganizationalAccountDto } from 'src/presentation/dtos/update-organizational-account.dto';
 import { VerifyEmailResponse } from 'src/presentation/dtos/verify-email-response.interface';
 import { VerifyEmailDto } from 'src/presentation/dtos/verify-email.dto';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CreateOrganizationalAccountDto } from '../../presentation/dtos/create-organizational-account.dto';
+import { GroupAccount } from 'src/domain/entities/group-account.entity';
+import { GROUP_ACCOUNT_REPOSITORY_TOKEN } from 'src/domain/repositories/group-account.repository.token';
+import { IGroupAccountRepository } from 'src/domain/repositories/group-account.repository';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserRole } from 'src/domain/entities/user-role.entity';
+import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
+import { IRoleRepository } from 'src/domain/repositories/role.repository';
+import { Role } from 'src/domain/entities/role.entity';
+import { USER_ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/user-role.repository.token';
+import { IUserRoleRepository } from 'src/domain/repositories/user-role.repository';
 
 @Injectable()
 export class OrganizationalAccountService {
@@ -48,11 +59,23 @@ export class OrganizationalAccountService {
     @Inject(KYC_REPOSITORY_TOKEN)
     private readonly kycRepository: IKYCRepository,
 
+    @Inject(GROUP_ACCOUNT_REPOSITORY_TOKEN)
+    private readonly groupAccountRepository: IGroupAccountRepository,
+
     @Inject(SOCIAL_MEDIA_REPOSITORY_TOKEN)
     private readonly socialMediaRepository: ISocialMediaRepository,
 
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
+
+    @Inject(ROLE_REPOSITORY_TOKEN)
+    private readonly roleRepository: IRoleRepository,
+
+    @Inject(USER_ROLE_REPOSITORY_TOKEN)
+    private readonly userRoleRepository: IUserRoleRepository,
+
+    @InjectRepository(User)
+    private userEntityRepository: Repository<User>,
 
     private dataSource: DataSource,
 
@@ -62,8 +85,9 @@ export class OrganizationalAccountService {
   ) {}
   async create(createOrganizationalAccountDto: CreateOrganizationalAccountDto) {
     const queryRunner = this.dataSource.createQueryRunner();
-
+    await queryRunner.connect();
     await queryRunner.startTransaction();
+
     try {
       if (
         createOrganizationalAccountDto.password !==
@@ -73,6 +97,7 @@ export class OrganizationalAccountService {
           'Password and Confirm Password do not match',
         );
       }
+
       const organizationalAccount = this.mapper.map(
         createOrganizationalAccountDto,
         CreateOrganizationalAccountDto,
@@ -112,55 +137,130 @@ export class OrganizationalAccountService {
         CreateOrganizationalAccountDto,
         User,
       );
+
       user.password = await this.hashPassword(
         createOrganizationalAccountDto.password,
       );
       user.organizational_account = savedAccount.organizational_account_id;
-      await this.userRepository.create(queryRunner.manager, user);
+
+      const existingUser = await this.userEntityRepository.findOne({
+        where: { user_name: user.user_name },
+      });
+      if (existingUser) {
+        throw new ConflictException(
+          `A user with email ${user.user_name} already exists.`,
+        );
+      }
+
+      const newUser = await this.userRepository.create(
+        queryRunner.manager,
+        user,
+      );
+
+      if (user.is_primary_account === false) {
+        const groupAccount = this.mapper.map(
+          createOrganizationalAccountDto,
+          CreateOrganizationalAccountDto,
+          GroupAccount,
+        );
+
+        if (!groupAccount.primary_user_id) {
+          throw new BadRequestException(
+            'Primary user ID is required for creating a group account.',
+          );
+        }
+
+        const primaryUser = await this.userRepository.findById(
+          groupAccount.primary_user_id.toString(),
+        );
+        if (!primaryUser) {
+          throw new BadRequestException(
+            `No user found with primary_user_id: ${groupAccount.primary_user_id}`,
+          );
+        }
+
+        const existingGroupAccount =
+          await this.groupAccountRepository.findByPrimaryAndLinked(
+            groupAccount.primary_user_id.toString(),
+            newUser.user_id.toString(),
+          );
+
+        if (existingGroupAccount) {
+          throw new ConflictException(
+            `A group account already exists between primary_user_id ${groupAccount.primary_user_id} and linked_user_id ${newUser.user_id}.`,
+          );
+        }
+
+        groupAccount.linked_user_id = newUser.user_id;
+        await this.groupAccountRepository.create(
+          queryRunner.manager,
+          groupAccount,
+        );
+      }
 
       const socialMedia = this.mapper.map(
         createOrganizationalAccountDto,
         CreateOrganizationalAccountDto,
         SocialMedia,
       );
-
       socialMedia.organizational_account =
         savedAccount.organizational_account_id;
 
       await this.socialMediaRepository.create(queryRunner.manager, socialMedia);
 
+      const role = await this.getRoleByName('User');
+
+      const userRole = new UserRole();
+      userRole.user_id = newUser.user_id;
+      userRole.role = role;
+      await this.userRoleRepository.create(queryRunner.manager, userRole);
+
       await queryRunner.commitTransaction();
 
       const otp = this.generateOtp();
-
       if (this.notificationConfigService.useSmsNotification) {
-        const smsMessage = `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`;
-
-        const smsPayload = {
+        await this.messageProducerService.sendSmsToKafka({
           recipient: createOrganizationalAccountDto.companyPhoneNumber,
-          message: smsMessage,
+          message: `Your OTP for Hobbe EVMS registration is ${otp}. Please enter this code to complete your registration. The code will expire in 10 minutes.`,
           messageType: MessageType.OTP,
-        };
-
-        await this.messageProducerService.sendSmsToKafka(smsPayload);
+        });
       } else {
         const email = this.createOtpEmail(
           createOrganizationalAccountDto.companyEmail,
           otp,
         );
-
         await this.messageProducerService.sendEmailToKafka(email);
       }
 
       return savedAccount;
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw new BadRequestException(error.message);
-      } else if (error instanceof HttpException) {
+      await queryRunner.rollbackTransaction();
+      if (error instanceof BadRequestException) throw error;
+      if (error instanceof HttpException)
         throw new HttpException(error.message, error.getStatus());
-      }
+
       throw new InternalServerErrorException(
         'An unexpected error occurred while creating the account.',
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async getRoleByName(roleName: string): Promise<Role> {
+    try {
+      const role = await this.roleRepository.findOneBy({ name: roleName });
+      if (!role) {
+        throw new HttpException(
+          `Role ${roleName} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return role;
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching role: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

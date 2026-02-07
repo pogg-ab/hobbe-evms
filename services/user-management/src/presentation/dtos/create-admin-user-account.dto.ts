@@ -5,6 +5,9 @@ import {
   IsOptional,
   IsPhoneNumber,
   IsString,
+  IsArray,
+  IsUUID,
+  ArrayNotEmpty,
 } from 'class-validator';
 
 export class CreateAdminUserAccountDto {
@@ -43,8 +46,18 @@ export class CreateAdminUserAccountDto {
   @ApiProperty({
     description: 'The profile image of the admin user',
     example: 'data:image/png;base64,...',
+    required: false,
   })
   @IsOptional()
   @IsString()
   profile_image?: string;
+  @ApiProperty({
+    description: 'An array of Role UUIDs to assign to the new user',
+    example: ['c733371d-51df-436c-b93d-95b663992e40'],
+    isArray: true,
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID('4', { each: true })
+  roleIds: string[];
 }

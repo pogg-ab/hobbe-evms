@@ -4,10 +4,14 @@ import { Injectable } from '@nestjs/common';
 import { PersonalAccount } from 'src/domain/entities/personal-account.entity'; // Adjust the path
 import { Role } from 'src/domain/entities/role.entity';
 import { User } from 'src/domain/entities/user.entity';
-import { AccountStatus } from 'src/domain/value-objects/account-status.value-object';
+import {
+  AccountStatus,
+  Status,
+} from 'src/domain/value-objects/account-status.value-object';
 import { CreateRoleDto } from 'src/presentation/dtos/create-role.dto';
 import { CreatePersonalAccountDto } from '../../presentation/dtos/create-personal-account.dto'; // Adjust the path
 import { UpdatePersonalAccountDto } from 'src/presentation/dtos/update-personal-account.dto';
+import { GroupAccount } from 'src/domain/entities/group-account.entity';
 
 @Injectable()
 export class PersonalAccountProfile extends AutomapperProfile {
@@ -59,7 +63,7 @@ export class PersonalAccountProfile extends AutomapperProfile {
         ),
         forMember(
           (destination) => destination.status,
-          mapFrom(() => new AccountStatus('active')),
+          mapFrom(() => Status.ACTIVE),
         ),
         forMember(
           (destination) => destination.is_verified,
@@ -92,6 +96,10 @@ export class PersonalAccountProfile extends AutomapperProfile {
           mapFrom((src: CreatePersonalAccountDto) => src.emailAddress),
         ),
         forMember(
+          (destination) => destination.is_primary_account,
+          mapFrom((src: CreatePersonalAccountDto) => src.isPrimaryAccount),
+        ),
+        forMember(
           (destination) => destination.password,
           mapFrom((src: CreatePersonalAccountDto) => src.password),
         ),
@@ -106,6 +114,25 @@ export class PersonalAccountProfile extends AutomapperProfile {
         ),
         forMember(
           (destination) => destination.updated_date,
+          mapFrom(() => new Date()),
+        ),
+      );
+
+      createMap(
+        mapper,
+        CreatePersonalAccountDto,
+        GroupAccount,
+        forMember(
+          (destination) => destination.primary_user_id,
+          mapFrom((src: CreatePersonalAccountDto) => src.primaryAccount),
+        ),
+
+        forMember(
+          (destination) => destination.created_at,
+          mapFrom(() => new Date()),
+        ),
+        forMember(
+          (destination) => destination.updated_at,
           mapFrom(() => new Date()),
         ),
       );

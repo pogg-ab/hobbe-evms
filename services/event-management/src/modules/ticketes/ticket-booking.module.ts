@@ -1,5 +1,5 @@
 import { AutomapperModule } from '@automapper/nestjs';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ClientsModule } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -38,6 +38,7 @@ import { KafkaPaymentRpcService } from 'src/infrastructure/kafka/kafka-payment-r
 import { kafkaCheckinPrivilegeConfig } from 'src/infrastructure/kafka/kafka.checkin-privilege.config';
 import { KafkaConsumerService } from 'src/infrastructure/kafka/kafka.consumer.service';
 import { KafkaProducerService } from 'src/infrastructure/kafka/kafka.producer.servicce';
+import { KafkaRefundRpcConsumerService } from 'src/infrastructure/kafka/kafka.rfund.rpc.consumer..service';
 import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
 import { BookingHasPaymentRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-payment.repository.impl';
 import { BookingHasPromocodeRepositoryImpl } from 'src/infrastructure/persistence/repositories/booking-has-promocode.repository.impl';
@@ -52,6 +53,12 @@ import { TicketsRepositoryEmpl } from 'src/infrastructure/persistence/repositori
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { TicketBookingController } from 'src/presentation/controllers/ticket-booking/ticket-booking.controller';
 import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.dto';
+import { EventsModule } from '../event/events.module';
+import { TicketsModule } from './tickets.module';
+import { GetMyTicketBookingQueryHandler } from 'src/application/handlers/tickets/get-my-ticket-booking.handler';
+import { BlockedGuest } from 'src/domain/entities/blocked-guest.entity';
+import { BLOCKED_GUEST_REPOSITORY_TOKEN } from 'src/domain/repositories/guests/blocked-guest.repository.token';
+import { BlockedGuestRepositoryImpl } from 'src/infrastructure/persistence/repositories/blocked-guest.repository.impl';
 
 @Module({
   imports: [
@@ -67,6 +74,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
       ParticipantHasTicket,
       Partnership,
       Promocodes,
+      BlockedGuest,
     ]),
     ClientsModule.registerAsync([
       {
@@ -78,6 +86,8 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
       },
     ]),
     CqrsModule,
+    forwardRef(() => EventsModule),
+    TicketsModule,
   ],
 
   controllers: [TicketBookingController],
@@ -86,6 +96,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     CreateTicketBookingCommandHandler,
     GetAllTicketBookingsQueryHandler,
     UpdateTicketStatusHandler,
+    GetMyTicketBookingQueryHandler,
     FindTicketBookingByEventQueryHandler,
     FindTicketBookingByIdQueryHandler,
     FindTicketBookingsByTicketBuyerQueryHandler,
@@ -98,6 +109,7 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
     KafkaProducerService,
     KafkaConsumerService,
     KafkaPaymentRpcService,
+    KafkaRefundRpcConsumerService,
     {
       provide: CREATE_TICKET_BOOKING_REPOSITORY_TOKEN,
       useClass: TicketBookingRepositoryImpl,
@@ -138,6 +150,11 @@ import { CreateTicketsDto } from 'src/presentation/dtos/tickets/create-tickets.d
       provide: CREATE_BOOKING_HAS_PAYMENT_REPOSITORY_TOKEN,
       useClass: BookingHasPaymentRepositoryImpl,
     },
+    {
+      provide: BLOCKED_GUEST_REPOSITORY_TOKEN,
+      useClass: BlockedGuestRepositoryImpl,
+    },
   ],
+  exports: [CREATE_TICKET_BOOKING_REPOSITORY_TOKEN],
 })
-export class TicketBookingModule { }
+export class TicketBookingModule {}

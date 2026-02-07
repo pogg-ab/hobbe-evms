@@ -1,8 +1,10 @@
 // src/infrastructure/persistence/repositories/admin-user.repository.impl.ts
+
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AdminUser } from 'src/domain/entities/admin-user.entity';
 import { IAdminUserRepository } from 'src/domain/repositories/admin-user.repository';
+import { AdminUserAccountID } from 'src/domain/value-objects/admin-user-account-id.value-object';
 import { AdminUserID } from 'src/domain/value-objects/admin-user-id.value-object';
 import { Repository } from 'typeorm';
 
@@ -12,6 +14,22 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
     @InjectRepository(AdminUser)
     private readonly adminUserRepository: Repository<AdminUser>,
   ) {}
+
+  async findOneByAccountId(accountId: string): Promise<AdminUser | null> {
+    try {
+      return await this.adminUserRepository
+        .createQueryBuilder('adminUser')
+        .where('adminUser.admin_user_account_id = :accountId', {
+          accountId: accountId.toString(),
+        })
+        .getOne();
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching AdminUser by Account ID ${accountId}: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   async create(adminUser: AdminUser): Promise<AdminUser> {
     try {
@@ -39,7 +57,7 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
   async findOneById(id: AdminUserID): Promise<AdminUser | null> {
     try {
       const user = await this.adminUserRepository.findOne({
-        where: { admin_user_id: id.toString() }, // Use the value object as string
+        where: { admin_user_id: id.toString() as any },
       });
       return user || null;
     } catch (error) {
@@ -78,7 +96,7 @@ export class AdminUserRepositoryImpl implements IAdminUserRepository {
           HttpStatus.NOT_FOUND,
         );
       }
-      await this.adminUserRepository.delete(userToDelete);
+      await this.adminUserRepository.remove(userToDelete);
     } catch (error) {
       throw new HttpException(
         `Error deleting AdminUser: ${error.message}`,

@@ -16,15 +16,27 @@ import { RolePermissionModule } from './modules/role-permission/role-permission.
 import { SubAccountModule } from './modules/sub-account/sub-account.module';
 import { UserModule } from './modules/user/user.module';
 import { UserAnayticsModule } from './modules/analytics/user-anaytics.module';
+import { SeedModule } from './modules/seed/seed.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { GroupAccountModule } from './modules/group-account/group-account.module';
+import { VerificationModule } from './modules/verification/verification.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'public'),
-      serveRoot: '/public',
-    }),
+    ServeStaticModule.forRoot(
+      {
+        rootPath: path.join(__dirname, '..', 'public'),
+        serveRoot: '/public',
+      },
+      {
+        rootPath: path.join(__dirname, '..', 'uploads'),
+        serveRoot: '/uploads',
+      },
+    ),
+
     AutomapperModule.forRoot([
       {
         name: 'default',
@@ -43,6 +55,10 @@ import { UserAnayticsModule } from './modules/analytics/user-anaytics.module';
     UserModule,
     FavoritesModule,
     UserAnayticsModule,
+    AuditLogModule,
+    SeedModule,
+    GroupAccountModule,
+    VerificationModule,
   ],
 })
 export class AppModule {}

@@ -1,0 +1,19 @@
+version: "1.0"
+
+services:
+  communication-management:
+    build:
+      context: ./communication-management
+      dockerfile: Dockerfile
+    ports:
+      - "4003:4003"
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: "669357"
+      DB_NAME: hobbe_evms_db
+      KAFKA_BROKER: kafka:29092
+volumes:
+  postgres-data:

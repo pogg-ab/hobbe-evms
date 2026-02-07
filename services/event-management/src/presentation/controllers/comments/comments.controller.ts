@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -23,9 +24,14 @@ import { Roles } from 'src/presentation/decorators/roles.decorator';
 import { CommentsDto } from 'src/presentation/dtos/comments/comments.dto';
 import { JwtAuthGuard } from 'src/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/guards/roles.guard';
+import { AuditLogInterceptor } from 'src/presentation/interceptors/audit-log.interceptor';
+import { AuditLog } from 'src/presentation/decorators/audit-log.decorator';
+import { ActionType } from 'src/domain/entities/audit-log.entity';
+
 
 @ApiTags('Comments')
 @Controller('Comments')
+@UseInterceptors(AuditLogInterceptor)
 export class CommentsController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -38,6 +44,10 @@ export class CommentsController {
   @Roles('User')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
+ @AuditLog({
+    actionType: ActionType.CREATE_COMMENT,
+    targetEntity: 'Comment'
+  })
   async create(
     @Body() commentsDto: CommentsDto,
     @CurrentUserId() user: any,

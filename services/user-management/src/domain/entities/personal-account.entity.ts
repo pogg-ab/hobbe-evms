@@ -1,13 +1,20 @@
 // src/domain/entities/personal-account.entity.ts
 import {
+  BeforeInsert,
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { AccountStatus } from '../value-objects/account-status.value-object';
+import {
+  AccountStatus,
+  Status,
+} from '../value-objects/account-status.value-object';
 import { PersonalAccountID } from '../value-objects/personal-account-id.value-object';
+import { VerificationRequest } from './verification-request.entity';
 
 @Entity()
 export class PersonalAccount {
@@ -44,8 +51,12 @@ export class PersonalAccount {
   @Column()
   gender: string;
 
-  @Column(() => AccountStatus)
-  status: AccountStatus;
+  @Column({
+    type: 'enum',
+    enum: Status,
+    default: Status.ACTIVE,
+  })
+  status: Status;
 
   @Column({ default: false })
   is_verified: boolean;
@@ -79,4 +90,11 @@ export class PersonalAccount {
 
   @UpdateDateColumn()
   updated_date: Date;
+    
+  @OneToMany(() => VerificationRequest, (vr) => vr.personal_account, {
+    cascade: true,
+    nullable: true,
+    eager: false,
+  })
+  verification_request?: VerificationRequest | null;
 }

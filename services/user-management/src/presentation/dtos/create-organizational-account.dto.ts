@@ -1,13 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsStrongPassword,
+  IsUUID,
+  ValidateIf,
 } from 'class-validator';
 import { SocialMediaAccountDto } from './social-media-account.dto';
+import { UserID } from 'src/domain/value-objects/user-id.value-object';
 
 export class CreateOrganizationalAccountDto {
   @ApiProperty({ description: 'The name of the company', example: 'Tech Corp' })
@@ -156,4 +160,24 @@ export class CreateOrganizationalAccountDto {
   @IsArray()
   @IsOptional()
   socialMediaAccounts?: SocialMediaAccountDto[];
+
+  @ApiProperty({
+    description: 'Indicates whether this is the primary account',
+    example: true,
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isPrimaryAccount: boolean = true;
+
+  @ApiProperty({
+    description:
+      'The UUID of the primary account this secondary account is associated with. Required if isPrimaryAccount is false.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    required: false,
+  })
+  @ValidateIf((o) => o.isPrimaryAccount === false)
+  @IsUUID()
+  @IsNotEmpty()
+  primaryAccount?: UserID;
 }

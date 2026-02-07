@@ -6,14 +6,14 @@ import { EventsService } from "src/application/services/events/events.service";
 
 @QueryHandler(SingleEventAnalyticsCommand)
 
-export class SingleEventAnalyticsCommandHandler implements IQueryHandler<SingleEventAnalyticsCommand>{
+export class SingleEventAnalyticsCommandHandler implements IQueryHandler<SingleEventAnalyticsCommand> {
     constructor(
         public readonly eventService: EventsService
-    ){}
+    ) { }
     execute(command: SingleEventAnalyticsCommand): Promise<SingleEventAnalyticsCommand> {
-       const {user,event} =command;
+        const { event } = command;
 
-       return this.eventService.singleEventAnalytics(user,event);
+        return this.eventService.singleEventAnalytics(event);
     }
-    
+
 }

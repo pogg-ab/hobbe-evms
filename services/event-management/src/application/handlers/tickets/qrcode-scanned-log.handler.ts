@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { QrCodeScannedLogCommand } from "src/application/commands/ticket/qr-scanned-log.command";
+import { QrCodeScannedLogCommand } from "src/application/commands/qr-code/qr-scanned-log.command";
 import { TicketsService } from "src/application/services/tickets/tickets.service";
 
 

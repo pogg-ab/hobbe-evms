@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from 'src/domain/entities/role.entity';
 import { IRoleRepository } from 'src/domain/repositories/role.repository';
-import { Repository } from 'typeorm';
+import { FindManyOptions, Repository } from 'typeorm';
 
 @Injectable()
 export class RoleRepositoryImpl implements IRoleRepository {
@@ -28,9 +28,9 @@ export class RoleRepositoryImpl implements IRoleRepository {
     }
   }
 
-  async find(): Promise<Role[]> {
+  async find(options?: FindManyOptions<Role>): Promise<Role[]> {
     try {
-      return await this.roleRepository.find();
+      return await this.roleRepository.find(options);
     } catch (error) {
       throw new HttpException(
         `Error fetching roles: ${error.message}`,

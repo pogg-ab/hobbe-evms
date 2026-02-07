@@ -1,12 +1,13 @@
 import { DownloadEntity } from "src/domain/entities/download.entity";
 import { CreateDownloadDto } from "src/presentation/dtos/reports/create-download.dto";
+import { GetDownloadsByDateRangeDto } from "src/presentation/dtos/reports/get-downloads-by-daterange.dto";
 
 export interface IAnalyticsRepository {
     collectDownload(dto: CreateDownloadDto): Promise<void>;
     getAnalyticsSummary(): Promise<any>;
 
     
-    getDownloadsByDate(date: Date): Promise<DownloadEntity[]>;
+    getDownloadsByDate(dto:GetDownloadsByDateRangeDto): Promise<DownloadEntity[]>;
     getDownloadsByCountry(country: string): Promise<DownloadEntity[]>;
     getDownloadsByPlatform(platform: string): Promise<DownloadEntity[]>;
     getDownloadsByDeviceType(deviceType: string): Promise<DownloadEntity[]>;

@@ -23,6 +23,7 @@ import { IRoleRepository } from 'src/domain/repositories/role.repository';
 import { ROLE_REPOSITORY_TOKEN } from 'src/domain/repositories/role.repository.token';
 import { AdminUserAccountID } from 'src/domain/value-objects/admin-user-account-id.value-object';
 import { MessageProducerService } from 'src/infrastructure/kafka/message.producer.service';
+import { AssignRoleDto } from 'src/presentation/dtos/assign-role.dto';
 import { CreateAdminUserAccountDto } from 'src/presentation/dtos/create-admin-user-account.dto';
 import { UpdateAdminUserAccountDto } from 'src/presentation/dtos/update-admin-user-account.dto';
 
@@ -40,17 +41,16 @@ export class AdminUserAccountService {
     @InjectMapper() private readonly mapper: Mapper,
     private readonly messageProducerService: MessageProducerService,
   ) {}
+
   generateRandomPassword(): string {
     const length = 6;
     const charset =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let password = '';
-
     for (let i = 0; i < length; i++) {
       const randomIndex = crypto.randomInt(0, charset.length);
       password += charset[randomIndex];
     }
-
     return password;
   }
 
@@ -70,21 +70,18 @@ export class AdminUserAccountService {
       CreateAdminUserAccountDto,
       AdminUser,
     );
-
     const generatedPassword = this.generateRandomPassword();
-
     adminUser.password = await this.hashPassword(generatedPassword);
     adminUser.admin_user_account = savedAccount.admin_user_account_id;
-
     const newAdminUser = await this.adminUserRepository.create(adminUser);
 
-    const role = await this.getRoleByName('Admin');
+    for (const roleId of createAdminUserAccountDto.roleIds) {
+      const adminUserRole = new AdminUserRole();
+      adminUserRole.admin_user_id = newAdminUser.admin_user_id;
+      adminUserRole.role = { role_id: roleId } as Role;
 
-    const adminUserRole = new AdminUserRole();
-    adminUserRole.admin_user_id = newAdminUser.admin_user_id;
-    adminUserRole.role = role;
-    await this.adminUserRoleRepository.create(adminUserRole);
-
+      await this.adminUserRoleRepository.create(adminUserRole);
+    }
     const emailPayload = this.createPasswordEmail(
       createAdminUserAccountDto.emailAddress,
       generatedPassword,
@@ -93,14 +90,49 @@ export class AdminUserAccountService {
       await this.messageProducerService.sendEmailToKafka(emailPayload);
     } catch (emailError) {
       console.error('Error sending email:', emailError);
-      return {
-        success: false,
-        message: 'Failed to send password email.',
-      };
+      return { success: false, message: 'Failed to send password email.' };
     }
-    // await this.emailRepository.save(emailContent);
 
     return savedAccount;
+  }
+
+  async assignRoleToUser(
+    userId: string,
+    assignRoleDto: AssignRoleDto,
+  ): Promise<AdminUserRole> {
+    const { roleId, membershipRole } = assignRoleDto;
+
+    const adminUser = await this.adminUserRepository.findOneById(userId as any);
+    if (!adminUser) {
+      throw new NotFoundException(`Admin user with ID "${userId}" not found`);
+    }
+
+    const role = await this.roleRepository.findOneById(roleId as any);
+    if (!role) {
+      throw new NotFoundException(`Role with ID "${roleId}" not found`);
+    }
+
+    const existingLink =
+      await this.adminUserRoleRepository.findOneByUserIdAndRoleId(
+        userId,
+        roleId,
+      );
+    if (existingLink) {
+      throw new HttpException(
+        'User already has this role.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const adminUserRole = new AdminUserRole();
+    adminUserRole.admin_user_id = adminUser.admin_user_id;
+    adminUserRole.role = role;
+
+    if (membershipRole) {
+      adminUserRole.membershipRole = membershipRole;
+    }
+
+    return this.adminUserRoleRepository.create(adminUserRole);
   }
 
   private async hashPassword(password: string): Promise<string> {
@@ -120,7 +152,6 @@ export class AdminUserAccountService {
       updated_at: new Date(),
       sent_at: null,
     };
-
     return email;
   }
 
@@ -146,7 +177,11 @@ export class AdminUserAccountService {
     return this.adminUserAccountRepository.findAll();
   }
 
-  async findOne(id: AdminUserAccountID): Promise<AdminUserAccount> {
+  async findAllAdminUsers(): Promise<AdminUser[]> {
+    return this.adminUserAccountRepository.findAllAdminUsers();
+  }
+
+  async findOne(id: string): Promise<AdminUserAccount> {
     const account = await this.adminUserAccountRepository.findOneById(id);
     if (!account) {
       throw new NotFoundException(`Admin user account with ID ${id} not found`);
@@ -155,21 +190,32 @@ export class AdminUserAccountService {
   }
 
   async update(
-    id: AdminUserAccountID,
+    id: string,
     updateAdminUserAccountDto: UpdateAdminUserAccountDto,
   ): Promise<AdminUserAccount> {
-    const account = await this.findOne(id);
-    const updatedAccount = this.mapper.map(
-      updateAdminUserAccountDto,
-      UpdateAdminUserAccountDto,
-      AdminUserAccount,
-    );
+    const existingAccount = await this.findOne(id);
+    const updatedAccount = {
+      ...existingAccount,
+      ...Object.fromEntries(
+        Object.entries(
+          this.mapper.map(
+            updateAdminUserAccountDto,
+            UpdateAdminUserAccountDto,
+            AdminUserAccount,
+          ),
+        ).filter(([_, v]) => v !== undefined),
+      ),
+      updated_date: new Date(),
+    };
     await this.adminUserAccountRepository.update(id, updatedAccount);
     return updatedAccount;
   }
 
-  async deleteAdminUserAccount(id: AdminUserAccountID): Promise<void> {
-    const account = await this.findOne(id);
+  async deleteAdminUserAccount(id: string): Promise<void> {
+    const adminUser = await this.adminUserRepository.findOneByAccountId(id);
+    if (adminUser) {
+      await this.adminUserRepository.delete(adminUser.admin_user_id);
+    }
     await this.adminUserAccountRepository.delete(id);
   }
 }

@@ -9,8 +9,7 @@ import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class BookingHasPromocodeRepositoryImpl
-  implements IBookingHasPromocodeRepository
-{
+  implements IBookingHasPromocodeRepository {
   constructor(
     @InjectRepository(BookingHasPromocode)
     private bookingHasPromocodeRepository: Repository<BookingHasPromocode>,
@@ -20,7 +19,7 @@ export class BookingHasPromocodeRepositoryImpl
     private ticketBookingRepository: Repository<TicketBooking>,
     @InjectRepository(ParticipantHasTicket)
     private participantHasTicketRepository: Repository<ParticipantHasTicket>,
-  ) {}
+  ) { }
 
   async create(
     manager: EntityManager,
@@ -157,11 +156,10 @@ export class BookingHasPromocodeRepositoryImpl
 
   async findByPromocode(promocodeId: any): Promise<string[]> {
     try {
-      const bookingHasPromocodes =
-        await this.bookingHasPromocodeRepository.find({
-          where: { promocode_id: promocodeId },
-          relations: ['booking_id'],
-        });
+      const bookingHasPromocodes = await this.bookingHasPromocodeRepository.find({
+        where: { promocode_id: { id: promocodeId } },
+        relations: ['booking_id'],
+      });
 
       const bookingIds = bookingHasPromocodes.map(
         (bookingHasPromocode) => bookingHasPromocode.booking_id.booking_id,

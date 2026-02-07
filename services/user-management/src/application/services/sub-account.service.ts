@@ -1,6 +1,13 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
-import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Privileges, SubAccount } from 'src/domain/entities/sub-account.entity';
 import { User } from 'src/domain/entities/user.entity';
@@ -22,22 +29,25 @@ export class SubAccountService {
     @InjectMapper() private readonly mapper: Mapper,
     @InjectRepository(User)
     private userRepo: Repository<User>,
-  ) { }
+  ) {}
 
-  async create(createSubAccountDto: CreateSubAccountDto, userId: any): Promise<SubAccount> {
+  async create(
+    createSubAccountDto: CreateSubAccountDto,
+    userId: any,
+  ): Promise<SubAccount> {
     if (userId === createSubAccountDto.sub_account_user_id) {
       throw new BadRequestException(
-        'A user cannot create a sub-account for themselves'
+        'A user cannot create a sub-account for themselves',
       );
     }
     const exists = await this.subAccountRepository.existsBetweenUsers(
       userId,
-      createSubAccountDto.sub_account_user_id
+      createSubAccountDto.sub_account_user_id,
     );
 
     if (exists) {
       throw new ConflictException(
-        `Sub-account already exists between owner ${userId} and user ${createSubAccountDto.sub_account_user_id}`
+        `Sub-account already exists between owner ${userId} and user ${createSubAccountDto.sub_account_user_id}`,
       );
     }
 
@@ -46,11 +56,13 @@ export class SubAccountService {
       CreateSubAccountDto,
       SubAccount,
     );
-    newSubAccount.created_by = userId
-    const sub_account_user = await this.getUser(createSubAccountDto.sub_account_user_id)
-    const owner_user = await this.getUser(userId)
-    newSubAccount.owner_user = owner_user
-    newSubAccount.sub_account_user = sub_account_user
+    newSubAccount.created_by = userId;
+    const sub_account_user = await this.getUser(
+      createSubAccountDto.sub_account_user_id,
+    );
+    const owner_user = await this.getUser(userId);
+    newSubAccount.owner_user = owner_user;
+    newSubAccount.sub_account_user = sub_account_user;
     const savedSubAccount =
       await this.subAccountRepository.create(newSubAccount);
     return savedSubAccount;
@@ -67,7 +79,6 @@ export class SubAccountService {
       if (user.is_active !== true) {
         throw new ForbiddenException('User is inactive');
       }
-
 
       return user;
     }
@@ -91,12 +102,12 @@ export class SubAccountService {
     id: SubAccountID,
     updateSubAccountDto: UpdateSubAccountDto,
   ): Promise<SubAccount> {
-    const subAccount = await this.findOne(id);
     const updatedSubAccount = this.mapper.map(
       updateSubAccountDto,
       UpdateSubAccountDto,
       SubAccount,
     );
+
     await this.subAccountRepository.update(id, updatedSubAccount);
     return updatedSubAccount;
   }
@@ -107,7 +118,7 @@ export class SubAccountService {
 
   async checkCheckinPrivilege(
     staffUserId: string,
-    eventOrganizerId: string
+    eventOrganizerId: string,
   ): Promise<{
     hasPrivilege: boolean;
     canManageGuests: boolean;
@@ -117,7 +128,9 @@ export class SubAccountService {
   }> {
     try {
       if (!staffUserId || !eventOrganizerId) {
-        throw new BadRequestException('Staff User ID and Organizer User ID are required');
+        throw new BadRequestException(
+          'Staff User ID and Organizer User ID are required',
+        );
       }
 
       if (staffUserId === eventOrganizerId) {
@@ -126,7 +139,7 @@ export class SubAccountService {
           canManageGuests: true,
           isExpired: false,
           message: 'Organizer has inherent check-in privileges',
-          subAccount: null
+          subAccount: null,
         };
       }
 
@@ -135,9 +148,8 @@ export class SubAccountService {
           owner_user: { user_id: eventOrganizerId },
           sub_account_user: { user_id: staffUserId },
         },
-        relations: ['owner_user', 'sub_account_user']
+        relations: ['owner_user', 'sub_account_user'],
       });
-
 
       if (!subAccount) {
         return {
@@ -145,12 +157,12 @@ export class SubAccountService {
           canManageGuests: false,
           isExpired: false,
           message: 'No valid sub-account relationship found',
-          subAccount: null
+          subAccount: null,
         };
       }
 
-      const today = new Date()
-      const expire_date = new Date(subAccount.expire_date)
+      const today = new Date();
+      const expire_date = new Date(subAccount.expire_date);
 
       if (expire_date < today) {
         const formattedDate = `${expire_date.getFullYear()}-${(expire_date.getMonth() + 1).toString().padStart(2, '0')}-${expire_date.getDate().toString().padStart(2, '0')}`;
@@ -159,11 +171,12 @@ export class SubAccountService {
           canManageGuests: false,
           isExpired: true,
           message: `Sub-account expired on ${formattedDate}`,
-          subAccount: null
+          subAccount: null,
         };
       }
 
-      const canManageGuests = subAccount.privileges?.includes(Privileges.MANAGE_GUESTS) ?? false;
+      const canManageGuests =
+        subAccount.privileges?.includes(Privileges.MANAGE_GUESTS) ?? false;
       const hasPrivilege = canManageGuests;
 
       if (!hasPrivilege) {
@@ -172,7 +185,7 @@ export class SubAccountService {
           canManageGuests: false,
           isExpired: false,
           message: 'Sub-account lacks required privileges',
-          subAccount: subAccount
+          subAccount: subAccount,
         };
       }
 
@@ -182,7 +195,7 @@ export class SubAccountService {
           canManageGuests: false,
           isExpired: false,
           message: `Sub-account status is ${subAccount.status?.toString() || 'undefined'} - must be active`,
-          subAccount
+          subAccount,
         };
       }
 
@@ -190,9 +203,8 @@ export class SubAccountService {
         hasPrivilege: true,
         canManageGuests: true,
         isExpired: false,
-        subAccount
+        subAccount,
       };
-
     } catch (error) {
       console.error('Error checking check-in privilege:', error);
       throw error;

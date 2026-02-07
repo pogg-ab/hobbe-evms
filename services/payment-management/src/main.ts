@@ -1,15 +1,28 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { corsConfig } from './config/cors.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors(corsConfig);
 
   const config = new DocumentBuilder()
-    .setTitle('Payment Microservice API Documentation')
-    .setDescription('API documentation for paymeny microservice')
+    .setTitle('Payment Microservice API Docs')
+    .setDescription('API documentation for payment microservice')
     .setVersion('1.0')
-    .addTag('Payments')  
+    .addTag('Payments')
+    .addBearerAuth(
+      {
+        description: `Please enter token in format Bearer <token>`,
+        name: 'Authorization',
+        bearerFormat: 'Bearer',
+        scheme: 'Bearer',
+        type: 'http',
+        in: 'Header',
+      },
+      'access-token',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

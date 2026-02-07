@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Param, Body, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, HttpCode, UseInterceptors } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import { WiseService } from 'src/application/services/payment-methods/wise/wise.service';
+
 
 @Controller('wise')
 export class WiseController {

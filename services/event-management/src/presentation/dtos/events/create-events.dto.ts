@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 import { IdValueObject } from 'src/domain/value-objects/event-id.value-object';
 import { CreateBankAccountDto } from 'src/presentation/dtos/bank-accounts/create-bank-acounts.dto';
 import { CreateTicketsHeadingDto } from '../tickets/create-tickets-heading.dto';
@@ -14,9 +14,18 @@ export class CreateEventsDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ description: 'Event Thumbnail', example: 'https://3.files.edl.io/7e26/22/02/01/162416-f4c177eb-1c0c-4604-ad72-2fc53c318332.jpg' })
-  // @IsNotEmpty()
-  thumbnail?: string;
+  @ApiProperty({
+    description: 'Event Thumbnails',
+    isArray: true,
+    example: [
+      'https://3.files.edl.io/7e26/22/02/01/162416-f4c177eb-1c0c-4604-ad72-2fc53c318332.jpg',
+      'https://3.files.edl.io/7e26/22/02/01/162417-f4c177eb-1c0c-4604-ad72-2fc53c318333.jpg',
+    ],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  thumbnails?: string[];
 
   // @ApiProperty({ description: 'Event Cover Image', example: 'https://3.files.edl.io/7e26/22/02/01/162416-f4c177eb-1c0c-4604-ad72-2fc53c318332.jpg' })
   // // @IsNotEmpty()
@@ -25,7 +34,6 @@ export class CreateEventsDto {
   @ApiProperty({ description: 'Event Type', example: 'In Person' })
   @IsNotEmpty()
   event_type: string;
-   
 
   @ApiProperty({ description: 'Event Has Promocode ?', example: false })
   @IsNotEmpty()
@@ -70,7 +78,7 @@ export class CreateEventsDto {
   @ApiProperty({
     description: 'Event Category',
     isArray: true,
-    example:['Sports','Health'],
+    example: ['Sports', 'Health'],
   })
   @IsNotEmpty()
   categories: string[];

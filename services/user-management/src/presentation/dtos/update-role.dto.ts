@@ -1,18 +1,24 @@
-// src/admin/dtos/update-role.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsUUID } from 'class-validator';
 
 export class UpdateRoleDto {
-  @ApiProperty({ description: 'The name of the role', example: 'Admin' })
-  @IsOptional()
+  @ApiProperty({ example: 'New Role Name', required: false })
   @IsString()
+  @IsOptional()
   name?: string;
 
-  @ApiProperty({
-    description: 'A brief description of the role',
-    example: 'Administrator with full access',
-  })
-  @IsOptional()
+  @ApiProperty({ example: 'New description', required: false })
   @IsString()
+  @IsOptional()
   description?: string;
+
+  @ApiProperty({
+    description: 'An array of permission UUIDs to assign to the role.',
+    example: ['uuid-1', 'uuid-2'],
+    required: false,
+  })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  permissions?: string[];
 }

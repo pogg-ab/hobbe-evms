@@ -15,23 +15,41 @@ import { UpdateCommentsCommandHandler } from 'src/application/handlers/comments/
 import { RemoveCommentsCommandHandler } from 'src/application/handlers/comments/remove-comments.handler';
 import { SocketIo } from 'src/infrastructure/socket-io/socket.gateway';
 import { UserInfoService } from 'src/application/services/user-info/user-info.service';
-import { ClientsModule } from '@nestjs/microservices';
+import { ClientsModule, Transport } from '@nestjs/microservices'; // <-- Ensure Transport is imported
 import { kafkaProducerConfig } from 'src/infrastructure/kafka/kafka.config';
 import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.config';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
     AutomapperModule,
     TypeOrmModule.forFeature([Comments]),
     CqrsModule,
+    AuditLogModule,
+    JwtModule.register({}),
     ClientsModule.register([
+      // This is one of your existing clients
       {
         name: 'KAFKA_VALIDATE_USER_SERVICE',
         transport: kafkaProducerConfig.transport,
         options: kafkaProducerConfig.options,
       },
+      // --- THIS IS THE FIX ---
+      // Add the KAFKA_PRODUCER client that the interceptor needs
+      {
+        name: 'KAFKA_PRODUCER',
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            clientId: 'event-management-producer',
+            brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
+          },
+        },
+      },
     ]),
     ClientsModule.registerAsync([
+      // This is your other existing client
       {
         name: 'KAFKA_USER_SERVICE',
         useFactory: async () => ({
@@ -51,12 +69,12 @@ import { kafkaUserInfoConfig } from 'src/infrastructure/kafka/kafka.user-info.co
     FindByEventCommentsQueryHandler,
     UpdateCommentsCommandHandler,
     RemoveCommentsCommandHandler,
-    UserInfoService, // Assuming UserInfoService is defined and imported
+    UserInfoService,
     {
       provide: COMMENTS_REPOSITORY_TOKEN,
       useClass: CommentsRepositoryImpl,
     },
   ],
-  exports: [COMMENTS_REPOSITORY_TOKEN], // Export for use in other modules
+  exports: [COMMENTS_REPOSITORY_TOKEN],
 })
 export class CommentsModule {}
